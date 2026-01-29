@@ -115,6 +115,8 @@ class ProfileService:
             enhanced_criteria=data.enhanced_criteria.model_dump() if data.enhanced_criteria else None,
             strategies=data.strategies.model_dump() if data.strategies else None,
             scoring_weights=data.scoring_weights.model_dump(),
+            mfp_policy=data.mfp_policy.model_dump() if data.mfp_policy else None,
+            criterion_multipliers=data.criterion_multipliers.model_dump() if data.criterion_multipliers else None,
             default_iterations=data.default_iterations,
             default_randomness=data.default_randomness,
         )
@@ -182,6 +184,12 @@ class ProfileService:
 
         if data.scoring_weights is not None:
             profile.scoring_weights = data.scoring_weights.model_dump()
+
+        if data.mfp_policy is not None:
+            profile.mfp_policy = data.mfp_policy.model_dump()
+
+        if data.criterion_multipliers is not None:
+            profile.criterion_multipliers = data.criterion_multipliers.model_dump()
 
         if data.default_iterations is not None:
             profile.default_iterations = data.default_iterations
@@ -289,6 +297,8 @@ class ProfileService:
             "enhanced_criteria": profile.enhanced_criteria,
             "strategies": profile.strategies,
             "scoring_weights": profile.scoring_weights or {},
+            "mfp_policy": profile.mfp_policy,
+            "criterion_multipliers": profile.criterion_multipliers,
             "default_iterations": profile.default_iterations,
             "default_randomness": profile.default_randomness,
             "labels": [label.label for label in profile.labels] if profile.labels else [],
@@ -316,6 +326,8 @@ class ProfileService:
             "enhanced_criteria": profile.enhanced_criteria,
             "strategies": profile.strategies,
             "scoring_weights": profile.scoring_weights,
+            "mfp_policy": profile.mfp_policy,
+            "criterion_multipliers": profile.criterion_multipliers,
             "default_iterations": profile.default_iterations,
             "default_randomness": profile.default_randomness,
             "labels": [label.label for label in profile.labels],

@@ -529,6 +529,7 @@ async def _run_scoring(
                 total_score += score_result.total_score
 
                 # Build program result with full scoring details (same format as programming)
+                # Use skipped flag to return None for skipped criteria (e.g., timing for middle programs)
                 scored_programs.append({
                     "id": str(uuid4()),
                     "title": content.get("title", "Unknown"),
@@ -546,13 +547,17 @@ async def _run_scoring(
                     "score": {
                         "total": score_result.total_score,
                         "breakdown": {
-                            name: res.score
+                            name: (res.score if not res.skipped else None)
                             for name, res in score_result.criterion_results.items()
                         },
                         "criteria": {
                             name: {
-                                "score": res.score,
+                                "score": res.score if not res.skipped else None,
                                 "weight": res.weight,
+                                "weighted_score": res.weighted_score,
+                                "multiplier": res.multiplier,
+                                "multiplied_weighted_score": res.multiplied_weighted_score,
+                                "skipped": res.skipped,
                                 "details": res.details,  # Include criterion-specific details
                                 "rule_violation": {
                                     "rule_type": res.rule_violation.rule_type,

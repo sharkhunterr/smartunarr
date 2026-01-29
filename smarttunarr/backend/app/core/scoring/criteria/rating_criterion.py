@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, ScoringContext
+from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, RuleViolation, ScoringContext
 
 
 class RatingCriterion(BaseCriterion):
@@ -90,16 +90,19 @@ class RatingCriterion(BaseCriterion):
         """Evaluate criterion with optional rules check."""
         score = self.calculate(content, content_meta, profile, block, context)
         weight = self.get_weight(profile)
+        multiplier = self.get_multiplier(profile, block)
+        mfp_policy = self.get_mfp_policy(profile, block)
 
         # Check for per-criterion rules
         # For rating, rules use categories: "excellent", "good", "average", "poor"
+        # Logic: content has ONE category, mandatory means "must be one of these"
         rule_violation = None
         if block and content_meta:
             block_criteria = block.get("criteria", {})
             rating_rules = block_criteria.get("rating_rules")
             if rating_rules:
                 tmdb_rating = content_meta.get("tmdb_rating")
-                rating_categories = []
+                rating_category = None
                 if tmdb_rating is not None:
                     try:
                         tmdb_rating = float(tmdb_rating)
@@ -107,23 +110,49 @@ class RatingCriterion(BaseCriterion):
                         tmdb_rating = None
                 if tmdb_rating is not None:
                     if tmdb_rating >= 8.0:
-                        rating_categories.append("excellent")
+                        rating_category = "excellent"
                     elif tmdb_rating >= 7.0:
-                        rating_categories.append("good")
+                        rating_category = "good"
                     elif tmdb_rating >= 5.0:
-                        rating_categories.append("average")
+                        rating_category = "average"
                     else:
-                        rating_categories.append("poor")
-                    # Also add rounded rating for precise matching
-                    rating_categories.append(f"{tmdb_rating:.1f}")
-                adjustment, rule_violation = self.check_rules(rating_categories, rating_rules)
-                score += adjustment
+                        rating_category = "poor"
+
+                if rating_category:
+                    # Custom M/F/P logic for rating (single category vs list of allowed/forbidden)
+                    forbidden = [v.lower() for v in (rating_rules.get("forbidden_values") or [])]
+                    mandatory = [v.lower() for v in (rating_rules.get("mandatory_values") or [])]
+                    preferred = [v.lower() for v in (rating_rules.get("preferred_values") or [])]
+
+                    # Check forbidden first (highest priority)
+                    if rating_category.lower() in forbidden:
+                        penalty = rating_rules.get("forbidden_penalty", mfp_policy.forbidden_detected_penalty)
+                        rule_violation = RuleViolation("forbidden", [rating_category], penalty)
+                        score += penalty
+                    # Check mandatory (content category must be IN the mandatory list)
+                    elif mandatory and rating_category.lower() not in mandatory:
+                        penalty = rating_rules.get("mandatory_penalty", mfp_policy.mandatory_missed_penalty)
+                        rule_violation = RuleViolation("mandatory", mandatory, penalty)
+                        score += penalty
+                    # Check preferred (bonus if in preferred list)
+                    elif rating_category.lower() in preferred:
+                        bonus = rating_rules.get("preferred_bonus", mfp_policy.preferred_matched_bonus)
+                        rule_violation = RuleViolation("preferred", [rating_category], bonus)
+                        score += bonus
+                    # If mandatory is defined and category matches, give bonus
+                    elif mandatory and rating_category.lower() in mandatory:
+                        bonus = mfp_policy.mandatory_matched_bonus
+                        rule_violation = RuleViolation("mandatory", [rating_category], bonus)
+                        score += bonus
 
         score = max(0.0, min(100.0, score))
+        weighted_score = score * weight / 100.0
         return CriterionResult(
             name=self.name,
             score=score,
             weight=weight,
-            weighted_score=score * weight / 100.0,
+            weighted_score=weighted_score,
+            multiplier=multiplier,
+            multiplied_weighted_score=weighted_score * multiplier,
             rule_violation=rule_violation,
         )

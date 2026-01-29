@@ -25,6 +25,8 @@ class Profile(BaseModel):
     enhanced_criteria: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     strategies: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     scoring_weights: Mapped[dict[str, float]] = mapped_column(JSON, nullable=False, default=dict)
+    mfp_policy: Mapped[dict[str, float] | None] = mapped_column(JSON, nullable=True)
+    criterion_multipliers: Mapped[dict[str, float] | None] = mapped_column(JSON, nullable=True)
     default_iterations: Mapped[int] = mapped_column(Integer, default=10, nullable=False)
     default_randomness: Mapped[float] = mapped_column(Float, default=0.3, nullable=False)
 

@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, ScoringContext
+from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, RuleViolation, ScoringContext
 
 
 class TypeCriterion(BaseCriterion):
@@ -74,23 +74,52 @@ class TypeCriterion(BaseCriterion):
         """Evaluate criterion with optional rules check."""
         score = self.calculate(content, content_meta, profile, block, context)
         weight = self.get_weight(profile)
+        multiplier = self.get_multiplier(profile, block)
+        mfp_policy = self.get_mfp_policy(profile, block)
 
         # Check for per-criterion rules
+        # Logic: content has ONE type, mandatory means "must be one of these"
         rule_violation = None
         if block:
             block_criteria = block.get("criteria", {})
             type_rules = block_criteria.get("type_rules")
             if type_rules:
-                content_type = content.get("type", "")
-                content_values = [content_type] if content_type else []
-                adjustment, rule_violation = self.check_rules(content_values, type_rules)
-                score += adjustment
+                content_type = content.get("type", "").lower()
+                if content_type:
+                    # Custom M/F/P logic for type (single type vs list of allowed/forbidden)
+                    forbidden = [v.lower() for v in (type_rules.get("forbidden_values") or [])]
+                    mandatory = [v.lower() for v in (type_rules.get("mandatory_values") or [])]
+                    preferred = [v.lower() for v in (type_rules.get("preferred_values") or [])]
+
+                    # Check forbidden first (highest priority)
+                    if content_type in forbidden:
+                        penalty = type_rules.get("forbidden_penalty", mfp_policy.forbidden_detected_penalty)
+                        rule_violation = RuleViolation("forbidden", [content_type], penalty)
+                        score += penalty
+                    # Check mandatory (content type must be IN the mandatory list)
+                    elif mandatory and content_type not in mandatory:
+                        penalty = type_rules.get("mandatory_penalty", mfp_policy.mandatory_missed_penalty)
+                        rule_violation = RuleViolation("mandatory", mandatory, penalty)
+                        score += penalty
+                    # Check preferred (bonus if in preferred list)
+                    elif content_type in preferred:
+                        bonus = type_rules.get("preferred_bonus", mfp_policy.preferred_matched_bonus)
+                        rule_violation = RuleViolation("preferred", [content_type], bonus)
+                        score += bonus
+                    # If mandatory is defined and type matches, give bonus
+                    elif mandatory and content_type in mandatory:
+                        bonus = mfp_policy.mandatory_matched_bonus
+                        rule_violation = RuleViolation("mandatory", [content_type], bonus)
+                        score += bonus
 
         score = max(0.0, min(100.0, score))
+        weighted_score = score * weight / 100.0
         return CriterionResult(
             name=self.name,
             score=score,
             weight=weight,
-            weighted_score=score * weight / 100.0,
+            weighted_score=weighted_score,
+            multiplier=multiplier,
+            multiplied_weighted_score=weighted_score * multiplier,
             rule_violation=rule_violation,
         )

@@ -185,8 +185,8 @@ export function ProgramCard({ program, showScore = false, compact = false }: Pro
                     <span className="text-gray-500 dark:text-gray-400">
                       {t(`scoring.criteria.${key}`)}
                     </span>
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {value.toFixed(1)}
+                    <span className={`font-medium ${value == null ? 'text-gray-400' : 'text-gray-900 dark:text-white'}`}>
+                      {value == null ? '-' : value.toFixed(1)}
                     </span>
                   </div>
                 ))}

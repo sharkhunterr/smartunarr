@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, ScoringContext
+from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, MFPPolicyConfig, RuleViolation, ScoringContext
 
 
 class FilterCriterion(BaseCriterion):
@@ -12,29 +12,34 @@ class FilterCriterion(BaseCriterion):
     weight_key = "filter"
     default_weight = 20.0
 
-    def calculate(
+    def _calculate_with_mfp(
         self,
         content: dict[str, Any],
         content_meta: dict[str, Any] | None,
         profile: dict[str, Any],
         block: dict[str, Any] | None = None,
         context: ScoringContext | None = None,
-    ) -> float:
+        mfp_policy: MFPPolicyConfig | None = None,
+    ) -> tuple[float, RuleViolation | None, list[str]]:
         """
-        Calculate filter compliance score.
+        Calculate filter compliance score using MFP policy.
 
-        - 0: Matches forbidden keyword/studio
-        - 100: Matches preferred keyword/studio
-        - 50: No match with any filter (neutral)
+        Returns:
+            Tuple of (score, rule_violation, matched_keywords)
         """
         if not content_meta:
-            return 50.0  # Neutral if no metadata
+            return 50.0, None, []
+
+        # Get MFP bonus/penalty values (use defaults if not provided)
+        preferred_bonus = mfp_policy.preferred_matched_bonus if mfp_policy else 20.0
+        forbidden_penalty = mfp_policy.forbidden_detected_penalty if mfp_policy else -400.0
 
         content_keywords = set(k.lower() for k in content_meta.get("keywords", []))
         content_studios = set(s.lower() for s in content_meta.get("studios", []))
         content_title = content.get("title", "").lower()
 
         # Get filters from block or profile
+        filter_rules = None
         if block:
             block_criteria = block.get("criteria", {})
             forbidden_keywords = set(k.lower() for k in block_criteria.get("forbidden_keywords", []))
@@ -44,8 +49,15 @@ class FilterCriterion(BaseCriterion):
             # Also include from filter_rules if defined
             filter_rules = block_criteria.get("filter_rules", {})
             if filter_rules:
-                forbidden_keywords |= set(k.lower() for k in filter_rules.get("forbidden_values", []))
-                preferred_keywords |= set(k.lower() for k in filter_rules.get("preferred_values", []))
+                forbidden_keywords |= set(k.lower() for k in (filter_rules.get("forbidden_values") or []))
+                preferred_keywords |= set(k.lower() for k in (filter_rules.get("preferred_values") or []))
+                # MFP policy takes precedence, only use rule-specific values as fallback
+                # if MFP policy wasn't provided
+                if not mfp_policy:
+                    if filter_rules.get("preferred_bonus") is not None:
+                        preferred_bonus = filter_rules["preferred_bonus"]
+                    if filter_rules.get("forbidden_penalty") is not None:
+                        forbidden_penalty = filter_rules["forbidden_penalty"]
         else:
             criteria = profile.get("mandatory_forbidden_criteria", {})
             forbidden_keywords = set(k.lower() for k in criteria.get("forbidden_keywords", []))
@@ -53,53 +65,79 @@ class FilterCriterion(BaseCriterion):
             forbidden_studios = set(s.lower() for s in criteria.get("forbidden_studios", []))
             preferred_studios = set(s.lower() for s in criteria.get("preferred_studios", []))
 
+        rule_violation = None
+        matched_keywords: list[str] = []
+
         # Check forbidden filters first (use substring matching)
         if forbidden_keywords:
             # Check keywords with substring matching
             for content_kw in content_keywords:
                 for forbidden_kw in forbidden_keywords:
                     if forbidden_kw in content_kw:
-                        return 0.0
+                        rule_violation = RuleViolation("forbidden", [forbidden_kw], forbidden_penalty)
+                        return 0.0, rule_violation, []
             # Check title for forbidden keywords
             for keyword in forbidden_keywords:
                 if keyword in content_title:
-                    return 0.0
+                    rule_violation = RuleViolation("forbidden", [keyword], forbidden_penalty)
+                    return 0.0, rule_violation, []
 
         if forbidden_studios and content_studios & forbidden_studios:
-            return 0.0
+            matched_forbidden = list(content_studios & forbidden_studios)
+            rule_violation = RuleViolation("forbidden", matched_forbidden, forbidden_penalty)
+            return 0.0, rule_violation, []
 
         score = 50.0  # Base score (neutral)
 
-        # Bonus for preferred matches - use substring matching and stack bonuses
+        # Bonus for preferred matches - use MFP policy bonus
         if preferred_keywords:
-            matched_count = 0
             matched_preferred = set()  # Track which preferred keywords matched
 
             # Check each content keyword against preferred keywords
             for content_kw in content_keywords:
                 for pref_kw in preferred_keywords:
                     # Match if preferred keyword is contained in content keyword
-                    # e.g., "superhero" in "superhero team", "dc" in "dc extended universe"
                     if pref_kw in content_kw:
-                        matched_count += 1
                         matched_preferred.add(pref_kw)
                         break  # Count each content keyword only once
 
             # Also check title for preferred keywords not yet matched
             for pref_kw in preferred_keywords:
                 if pref_kw not in matched_preferred and pref_kw in content_title:
-                    matched_count += 1
+                    matched_preferred.add(pref_kw)
 
-            # Stack bonuses: +5 per match, max 50 points from keywords
-            if matched_count > 0:
-                score += min(50.0, matched_count * 5.0)
+            # Apply bonus based on MFP policy - scale by number of matches
+            if matched_preferred:
+                matched_keywords = list(matched_preferred)
+                # Base bonus for first match, then diminishing returns for additional matches
+                # First match gets full bonus, subsequent matches get 20% each (max 50 points total)
+                bonus = preferred_bonus + min(30.0, (len(matched_preferred) - 1) * (preferred_bonus * 0.2))
+                score += bonus
+                rule_violation = RuleViolation("preferred", matched_keywords, bonus)
 
         if preferred_studios:
             studio_matches = content_studios & preferred_studios
             if studio_matches:
-                score += min(20.0, len(studio_matches) * 10.0)
+                # Studios also use MFP bonus, scaled
+                studio_bonus = min(preferred_bonus, len(studio_matches) * (preferred_bonus * 0.5))
+                score += studio_bonus
+                # If no keyword match yet, create violation for studios
+                if not rule_violation:
+                    rule_violation = RuleViolation("preferred", list(studio_matches), studio_bonus)
 
-        return min(100.0, score)
+        return min(100.0, score), rule_violation, matched_keywords
+
+    def calculate(
+        self,
+        content: dict[str, Any],
+        content_meta: dict[str, Any] | None,
+        profile: dict[str, Any],
+        block: dict[str, Any] | None = None,
+        context: ScoringContext | None = None,
+    ) -> float:
+        """Calculate filter compliance score (for backward compatibility)."""
+        score, _, _ = self._calculate_with_mfp(content, content_meta, profile, block, context)
+        return score
 
     def evaluate(
         self,
@@ -109,32 +147,25 @@ class FilterCriterion(BaseCriterion):
         block: dict[str, Any] | None = None,
         context: ScoringContext | None = None,
     ) -> CriterionResult:
-        """Evaluate criterion with optional rules check."""
-        score = self.calculate(content, content_meta, profile, block, context)
+        """Evaluate criterion with MFP policy applied."""
         weight = self.get_weight(profile)
+        multiplier = self.get_multiplier(profile, block)
+        mfp_policy = self.get_mfp_policy(profile, block)
 
-        # Check for per-criterion rules (for RuleViolation reporting only)
-        # Score adjustment already handled in calculate()
-        rule_violation = None
-        if block and content_meta:
-            block_criteria = block.get("criteria", {})
-            filter_rules = block_criteria.get("filter_rules")
-            if filter_rules:
-                # Combine keywords, studios, and title words for matching
-                content_values = list(content_meta.get("keywords", []))
-                content_values.extend(content_meta.get("studios", []))
-                # Add title words
-                title = content.get("title", "")
-                if title:
-                    content_values.extend(title.split())
-                # Only get violation for reporting, don't apply adjustment
-                _, rule_violation = self.check_rules(content_values, filter_rules)
+        # Calculate score with MFP policy and get rule violation
+        score, rule_violation, matched_keywords = self._calculate_with_mfp(
+            content, content_meta, profile, block, context, mfp_policy
+        )
 
         score = max(0.0, min(100.0, score))
+        weighted_score = score * weight / 100.0
         return CriterionResult(
             name=self.name,
             score=score,
             weight=weight,
-            weighted_score=score * weight / 100.0,
+            weighted_score=weighted_score,
+            multiplier=multiplier,
+            multiplied_weighted_score=weighted_score * multiplier,
+            details={"matched_keywords": matched_keywords} if matched_keywords else None,
             rule_violation=rule_violation,
         )

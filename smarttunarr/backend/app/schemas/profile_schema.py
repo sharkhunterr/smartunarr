@@ -5,6 +5,37 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+class MFPPolicy(BaseModel):
+    """Configurable M/F/P (Mandatory/Forbidden/Preferred) point policy."""
+
+    mandatory_matched_bonus: float = Field(
+        10.0, description="Bonus when mandatory requirement is met"
+    )
+    mandatory_missed_penalty: float = Field(
+        -40.0, description="Penalty when mandatory requirement is not met"
+    )
+    forbidden_detected_penalty: float = Field(
+        -400.0, description="Penalty when forbidden value is detected"
+    )
+    preferred_matched_bonus: float = Field(
+        20.0, description="Bonus when preferred value is matched"
+    )
+
+
+class CriterionMultipliers(BaseModel):
+    """Multipliers for each scoring criterion (default 1.0 = no change)."""
+
+    type: float = Field(1.0, ge=0.0, le=10.0, description="Multiplier for type criterion")
+    duration: float = Field(1.0, ge=0.0, le=10.0, description="Multiplier for duration criterion")
+    genre: float = Field(1.0, ge=0.0, le=10.0, description="Multiplier for genre criterion")
+    timing: float = Field(1.0, ge=0.0, le=10.0, description="Multiplier for timing criterion")
+    strategy: float = Field(1.0, ge=0.0, le=10.0, description="Multiplier for strategy criterion")
+    age: float = Field(1.0, ge=0.0, le=10.0, description="Multiplier for age criterion")
+    rating: float = Field(1.0, ge=0.0, le=10.0, description="Multiplier for rating criterion")
+    filter: float = Field(1.0, ge=0.0, le=10.0, description="Multiplier for filter criterion")
+    bonus: float = Field(1.0, ge=0.0, le=10.0, description="Multiplier for bonus criterion")
+
+
 class CriterionRules(BaseModel):
     """Optional rules for a scoring criterion (mandatory/forbidden/preferred)."""
 
@@ -68,6 +99,9 @@ class BlockCriteria(BaseModel):
     rating_rules: CriterionRules | None = Field(None, description="Rules for rating criterion")
     filter_rules: CriterionRules | None = Field(None, description="Rules for filter criterion")
     bonus_rules: CriterionRules | None = Field(None, description="Rules for bonus criterion")
+    # M/F/P policy and multipliers (override profile-level if defined)
+    mfp_policy: MFPPolicy | None = Field(None, description="M/F/P point policy for this block")
+    criterion_multipliers: CriterionMultipliers | None = Field(None, description="Criterion score multipliers for this block")
 
 
 class TimeBlock(BaseModel):
@@ -346,6 +380,9 @@ class ProfileCreate(BaseModel):
     enhanced_criteria: EnhancedCriteria = Field(default_factory=EnhancedCriteria)
     strategies: Strategies | None = Field(default_factory=Strategies)
     scoring_weights: ScoringWeights = Field(default_factory=ScoringWeights)
+    # M/F/P policy and multipliers (profile-level defaults, can be overridden per block)
+    mfp_policy: MFPPolicy = Field(default_factory=MFPPolicy, description="Default M/F/P point policy")
+    criterion_multipliers: CriterionMultipliers = Field(default_factory=CriterionMultipliers, description="Default criterion multipliers")
     default_iterations: int = Field(10, ge=1, le=100)
     default_randomness: float = Field(0.3, ge=0, le=1)
     labels: list[str] = Field(default_factory=list)
@@ -362,6 +399,8 @@ class ProfileUpdate(BaseModel):
     enhanced_criteria: EnhancedCriteria | None = None
     strategies: Strategies | None = None
     scoring_weights: ScoringWeights | None = None
+    mfp_policy: MFPPolicy | None = None
+    criterion_multipliers: CriterionMultipliers | None = None
     default_iterations: int | None = Field(None, ge=1, le=100)
     default_randomness: float | None = Field(None, ge=0, le=1)
     labels: list[str] | None = None
@@ -380,6 +419,8 @@ class ProfileResponse(BaseModel):
     enhanced_criteria: dict[str, Any] | None = None
     strategies: dict[str, Any] | None
     scoring_weights: dict[str, float]
+    mfp_policy: dict[str, float] | None = None
+    criterion_multipliers: dict[str, float] | None = None
     default_iterations: int
     default_randomness: float
     labels: list[str]

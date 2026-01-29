@@ -34,18 +34,22 @@ class ScoringResult:
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         # Build breakdown with just scores for frontend compatibility
+        # Skipped criteria have None instead of a score
         breakdown = {
-            name: result.score
+            name: (result.score if not result.skipped else None)
             for name, result in self.criterion_results.items()
         }
 
-        # Build criteria dict with rule violations
+        # Build criteria dict with rule violations and multipliers
         criteria_dict = {}
         for name, result in self.criterion_results.items():
             criterion_data = {
-                "score": result.score,
+                "score": result.score if not result.skipped else None,
                 "weight": result.weight,
                 "weighted_score": result.weighted_score,
+                "multiplier": result.multiplier,
+                "multiplied_weighted_score": result.multiplied_weighted_score,
+                "skipped": result.skipped,
             }
             # Add rule violation if present
             if result.rule_violation:
@@ -114,14 +118,16 @@ class ScoringEngine:
         criterion_results: dict[str, CriterionResult] = {}
         criterion_rule_violations: dict[str, dict[str, Any]] = {}
         total_weight = 0.0
-        weighted_sum = 0.0
+        multiplied_weighted_sum = 0.0
 
         # Evaluate each criterion
         for criterion in self.criteria:
             result = criterion.evaluate(content, content_meta, profile, block, context)
             criterion_results[criterion.name] = result
-            total_weight += result.weight
-            weighted_sum += result.weighted_score
+            # Use weight * multiplier for total weight calculation
+            effective_weight = result.weight * result.multiplier
+            total_weight += effective_weight
+            multiplied_weighted_sum += result.multiplied_weighted_score
 
             # Collect per-criterion rule violations
             if result.rule_violation:
@@ -131,9 +137,9 @@ class ScoringEngine:
                     "penalty_or_bonus": result.rule_violation.penalty_or_bonus,
                 }
 
-        # Calculate weighted total (normalize to 0-100)
+        # Calculate weighted total (normalize to 0-100) using multiplied scores
         if total_weight > 0:
-            weighted_total = (weighted_sum / total_weight) * 100
+            weighted_total = (multiplied_weighted_sum / total_weight) * 100
         else:
             weighted_total = 50.0  # Default neutral score
 

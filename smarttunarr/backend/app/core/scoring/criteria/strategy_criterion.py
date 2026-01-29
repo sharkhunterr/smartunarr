@@ -87,37 +87,55 @@ class StrategyCriterion(BaseCriterion):
         """Evaluate criterion with optional rules check."""
         score = self.calculate(content, content_meta, profile, block, context)
         weight = self.get_weight(profile)
+        multiplier = self.get_multiplier(profile, block)
+        mfp_policy = self.get_mfp_policy(profile, block)
 
         # Check for per-criterion rules
-        # For strategy, rules use strategy names: "sequence", "variety", "marathon", "filler"
+        # For strategy, rules check content characteristics, not profile settings
+        # "filler" = content IS filler type (trailer, etc.)
+        # "variety" = content has diverse genres
+        # "marathon" = content is part of a collection/franchise
         rule_violation = None
         if block:
             block_criteria = block.get("criteria", {})
             strategy_rules = block_criteria.get("strategy_rules")
             if strategy_rules:
                 strategies = profile.get("strategies", {})
-                active_strategies = []
-                if strategies.get("maintain_sequence", False):
-                    active_strategies.append("sequence")
-                if strategies.get("maximize_variety", False):
-                    active_strategies.append("variety")
-                if strategies.get("marathon_mode", False):
-                    active_strategies.append("marathon")
-                if strategies.get("filler_insertion", {}).get("enabled", False):
-                    active_strategies.append("filler")
-                # Add content type for matching
-                content_type = content.get("type", "")
-                if content_type:
-                    active_strategies.append(content_type)
+                content_characteristics = []
 
-                adjustment, rule_violation = self.check_rules(active_strategies, strategy_rules)
+                # Check if content IS a filler type (not if filler is enabled in profile)
+                content_type = content.get("type", "").lower()
+                filler_types = strategies.get("filler_insertion", {}).get("types", ["trailer"])
+                filler_types_lower = [t.lower() for t in filler_types]
+                if content_type in filler_types_lower:
+                    content_characteristics.append("filler")
+
+                # Check if content has variety (multiple genres)
+                if content_meta:
+                    genres = content_meta.get("genres", [])
+                    if len(genres) >= 2:
+                        content_characteristics.append("variety")
+
+                    # Check if content is part of a collection (marathon-suitable)
+                    collections = content_meta.get("collections", [])
+                    if collections:
+                        content_characteristics.append("marathon")
+
+                # Add content type for type-based matching
+                if content_type:
+                    content_characteristics.append(content_type)
+
+                adjustment, rule_violation = self.check_rules(content_characteristics, strategy_rules, mfp_policy)
                 score += adjustment
 
         score = max(0.0, min(100.0, score))
+        weighted_score = score * weight / 100.0
         return CriterionResult(
             name=self.name,
             score=score,
             weight=weight,
-            weighted_score=score * weight / 100.0,
+            weighted_score=weighted_score,
+            multiplier=multiplier,
+            multiplied_weighted_score=weighted_score * multiplier,
             rule_violation=rule_violation,
         )

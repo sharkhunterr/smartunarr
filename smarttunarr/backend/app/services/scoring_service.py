@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from app.core.scoring.base_criterion import ScoringContext
 from app.core.scoring.engine import ScoringEngine, ScoringResult
 from app.models.channel import Channel, Program
 from app.models.content import Content, ContentMeta
@@ -103,6 +104,22 @@ class ScoringService:
         all_penalties: list[dict[str, Any]] = []
         total_score = 0.0
 
+        # Group programs by block to identify first/last in each block
+        programs_by_block: dict[str, list[Any]] = {}
+        for program in programs:
+            block_name = program.block_name or "Unknown"
+            if block_name not in programs_by_block:
+                programs_by_block[block_name] = []
+            programs_by_block[block_name].append(program)
+
+        # Create sets of first and last program IDs for each block
+        first_in_block_ids: set[str] = set()
+        last_in_block_ids: set[str] = set()
+        for block_programs in programs_by_block.values():
+            if block_programs:
+                first_in_block_ids.add(block_programs[0].id)
+                last_in_block_ids.add(block_programs[-1].id)
+
         for program in programs:
             # Load content and metadata
             content = await self.session.get(Content, program.content_id)
@@ -116,6 +133,8 @@ class ScoringService:
                 "type": content.type,
                 "duration_ms": content.duration_ms,
                 "year": content.year,
+                "start_time": program.start_time.isoformat() if program.start_time else None,
+                "end_time": program.end_time.isoformat() if program.end_time else None,
             }
 
             # Load metadata
@@ -141,12 +160,24 @@ class ScoringService:
                 profile.time_blocks,
             )
 
+            # Create scoring context with first/last in block information
+            is_first = program.id in first_in_block_ids
+            is_last = program.id in last_in_block_ids
+            scoring_context = ScoringContext(
+                current_time=program.start_time,
+                block_start_time=None,  # Will be computed from block if needed
+                block_end_time=None,  # Will be computed from block if needed
+                is_first_in_block=is_first,
+                is_last_in_block=is_last,
+            )
+
             # Score the program
             score = self.scoring_engine.score(
                 content_dict,
                 meta_dict,
                 profile_dict,
                 block_dict,
+                scoring_context,
             )
 
             program_scores.append(ProgramScore(

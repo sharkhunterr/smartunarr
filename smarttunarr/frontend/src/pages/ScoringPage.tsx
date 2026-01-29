@@ -23,7 +23,7 @@ import {
 import clsx from 'clsx'
 import { profilesApi, tunarrApi, scoringApi } from '@/services/api'
 import { useJobsStore, Job } from '@/stores/useJobsStore'
-import type { Profile, TunarrChannel, ScoringResult, ProgramItem, ScoringCacheMode } from '@/types'
+import type { Profile, TunarrChannel, ScoringResult, ProgramItem, ScoringCacheMode, TimingDetails, MFPPolicy, CriterionMultipliers } from '@/types'
 
 const cacheModeOptions: { value: ScoringCacheMode; label: string; icon: React.ElementType; description: string }[] = [
   { value: 'cache_only', label: 'Cache', icon: Database, description: 'Utilise uniquement le cache existant' },
@@ -225,6 +225,9 @@ interface BlockCriteria {
   rating_rules?: CriterionRules
   filter_rules?: CriterionRules
   bonus_rules?: CriterionRules
+  // M/F/P policy and multipliers (block-level override)
+  mfp_policy?: MFPPolicy
+  criterion_multipliers?: CriterionMultipliers
 }
 
 interface CriterionRules {
@@ -256,6 +259,7 @@ interface CriterionRow {
 interface ExpandedRowProps {
   prog: ProgramItem
   block?: TimeBlockWithCriteria
+  profile?: Profile | null
 }
 
 // Helper to normalize accents for comparison (é -> e, è -> e, etc.)
@@ -379,23 +383,75 @@ function renderColoredArray(
   )
 }
 
-function ExpandedRow({ prog, block }: ExpandedRowProps) {
-  const criteria = block?.criteria || {}
+function ExpandedRow({ prog, block, profile }: ExpandedRowProps) {
+  const criteria = block?.criteria || {} as BlockCriteria
   const score = prog.score
+
+  // Get MFP policy (block-level overrides profile-level)
+  const getMFPPolicy = (): MFPPolicy => {
+    const blockPolicy = criteria?.mfp_policy
+    const profilePolicy = profile?.mfp_policy
+    return {
+      mandatory_matched_bonus: blockPolicy?.mandatory_matched_bonus ?? profilePolicy?.mandatory_matched_bonus ?? 10,
+      mandatory_missed_penalty: blockPolicy?.mandatory_missed_penalty ?? profilePolicy?.mandatory_missed_penalty ?? -40,
+      forbidden_detected_penalty: blockPolicy?.forbidden_detected_penalty ?? profilePolicy?.forbidden_detected_penalty ?? -400,
+      preferred_matched_bonus: blockPolicy?.preferred_matched_bonus ?? profilePolicy?.preferred_matched_bonus ?? 20,
+    }
+  }
+
+  // Get multiplier for a criterion (block-level overrides profile-level)
+  const getMultiplier = (criterionName: keyof CriterionMultipliers): number => {
+    const blockMultipliers = criteria?.criterion_multipliers
+    const profileMultipliers = profile?.criterion_multipliers
+    return blockMultipliers?.[criterionName] ?? profileMultipliers?.[criterionName] ?? 1.0
+  }
+
+  const mfpPolicy = getMFPPolicy()
+
+  // Helper to render MFP policy footer
+  const renderMFPFooter = (criterionName: keyof CriterionMultipliers, hasRules: boolean = false) => {
+    const multiplier = getMultiplier(criterionName)
+    const showMFP = hasRules
+    const showMultiplier = multiplier !== 1.0
+
+    if (!showMFP && !showMultiplier) return null
+
+    return (
+      <div className="mt-1 pt-1 border-t border-gray-200 dark:border-gray-700 space-y-0.5">
+        {showMultiplier && (
+          <div className="flex items-center gap-1">
+            <span className="text-[8px] font-semibold text-purple-600 dark:text-purple-400">×{multiplier.toFixed(1)}</span>
+          </div>
+        )}
+        {showMFP && (
+          <div className="flex flex-wrap gap-1 text-[8px] text-gray-500 dark:text-gray-400">
+            <span className="text-orange-500">M:{mfpPolicy.mandatory_matched_bonus > 0 ? '+' : ''}{mfpPolicy.mandatory_matched_bonus}/{mfpPolicy.mandatory_missed_penalty}</span>
+            <span className="text-red-500">F:{mfpPolicy.forbidden_detected_penalty}</span>
+            <span className="text-green-500">P:+{mfpPolicy.preferred_matched_bonus}</span>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   // Helper to render expected values cell with M/F/P sub-rows
   const renderExpected = (
     mandatory?: string[],
     forbidden?: string[],
     preferred?: string[],
-    rules?: CriterionRules
+    rules?: CriterionRules,
+    criterionName?: keyof CriterionMultipliers
   ) => {
     // Merge explicit values with rules
     const m = [...(mandatory || []), ...(rules?.mandatory_values || [])]
     const f = [...(forbidden || []), ...(rules?.forbidden_values || [])]
     const p = [...(preferred || []), ...(rules?.preferred_values || [])]
+    const hasRules = m.length > 0 || f.length > 0 || p.length > 0
 
-    if (m.length === 0 && f.length === 0 && p.length === 0) {
+    const multiplier = criterionName ? getMultiplier(criterionName) : 1.0
+    const showMultiplier = multiplier !== 1.0
+
+    if (!hasRules && !showMultiplier) {
       return <span className="text-gray-400">—</span>
     }
 
@@ -419,12 +475,13 @@ function ExpandedRow({ prog, block }: ExpandedRowProps) {
             <span className="text-xs text-green-700 dark:text-green-300">{p.join(', ')}</span>
           </div>
         )}
+        {criterionName && renderMFPFooter(criterionName, hasRules)}
       </div>
     )
   }
 
   // Helper to render age expected values (different display than M/F/P)
-  const renderExpectedAge = (allowed?: string[], maxRating?: string, rules?: CriterionRules) => {
+  const renderExpectedAge = (allowed?: string[], maxRating?: string, rules?: CriterionRules, criterionName?: keyof CriterionMultipliers) => {
     const parts: React.ReactNode[] = []
 
     if (allowed && allowed.length > 0) {
@@ -475,32 +532,45 @@ function ExpandedRow({ prog, block }: ExpandedRowProps) {
       )
     }
 
-    if (parts.length === 0) {
-      return <span className="text-gray-400">—</span>
-    }
+    const hasRules = m.length > 0 || f.length > 0 || p.length > 0
+    const multiplier = criterionName ? getMultiplier(criterionName) : 1.0
+    const showMultiplier = multiplier !== 1.0
 
-    return <div className="space-y-0.5">{parts}</div>
-  }
-
-  // Helper to render expected range
-  const renderExpectedRange = (min?: number, max?: number, preferred?: number, rules?: CriterionRules) => {
-    const parts: string[] = []
-    if (min != null) parts.push(`Min: ${min}`)
-    if (max != null) parts.push(`Max: ${max}`)
-    if (preferred != null) parts.push(`Préf: ${preferred}`)
-
-    const m = rules?.mandatory_values || []
-    const f = rules?.forbidden_values || []
-    const p = rules?.preferred_values || []
-
-    if (parts.length === 0 && m.length === 0 && f.length === 0 && p.length === 0) {
+    if (parts.length === 0 && !showMultiplier) {
       return <span className="text-gray-400">—</span>
     }
 
     return (
       <div className="space-y-0.5">
-        {parts.length > 0 && (
-          <div className="text-xs text-gray-600 dark:text-gray-400">{parts.join(' / ')}</div>
+        {parts}
+        {criterionName && renderMFPFooter(criterionName, hasRules)}
+      </div>
+    )
+  }
+
+  // Helper to render expected range
+  const renderExpectedRange = (min?: number, max?: number, preferred?: number, rules?: CriterionRules, criterionName?: keyof CriterionMultipliers) => {
+    const rangeParts: string[] = []
+    if (min != null) rangeParts.push(`Min: ${min}`)
+    if (max != null) rangeParts.push(`Max: ${max}`)
+    if (preferred != null) rangeParts.push(`Préf: ${preferred}`)
+
+    const m = rules?.mandatory_values || []
+    const f = rules?.forbidden_values || []
+    const p = rules?.preferred_values || []
+
+    const hasRules = m.length > 0 || f.length > 0 || p.length > 0
+    const multiplier = criterionName ? getMultiplier(criterionName) : 1.0
+    const showMultiplier = multiplier !== 1.0
+
+    if (rangeParts.length === 0 && !hasRules && !showMultiplier) {
+      return <span className="text-gray-400">—</span>
+    }
+
+    return (
+      <div className="space-y-0.5">
+        {rangeParts.length > 0 && (
+          <div className="text-xs text-gray-600 dark:text-gray-400">{rangeParts.join(' / ')}</div>
         )}
         {m.length > 0 && (
           <div className="flex items-center gap-1.5">
@@ -520,13 +590,20 @@ function ExpandedRow({ prog, block }: ExpandedRowProps) {
             <span className="text-xs text-green-700 dark:text-green-300">{p.join(', ')}</span>
           </div>
         )}
+        {criterionName && renderMFPFooter(criterionName, hasRules)}
       </div>
     )
   }
 
-  // Get score for a criterion
-  const getScore = (key: string): number => {
-    return score?.breakdown?.[key as keyof typeof score.breakdown] ?? 0
+  // Get score for a criterion (null if skipped)
+  const getScore = (key: string): number | null => {
+    const criterionData = score?.criteria?.[key as keyof NonNullable<typeof score.criteria>]
+    const value = score?.breakdown?.[key as keyof typeof score.breakdown]
+    // Check if skipped via criteria.skipped flag OR if breakdown value is null
+    if (criterionData?.skipped === true || value === null || value === undefined) {
+      return null
+    }
+    return value
   }
 
   // Data rows configuration
@@ -546,7 +623,7 @@ function ExpandedRow({ prog, block }: ExpandedRowProps) {
     {
       label: 'Durée',
       content: prog.duration_min ? `${Math.round(prog.duration_min)} min` : '—',
-      expected: renderExpectedRange(criteria.min_duration_min, criteria.max_duration_min, undefined, criteria.duration_rules),
+      expected: renderExpectedRange(criteria.min_duration_min, criteria.max_duration_min, undefined, criteria.duration_rules, 'duration'),
       score: getScore('duration')
     },
     {
@@ -560,7 +637,7 @@ function ExpandedRow({ prog, block }: ExpandedRowProps) {
             criteria.type_rules
           )
         : '—',
-      expected: renderExpected(criteria.allowed_types, criteria.excluded_types, criteria.preferred_types, criteria.type_rules),
+      expected: renderExpected(criteria.allowed_types, criteria.excluded_types, criteria.preferred_types, criteria.type_rules, 'type'),
       score: getScore('type')
     },
     {
@@ -574,13 +651,13 @@ function ExpandedRow({ prog, block }: ExpandedRowProps) {
             criteria.genre_rules
           )
         : '—',
-      expected: renderExpected(criteria.allowed_genres, criteria.forbidden_genres, criteria.preferred_genres, criteria.genre_rules),
+      expected: renderExpected(criteria.allowed_genres, criteria.forbidden_genres, criteria.preferred_genres, criteria.genre_rules, 'genre'),
       score: getScore('genre')
     },
     {
       label: 'Timing',
       content: (() => {
-        const timingDetails = score?.criteria?.timing?.details
+        const timingDetails = score?.criteria?.timing?.details as TimingDetails | null | undefined
         const parts: React.ReactNode[] = []
 
         // Show overflow for last in block (positive = overflow past block end)
@@ -630,13 +707,24 @@ function ExpandedRow({ prog, block }: ExpandedRowProps) {
 
         return <div className="space-y-0.5 text-xs">{parts}</div>
       })(),
-      expected: block ? `${block.start_time} - ${block.end_time}` : '—',
+      expected: (() => {
+        const multiplier = getMultiplier('timing')
+        const showMultiplier = multiplier !== 1.0
+        const timeRange = block ? `${block.start_time} - ${block.end_time}` : '—'
+        if (!showMultiplier) return timeRange
+        return (
+          <div className="space-y-0.5">
+            <div>{timeRange}</div>
+            {renderMFPFooter('timing', false)}
+          </div>
+        )
+      })(),
       score: getScore('timing')
     },
     {
       label: 'Strat.',
       content: '—', // Strategy is profile-level, not content-level
-      expected: renderExpected(undefined, undefined, undefined, criteria.strategy_rules),
+      expected: renderExpected(undefined, undefined, undefined, criteria.strategy_rules, 'strategy'),
       score: getScore('strategy')
     },
     {
@@ -650,7 +738,7 @@ function ExpandedRow({ prog, block }: ExpandedRowProps) {
             criteria.age_rules
           )
         : '—',
-      expected: renderExpectedAge(criteria.allowed_age_ratings, criteria.max_age_rating, criteria.age_rules),
+      expected: renderExpectedAge(criteria.allowed_age_ratings, criteria.max_age_rating, criteria.age_rules, 'age'),
       score: getScore('age')
     },
     {
@@ -675,7 +763,7 @@ function ExpandedRow({ prog, block }: ExpandedRowProps) {
 
         return <span className={colorClass}>{ratingNum.toFixed(1)}/10</span>
       })(),
-      expected: renderExpectedRange(criteria.min_tmdb_rating, undefined, criteria.preferred_tmdb_rating, criteria.rating_rules),
+      expected: renderExpectedRange(criteria.min_tmdb_rating, undefined, criteria.preferred_tmdb_rating, criteria.rating_rules, 'rating'),
       score: getScore('rating')
     },
     {
@@ -689,7 +777,7 @@ function ExpandedRow({ prog, block }: ExpandedRowProps) {
             criteria.filter_rules
           )
         : '—',
-      expected: renderExpected(criteria.include_keywords, criteria.exclude_keywords, undefined, criteria.filter_rules),
+      expected: renderExpected(criteria.include_keywords, criteria.exclude_keywords, undefined, criteria.filter_rules, 'filter'),
       score: getScore('filter')
     },
     {
@@ -703,7 +791,7 @@ function ExpandedRow({ prog, block }: ExpandedRowProps) {
             criteria.bonus_rules
           )
         : '—',
-      expected: renderExpected(undefined, undefined, undefined, criteria.bonus_rules),
+      expected: renderExpected(undefined, undefined, undefined, criteria.bonus_rules, 'bonus'),
       score: getScore('bonus')
     },
     {
@@ -757,8 +845,8 @@ function ExpandedRow({ prog, block }: ExpandedRowProps) {
                   <td className="px-2 py-1.5">
                     {row.expected !== null ? (typeof row.expected === 'string' ? <span className="text-gray-600 dark:text-gray-400">{row.expected}</span> : row.expected) : ''}
                   </td>
-                  <td className={clsx('px-2 py-1.5 text-center', row.score !== null && getScoreColor(row.score))}>
-                    {row.score !== null ? row.score.toFixed(0) : ''}
+                  <td className={clsx('px-2 py-1.5 text-center', row.score !== null ? getScoreColor(row.score) : 'text-gray-400')}>
+                    {row.score !== null ? row.score.toFixed(0) : '—'}
                   </td>
                 </tr>
               ))}
@@ -800,6 +888,105 @@ function ExpandedRow({ prog, block }: ExpandedRowProps) {
   )
 }
 
+// Block Settings Legend Component
+interface BlockSettingsLegendProps {
+  timeBlocks: TimeBlockWithCriteria[]
+  profile?: Profile | null
+}
+
+function BlockSettingsLegend({ timeBlocks, profile }: BlockSettingsLegendProps) {
+  if (!timeBlocks || timeBlocks.length === 0) return null
+
+  // Check if any block has custom MFP or multipliers
+  const hasCustomSettings = timeBlocks.some(block => {
+    const criteria = block.criteria
+    return criteria?.mfp_policy || criteria?.criterion_multipliers
+  })
+
+  if (!hasCustomSettings && !profile?.mfp_policy && !profile?.criterion_multipliers) return null
+
+  const defaultMFP = {
+    mandatory_matched_bonus: profile?.mfp_policy?.mandatory_matched_bonus ?? 10,
+    mandatory_missed_penalty: profile?.mfp_policy?.mandatory_missed_penalty ?? -40,
+    forbidden_detected_penalty: profile?.mfp_policy?.forbidden_detected_penalty ?? -400,
+    preferred_matched_bonus: profile?.mfp_policy?.preferred_matched_bonus ?? 20
+  }
+
+  const formatMFP = (mfp: MFPPolicy | undefined, isDefault: boolean = false) => {
+    const policy = mfp || defaultMFP
+    const label = isDefault ? '(défaut)' : ''
+    return (
+      <span className="text-[9px]">
+        <span className="text-orange-500">M:{policy.mandatory_matched_bonus > 0 ? '+' : ''}{policy.mandatory_matched_bonus}/{policy.mandatory_missed_penalty}</span>
+        {' '}
+        <span className="text-red-500">F:{policy.forbidden_detected_penalty}</span>
+        {' '}
+        <span className="text-green-500">P:+{policy.preferred_matched_bonus}</span>
+        {label && <span className="text-gray-400 ml-1">{label}</span>}
+      </span>
+    )
+  }
+
+  const formatMultipliers = (multipliers: CriterionMultipliers | undefined): string => {
+    if (!multipliers) return ''
+    const nonDefault = Object.entries(multipliers)
+      .filter(([, val]) => val !== 1.0 && val !== undefined)
+      .map(([key, val]) => `${CRITERION_LABELS[key] || key}:×${val?.toFixed(1)}`)
+    return nonDefault.join(', ')
+  }
+
+  return (
+    <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Paramètres MFP & Multiplicateurs par bloc</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+        {timeBlocks.map((block, idx) => {
+          const blockMFP = block.criteria?.mfp_policy
+          const blockMultipliers = formatMultipliers(block.criteria?.criterion_multipliers)
+          const hasCustom = blockMFP || blockMultipliers
+          const blockColor = BLOCK_COLORS[idx % BLOCK_COLORS.length]
+
+          return (
+            <div
+              key={block.name}
+              className={clsx(
+                'p-1.5 rounded text-xs',
+                hasCustom ? blockColor.bg : 'bg-white dark:bg-gray-800',
+                'border border-gray-200 dark:border-gray-600'
+              )}
+            >
+              <div className={clsx('font-medium truncate mb-0.5', hasCustom ? blockColor.text : 'text-gray-600 dark:text-gray-400')}>
+                {block.name}
+              </div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">
+                {block.start_time} - {block.end_time}
+              </div>
+              {blockMFP ? (
+                <div className="mt-0.5">{formatMFP(blockMFP)}</div>
+              ) : (
+                <div className="mt-0.5 text-gray-400 text-[9px]">MFP: défaut</div>
+              )}
+              {blockMultipliers ? (
+                <div className="text-[9px] text-purple-600 dark:text-purple-400 mt-0.5 truncate" title={blockMultipliers}>
+                  {blockMultipliers}
+                </div>
+              ) : (
+                <div className="text-[9px] text-gray-400 mt-0.5">×1.0 (tous)</div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      {/* Profile defaults */}
+      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-[10px] text-gray-500 dark:text-gray-400">
+        <span className="font-medium">Défauts profil:</span> {formatMFP(profile?.mfp_policy, true)}
+        {profile?.criterion_multipliers && formatMultipliers(profile.criterion_multipliers) && (
+          <span className="ml-2 text-purple-500">| {formatMultipliers(profile.criterion_multipliers)}</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // Scores Table Component
 interface ScoresTableProps {
   programs: ProgramItem[]
@@ -807,7 +994,7 @@ interface ScoresTableProps {
   profile?: Profile | null
 }
 
-function ScoresTable({ programs, timeBlocks = [] }: ScoresTableProps) {
+function ScoresTable({ programs, timeBlocks = [], profile }: ScoresTableProps) {
   const criteria = Object.keys(CRITERION_LABELS)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
@@ -833,6 +1020,14 @@ function ScoresTable({ programs, timeBlocks = [] }: ScoresTableProps) {
   const getBlock = (blockName: string | undefined): TimeBlockWithCriteria | undefined => {
     if (!blockName) return undefined
     return timeBlocks.find(b => b.name === blockName)
+  }
+
+  // Get multiplier for a criterion from block or profile
+  const getMultiplierForBlock = (blockName: string | undefined, criterionName: string): number => {
+    const block = getBlock(blockName)
+    const blockMultipliers = block?.criteria?.criterion_multipliers
+    const profileMultipliers = profile?.criterion_multipliers
+    return blockMultipliers?.[criterionName as keyof CriterionMultipliers] ?? profileMultipliers?.[criterionName as keyof CriterionMultipliers] ?? 1.0
   }
 
   return (
@@ -926,10 +1121,31 @@ function ScoresTable({ programs, timeBlocks = [] }: ScoresTableProps) {
                       )}
                     </td>
                     {criteria.map(key => {
-                      const val = prog.score?.breakdown?.[key as keyof typeof prog.score.breakdown] ?? 0
+                      const rawVal = prog.score?.breakdown?.[key as keyof typeof prog.score.breakdown]
+                      const criterionData = prog.score?.criteria?.[key as keyof NonNullable<typeof prog.score.criteria>]
+                      // Check if skipped via criteria.skipped flag OR if breakdown value is null
+                      const isSkipped = criterionData?.skipped === true || rawVal === null || rawVal === undefined
+                      const val = isSkipped ? 0 : (rawVal ?? 0)
+                      const multiplier = getMultiplierForBlock(prog.block_name, key)
+                      const hasMultiplier = multiplier !== 1.0 && !isSkipped
+                      const multipliedVal = hasMultiplier ? Math.min(100, val * multiplier) : val
                       return (
-                        <td key={key} className={clsx('px-1.5 py-1.5 text-center font-medium', getScoreColor(val))}>
-                          {val.toFixed(0)}
+                        <td key={key} className={clsx('px-1.5 py-1.5 text-center font-medium', isSkipped ? 'text-gray-400' : getScoreColor(hasMultiplier ? multipliedVal : val))}>
+                          <div className="flex flex-col items-center leading-tight">
+                            {isSkipped ? (
+                              <span>—</span>
+                            ) : hasMultiplier ? (
+                              <>
+                                <span className="text-gray-400 text-[9px] line-through">{val.toFixed(0)}</span>
+                                <span className={clsx('font-bold', getScoreColor(multipliedVal))}>
+                                  {multipliedVal.toFixed(0)}
+                                </span>
+                                <span className="text-[7px] text-gray-400">×{multiplier.toFixed(1)}</span>
+                              </>
+                            ) : (
+                              <span>{val.toFixed(0)}</span>
+                            )}
+                          </div>
                         </td>
                       )
                     })}
@@ -939,7 +1155,7 @@ function ScoresTable({ programs, timeBlocks = [] }: ScoresTableProps) {
                   </tr>
 
                   {/* Expanded row with details */}
-                  {isExpanded && <ExpandedRow prog={prog} block={getBlock(prog.block_name)} />}
+                  {isExpanded && <ExpandedRow prog={prog} block={getBlock(prog.block_name)} profile={profile} />}
                 </React.Fragment>
               )
             })}
@@ -1291,6 +1507,12 @@ export function ScoringPage() {
               </div>
             </div>
           </div>
+
+          {/* Block settings legend */}
+          <BlockSettingsLegend
+            timeBlocks={(selectedProfile?.time_blocks || []) as TimeBlockWithCriteria[]}
+            profile={selectedProfile}
+          />
 
           {/* Scores table */}
           <ScoresTable

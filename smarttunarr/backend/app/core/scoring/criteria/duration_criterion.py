@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, ScoringContext
+from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, RuleViolation, ScoringContext
 
 
 class DurationCriterion(BaseCriterion):
@@ -76,9 +76,12 @@ class DurationCriterion(BaseCriterion):
         """Evaluate criterion with optional rules check."""
         score = self.calculate(content, content_meta, profile, block, context)
         weight = self.get_weight(profile)
+        multiplier = self.get_multiplier(profile, block)
+        mfp_policy = self.get_mfp_policy(profile, block)
 
         # Check for per-criterion rules
-        # For duration, rules use categories: "short", "medium", "long", "feature"
+        # For duration, rules use categories: "short", "medium", "standard", "long", "epic", "very_long"
+        # Logic: content has ONE category, mandatory means "must be one of these"
         rule_violation = None
         if block:
             block_criteria = block.get("criteria", {})
@@ -87,25 +90,55 @@ class DurationCriterion(BaseCriterion):
                 duration_ms = content.get("duration_ms") or 0
                 duration_min = duration_ms / 60000
                 # Categorize duration
-                duration_categories = []
+                duration_category = None
                 if duration_min <= 30:
-                    duration_categories.append("short")
+                    duration_category = "short"
                 elif duration_min <= 60:
-                    duration_categories.append("medium")
-                elif duration_min <= 120:
-                    duration_categories.append("long")
+                    duration_category = "medium"
+                elif duration_min <= 90:
+                    duration_category = "standard"
+                elif duration_min <= 150:
+                    duration_category = "long"
+                elif duration_min <= 200:
+                    duration_category = "epic"
                 else:
-                    duration_categories.append("feature")
-                # Also add exact minutes as string for precise matching
-                duration_categories.append(f"{int(duration_min)}min")
-                adjustment, rule_violation = self.check_rules(duration_categories, duration_rules)
-                score += adjustment
+                    duration_category = "very_long"
+
+                if duration_category:
+                    # Custom M/F/P logic for duration (single category vs list of allowed/forbidden)
+                    forbidden = [v.lower() for v in (duration_rules.get("forbidden_values") or [])]
+                    mandatory = [v.lower() for v in (duration_rules.get("mandatory_values") or [])]
+                    preferred = [v.lower() for v in (duration_rules.get("preferred_values") or [])]
+
+                    # Check forbidden first (highest priority)
+                    if duration_category.lower() in forbidden:
+                        penalty = duration_rules.get("forbidden_penalty", mfp_policy.forbidden_detected_penalty)
+                        rule_violation = RuleViolation("forbidden", [duration_category], penalty)
+                        score += penalty
+                    # Check mandatory (content category must be IN the mandatory list)
+                    elif mandatory and duration_category.lower() not in mandatory:
+                        penalty = duration_rules.get("mandatory_penalty", mfp_policy.mandatory_missed_penalty)
+                        rule_violation = RuleViolation("mandatory", mandatory, penalty)
+                        score += penalty
+                    # Check preferred (bonus if in preferred list)
+                    elif duration_category.lower() in preferred:
+                        bonus = duration_rules.get("preferred_bonus", mfp_policy.preferred_matched_bonus)
+                        rule_violation = RuleViolation("preferred", [duration_category], bonus)
+                        score += bonus
+                    # If mandatory is defined and category matches, give bonus
+                    elif mandatory and duration_category.lower() in mandatory:
+                        bonus = mfp_policy.mandatory_matched_bonus
+                        rule_violation = RuleViolation("mandatory", [duration_category], bonus)
+                        score += bonus
 
         score = max(0.0, min(100.0, score))
+        weighted_score = score * weight / 100.0
         return CriterionResult(
             name=self.name,
             score=score,
             weight=weight,
-            weighted_score=score * weight / 100.0,
+            weighted_score=weighted_score,
+            multiplier=multiplier,
+            multiplied_weighted_score=weighted_score * multiplier,
             rule_violation=rule_violation,
         )

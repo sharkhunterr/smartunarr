@@ -48,9 +48,9 @@ class GenreCriterion(BaseCriterion):
             # Also check genre_rules for M/F/P values
             genre_rules = block_criteria.get("genre_rules", {})
             if genre_rules:
-                allowed |= set(g.lower() for g in genre_rules.get("mandatory_values", []))
-                forbidden |= set(g.lower() for g in genre_rules.get("forbidden_values", []))
-                preferred |= set(g.lower() for g in genre_rules.get("preferred_values", []))
+                allowed |= set(g.lower() for g in (genre_rules.get("mandatory_values") or []))
+                forbidden |= set(g.lower() for g in (genre_rules.get("forbidden_values") or []))
+                preferred |= set(g.lower() for g in (genre_rules.get("preferred_values") or []))
         else:
             criteria = profile.get("mandatory_forbidden_criteria", {})
             genre_config = criteria.get("genre_criteria", {})
@@ -122,6 +122,8 @@ class GenreCriterion(BaseCriterion):
         """Evaluate criterion with genre-specific rules check."""
         score = self.calculate(content, content_meta, profile, block, context)
         weight = self.get_weight(profile)
+        multiplier = self.get_multiplier(profile, block)
+        mfp_policy = self.get_mfp_policy(profile, block)
 
         # Check for rule violations (genre-specific logic: at least one mandatory must match)
         rule_violation = None
@@ -137,9 +139,9 @@ class GenreCriterion(BaseCriterion):
                 # Add from genre_rules
                 genre_rules = block_criteria.get("genre_rules", {})
                 if genre_rules:
-                    mandatory |= set(g.lower() for g in genre_rules.get("mandatory_values", []))
-                    forbidden |= set(g.lower() for g in genre_rules.get("forbidden_values", []))
-                    preferred |= set(g.lower() for g in genre_rules.get("preferred_values", []))
+                    mandatory |= set(g.lower() for g in (genre_rules.get("mandatory_values") or []))
+                    forbidden |= set(g.lower() for g in (genre_rules.get("forbidden_values") or []))
+                    preferred |= set(g.lower() for g in (genre_rules.get("preferred_values") or []))
             else:
                 criteria = profile.get("mandatory_forbidden_criteria", {})
                 mandatory = set(g.lower() for g in criteria.get("allowed_genres", []))
@@ -152,7 +154,7 @@ class GenreCriterion(BaseCriterion):
                 rule_violation = RuleViolation(
                     rule_type="forbidden",
                     values=list(forbidden_matches),
-                    penalty_or_bonus=-200.0,
+                    penalty_or_bonus=mfp_policy.forbidden_detected_penalty,
                 )
                 score = 0.0  # Forbidden = zero score
 
@@ -164,9 +166,16 @@ class GenreCriterion(BaseCriterion):
                     rule_violation = RuleViolation(
                         rule_type="mandatory",
                         values=list(mandatory),  # Show what was expected
-                        penalty_or_bonus=-50.0,
+                        penalty_or_bonus=mfp_policy.mandatory_missed_penalty,
                     )
                     # Score already reduced in calculate()
+                else:
+                    # Mandatory met - report with bonus
+                    rule_violation = RuleViolation(
+                        rule_type="mandatory",
+                        values=list(mandatory_matches),
+                        penalty_or_bonus=mfp_policy.mandatory_matched_bonus,
+                    )
 
             # 3. Check for PREFERRED match (for reporting)
             elif preferred and not rule_violation:
@@ -175,14 +184,17 @@ class GenreCriterion(BaseCriterion):
                     rule_violation = RuleViolation(
                         rule_type="preferred",
                         values=list(preferred_matches),
-                        penalty_or_bonus=15.0,
+                        penalty_or_bonus=mfp_policy.preferred_matched_bonus,
                     )
 
         score = max(0.0, min(100.0, score))
+        weighted_score = score * weight / 100.0
         return CriterionResult(
             name=self.name,
             score=score,
             weight=weight,
-            weighted_score=score * weight / 100.0,
+            weighted_score=weighted_score,
+            multiplier=multiplier,
+            multiplied_weighted_score=weighted_score * multiplier,
             rule_violation=rule_violation,
         )

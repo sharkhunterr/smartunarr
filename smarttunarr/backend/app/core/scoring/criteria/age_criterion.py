@@ -189,6 +189,8 @@ class AgeCriterion(BaseCriterion):
         """Evaluate criterion with optional rules check."""
         score = self.calculate(content, content_meta, profile, block, context)
         weight = self.get_weight(profile)
+        multiplier = self.get_multiplier(profile, block)
+        mfp_policy = self.get_mfp_policy(profile, block)
 
         rule_violation = None
 
@@ -214,7 +216,7 @@ class AgeCriterion(BaseCriterion):
                         rule_violation = RuleViolation(
                             rule_type="forbidden",
                             values=[content_rating],
-                            penalty_or_bonus=-200.0,
+                            penalty_or_bonus=mfp_policy.forbidden_detected_penalty,
                         )
                         score = 0.0  # Ensure score is 0
 
@@ -240,14 +242,17 @@ class AgeCriterion(BaseCriterion):
                     level_names = {0: "G", 1: "PG", 2: "PG-13", 3: "R", 4: "NC-17"}
                     content_values.append(level_names.get(level, "PG-13"))
 
-                adjustment, rule_violation = self.check_rules(content_values, age_rules)
+                adjustment, rule_violation = self.check_rules(content_values, age_rules, mfp_policy)
                 score += adjustment
 
         score = max(0.0, min(100.0, score))
+        weighted_score = score * weight / 100.0
         return CriterionResult(
             name=self.name,
             score=score,
             weight=weight,
-            weighted_score=score * weight / 100.0,
+            weighted_score=weighted_score,
+            multiplier=multiplier,
+            multiplied_weighted_score=weighted_score * multiplier,
             rule_violation=rule_violation,
         )

@@ -53,6 +53,10 @@ export interface BlockCriteria {
   rating_rules?: CriterionRules
   filter_rules?: CriterionRules
   bonus_rules?: CriterionRules
+  // Block-level M/F/P policy (overrides profile-level)
+  mfp_policy?: MFPPolicy
+  // Block-level criterion multipliers (overrides profile-level)
+  criterion_multipliers?: CriterionMultipliers
 }
 
 export interface TimeBlock {
@@ -127,6 +131,27 @@ export interface ScoringWeights {
   bonus: number
 }
 
+// M/F/P (Mandatory/Forbidden/Preferred) point policy
+export interface MFPPolicy {
+  mandatory_matched_bonus: number      // Bonus when mandatory requirement is met (default: 10)
+  mandatory_missed_penalty: number     // Penalty when mandatory requirement is not met (default: -40)
+  forbidden_detected_penalty: number   // Penalty when forbidden value is detected (default: -400)
+  preferred_matched_bonus: number      // Bonus when preferred value is matched (default: 20)
+}
+
+// Multipliers for each scoring criterion (default 1.0 = no change)
+export interface CriterionMultipliers {
+  type?: number
+  duration?: number
+  genre?: number
+  timing?: number
+  strategy?: number
+  age?: number
+  rating?: number
+  filter?: number
+  bonus?: number
+}
+
 export interface Profile {
   id: string
   name: string
@@ -136,6 +161,8 @@ export interface Profile {
   mandatory_forbidden_criteria: MandatoryForbiddenCriteria
   strategies?: Strategies
   scoring_weights: ScoringWeights
+  mfp_policy?: MFPPolicy                    // Profile-level M/F/P point policy
+  criterion_multipliers?: CriterionMultipliers  // Profile-level criterion multipliers
   default_iterations: number
   default_randomness: number
   labels: string[]
@@ -176,29 +203,34 @@ export interface TimingDetails {
   overflow_minutes: number | null  // For last in block: positive = overflow past end
   late_start_minutes: number | null  // For first in block: positive = late
   early_start_minutes: number | null  // For first in block: positive = early
-  final_score: number
+  final_score: number | null  // null if skipped (middle programs)
+  skipped: boolean  // true for middle programs (not first, not last)
 }
 
 // Criterion score with optional rule violation and details
 export interface CriterionScore {
-  score: number
+  score: number | null  // null if skipped
   weight: number
+  weighted_score: number
+  multiplier: number                  // Criterion multiplier (default: 1.0)
+  multiplied_weighted_score: number   // weighted_score * multiplier
   details?: TimingDetails | Record<string, unknown> | null  // Criterion-specific details
   rule_violation?: RuleViolation | null
+  skipped?: boolean  // true if this criterion is not applicable (e.g., timing for middle programs)
 }
 
 export interface ItemScore {
   total: number
   breakdown: {
-    type: number
-    duration: number
-    genre: number
-    timing: number
-    strategy: number
-    age: number
-    rating: number
-    filter: number
-    bonus: number
+    type: number | null
+    duration: number | null
+    genre: number | null
+    timing: number | null  // null for middle programs (not first, not last in block)
+    strategy: number | null
+    age: number | null
+    rating: number | null
+    filter: number | null
+    bonus: number | null
   }
   // Detailed criteria with rule violations
   criteria?: {

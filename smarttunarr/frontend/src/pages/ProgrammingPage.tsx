@@ -562,27 +562,27 @@ function ScoresTable({ programs, timeBlocks = [], profile }: ScoresTableProps) {
                               <td className="py-2 px-3 bg-blue-50/50 dark:bg-blue-900/10">
                                 <div className="space-y-1">
                                   {block?.criteria?.genre_rules?.forbidden_values?.length ? (
-                                    <div className="flex items-center gap-1 text-red-600 dark:text-red-400" title={block.criteria.genre_rules.forbidden_values.join(', ')}>
-                                      <Ban className="w-3 h-3 flex-shrink-0" />
-                                      <span className="truncate">Interdit: {block.criteria.genre_rules.forbidden_values.slice(0, 3).join(', ')}{block.criteria.genre_rules.forbidden_values.length > 3 ? '...' : ''}</span>
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400" title={block.criteria.genre_rules.forbidden_values.join(', ')}>
+                                      <span className="text-red-500"><Ban className="w-3 h-3 flex-shrink-0" /></span>
+                                      <span className="truncate">F: {block.criteria.genre_rules.forbidden_values.slice(0, 3).join(', ')}{block.criteria.genre_rules.forbidden_values.length > 3 ? '...' : ''}</span>
                                     </div>
                                   ) : null}
                                   {block?.criteria?.genre_rules?.mandatory_values?.length ? (
-                                    <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400" title={block.criteria.genre_rules.mandatory_values.join(', ')}>
-                                      <AlertTriangle className="w-3 h-3 flex-shrink-0" />
-                                      <span className="truncate">Obligatoire: {block.criteria.genre_rules.mandatory_values.slice(0, 3).join(', ')}{block.criteria.genre_rules.mandatory_values.length > 3 ? '...' : ''}</span>
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400" title={block.criteria.genre_rules.mandatory_values.join(', ')}>
+                                      <span className="text-orange-500"><AlertTriangle className="w-3 h-3 flex-shrink-0" /></span>
+                                      <span className="truncate">M: {block.criteria.genre_rules.mandatory_values.slice(0, 3).join(', ')}{block.criteria.genre_rules.mandatory_values.length > 3 ? '...' : ''}</span>
                                     </div>
                                   ) : null}
                                   {block?.criteria?.genre_rules?.preferred_values?.length ? (
-                                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400" title={block.criteria.genre_rules.preferred_values.join(', ')}>
-                                      <Star className="w-3 h-3 flex-shrink-0" />
-                                      <span className="truncate">Préféré: {block.criteria.genre_rules.preferred_values.slice(0, 3).join(', ')}{block.criteria.genre_rules.preferred_values.length > 3 ? '...' : ''}</span>
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400" title={block.criteria.genre_rules.preferred_values.join(', ')}>
+                                      <span className="text-green-500"><Star className="w-3 h-3 flex-shrink-0" /></span>
+                                      <span className="truncate">P: {block.criteria.genre_rules.preferred_values.slice(0, 3).join(', ')}{block.criteria.genre_rules.preferred_values.length > 3 ? '...' : ''}</span>
                                     </div>
                                   ) : null}
                                   {block?.criteria?.forbidden_genres?.length && !block?.criteria?.genre_rules?.forbidden_values?.length ? (
-                                    <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
-                                      <Ban className="w-3 h-3 flex-shrink-0" />
-                                      <span>Interdit: {block.criteria.forbidden_genres.slice(0, 3).join(', ')}</span>
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                                      <span className="text-red-500"><Ban className="w-3 h-3 flex-shrink-0" /></span>
+                                      <span>F: {block.criteria.forbidden_genres.slice(0, 3).join(', ')}</span>
                                     </div>
                                   ) : null}
                                   {!block?.criteria?.genre_rules && !block?.criteria?.forbidden_genres?.length && !block?.criteria?.preferred_genres?.length ? (
@@ -614,15 +614,27 @@ function ScoresTable({ programs, timeBlocks = [], profile }: ScoresTableProps) {
                                     <div className="text-blue-600 dark:text-blue-400">Min: {block.criteria.min_tmdb_rating}/10</div>
                                   ) : null}
                                   {block?.criteria?.preferred_tmdb_rating ? (
-                                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                                      <Star className="w-3 h-3" />
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                                      <span className="text-green-500"><Star className="w-3 h-3" /></span>
                                       <span>Préféré: ≥{block.criteria.preferred_tmdb_rating}/10</span>
                                     </div>
                                   ) : null}
+                                  {block?.criteria?.rating_rules?.forbidden_values?.length ? (
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                                      <span className="text-red-500"><Ban className="w-3 h-3" /></span>
+                                      <span>F: {block.criteria.rating_rules.forbidden_values.join(', ')}</span>
+                                    </div>
+                                  ) : null}
                                   {block?.criteria?.rating_rules?.mandatory_values?.length ? (
-                                    <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
-                                      <AlertTriangle className="w-3 h-3" />
-                                      <span>Obligatoire: {block.criteria.rating_rules.mandatory_values.join(', ')}</span>
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                                      <span className="text-orange-500"><AlertTriangle className="w-3 h-3" /></span>
+                                      <span>M: {block.criteria.rating_rules.mandatory_values.join(', ')}</span>
+                                    </div>
+                                  ) : null}
+                                  {block?.criteria?.rating_rules?.preferred_values?.length ? (
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                                      <span className="text-green-500"><Star className="w-3 h-3" /></span>
+                                      <span>P: {block.criteria.rating_rules.preferred_values.join(', ')}</span>
                                     </div>
                                   ) : null}
                                   {!block?.criteria?.min_tmdb_rating && !block?.criteria?.preferred_tmdb_rating && !block?.criteria?.rating_rules ? (
@@ -674,15 +686,21 @@ function ScoresTable({ programs, timeBlocks = [], profile }: ScoresTableProps) {
                                     <div className="text-blue-600 dark:text-blue-400">Max: {block.criteria.max_age_rating}</div>
                                   ) : null}
                                   {block?.criteria?.age_rules?.forbidden_values?.length ? (
-                                    <div className="flex items-center gap-1 text-red-600 dark:text-red-400" title={block.criteria.age_rules.forbidden_values.join(', ')}>
-                                      <Ban className="w-3 h-3 flex-shrink-0" />
-                                      <span>Interdit: {block.criteria.age_rules.forbidden_values.slice(0, 4).join(', ')}{block.criteria.age_rules.forbidden_values.length > 4 ? '...' : ''}</span>
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400" title={block.criteria.age_rules.forbidden_values.join(', ')}>
+                                      <span className="text-red-500"><Ban className="w-3 h-3 flex-shrink-0" /></span>
+                                      <span>F: {block.criteria.age_rules.forbidden_values.slice(0, 4).join(', ')}{block.criteria.age_rules.forbidden_values.length > 4 ? '...' : ''}</span>
+                                    </div>
+                                  ) : null}
+                                  {block?.criteria?.age_rules?.mandatory_values?.length ? (
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400" title={block.criteria.age_rules.mandatory_values.join(', ')}>
+                                      <span className="text-orange-500"><AlertTriangle className="w-3 h-3 flex-shrink-0" /></span>
+                                      <span>M: {block.criteria.age_rules.mandatory_values.slice(0, 4).join(', ')}{block.criteria.age_rules.mandatory_values.length > 4 ? '...' : ''}</span>
                                     </div>
                                   ) : null}
                                   {block?.criteria?.age_rules?.preferred_values?.length ? (
-                                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400" title={block.criteria.age_rules.preferred_values.join(', ')}>
-                                      <Star className="w-3 h-3 flex-shrink-0" />
-                                      <span>Préféré: {block.criteria.age_rules.preferred_values.slice(0, 4).join(', ')}{block.criteria.age_rules.preferred_values.length > 4 ? '...' : ''}</span>
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400" title={block.criteria.age_rules.preferred_values.join(', ')}>
+                                      <span className="text-green-500"><Star className="w-3 h-3 flex-shrink-0" /></span>
+                                      <span>P: {block.criteria.age_rules.preferred_values.slice(0, 4).join(', ')}{block.criteria.age_rules.preferred_values.length > 4 ? '...' : ''}</span>
                                     </div>
                                   ) : null}
                                   {!block?.criteria?.max_age_rating && !block?.criteria?.age_rules ? (
@@ -717,16 +735,28 @@ function ScoresTable({ programs, timeBlocks = [], profile }: ScoresTableProps) {
                                 <div className="text-blue-600 dark:text-blue-400 font-medium">
                                   Bloc: {block?.start_time || '?'} → {block?.end_time || '?'}
                                 </div>
+                                {block?.criteria?.timing_rules?.forbidden_values?.length ? (
+                                  <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 mt-1">
+                                    <span className="text-red-500"><Ban className="w-3 h-3" /></span>
+                                    <span>F: {block.criteria.timing_rules.forbidden_values.join(', ')}</span>
+                                  </div>
+                                ) : null}
+                                {block?.criteria?.timing_rules?.mandatory_values?.length ? (
+                                  <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 mt-1">
+                                    <span className="text-orange-500"><AlertTriangle className="w-3 h-3" /></span>
+                                    <span>M: {block.criteria.timing_rules.mandatory_values.join(', ')}</span>
+                                  </div>
+                                ) : null}
                                 {block?.criteria?.timing_rules?.preferred_values?.length ? (
-                                  <div className="flex items-center gap-1 text-green-600 dark:text-green-400 mt-1">
-                                    <Star className="w-3 h-3" />
-                                    <span>Préféré: {block.criteria.timing_rules.preferred_values.join(', ')}</span>
+                                  <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 mt-1">
+                                    <span className="text-green-500"><Star className="w-3 h-3" /></span>
+                                    <span>P: {block.criteria.timing_rules.preferred_values.join(', ')}</span>
                                   </div>
                                 ) : null}
                               </td>
-                              <td className={clsx('py-2 px-3 text-center font-bold text-lg bg-purple-50/50 dark:bg-purple-900/10', getScoreColor(prog.score?.breakdown?.timing ?? 0))}>
-                                {(prog.score?.breakdown?.timing ?? 0).toFixed(0)}
-                                <RuleIndicatorIcon type={getRuleIndicator('timing', prog.score).icon} title={getRuleIndicator('timing', prog.score).text} />
+                              <td className={clsx('py-2 px-3 text-center font-bold text-lg bg-purple-50/50 dark:bg-purple-900/10', (prog.score?.criteria?.timing?.skipped || prog.score?.breakdown?.timing == null) ? 'text-gray-400' : getScoreColor(prog.score?.breakdown?.timing ?? 0))}>
+                                {(prog.score?.criteria?.timing?.skipped || prog.score?.breakdown?.timing == null) ? '—' : prog.score.breakdown.timing.toFixed(0)}
+                                {!(prog.score?.criteria?.timing?.skipped || prog.score?.breakdown?.timing == null) && <RuleIndicatorIcon type={getRuleIndicator('timing', prog.score).icon} title={getRuleIndicator('timing', prog.score).text} />}
                               </td>
                             </tr>
 
@@ -742,15 +772,21 @@ function ScoresTable({ programs, timeBlocks = [], profile }: ScoresTableProps) {
                                     <div className="text-blue-600 dark:text-blue-400">Min votes: {block.criteria.min_vote_count}</div>
                                   ) : null}
                                   {block?.criteria?.filter_rules?.forbidden_values?.length ? (
-                                    <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
-                                      <Ban className="w-3 h-3" />
-                                      <span>Interdit: {block.criteria.filter_rules.forbidden_values.slice(0, 3).join(', ')}</span>
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                                      <span className="text-red-500"><Ban className="w-3 h-3" /></span>
+                                      <span>F: {block.criteria.filter_rules.forbidden_values.slice(0, 3).join(', ')}</span>
+                                    </div>
+                                  ) : null}
+                                  {block?.criteria?.filter_rules?.mandatory_values?.length ? (
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                                      <span className="text-orange-500"><AlertTriangle className="w-3 h-3" /></span>
+                                      <span>M: {block.criteria.filter_rules.mandatory_values.slice(0, 3).join(', ')}</span>
                                     </div>
                                   ) : null}
                                   {block?.criteria?.filter_rules?.preferred_values?.length ? (
-                                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                                      <Star className="w-3 h-3" />
-                                      <span>Préféré: {block.criteria.filter_rules.preferred_values.slice(0, 3).join(', ')}</span>
+                                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                                      <span className="text-green-500"><Star className="w-3 h-3" /></span>
+                                      <span>P: {block.criteria.filter_rules.preferred_values.slice(0, 3).join(', ')}</span>
                                     </div>
                                   ) : null}
                                   {!block?.criteria?.min_vote_count && !block?.criteria?.filter_rules ? (
