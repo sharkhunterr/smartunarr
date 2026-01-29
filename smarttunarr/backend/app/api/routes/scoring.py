@@ -477,21 +477,54 @@ async def _run_scoring(
                         # Use program's local date for block times
                         local_prog_start = prog_start_dt.astimezone()
                         base_date = local_prog_start.date()
+                        prog_time_minutes = local_prog_start.hour * 60 + local_prog_start.minute
+                        block_start_minutes = block_start_h * 60 + block_start_m
+                        block_end_minutes = block_end_h * 60 + block_end_m
 
-                        block_start_dt = datetime(
-                            base_date.year, base_date.month, base_date.day,
-                            block_start_h, block_start_m,
-                            tzinfo=local_prog_start.tzinfo
-                        )
-                        block_end_dt = datetime(
-                            base_date.year, base_date.month, base_date.day,
-                            block_end_h, block_end_m,
-                            tzinfo=local_prog_start.tzinfo
-                        )
+                        # Determine if this is an overnight block (end < start in 24h clock)
+                        is_overnight_block = block_end_minutes < block_start_minutes
 
-                        # Handle overnight blocks
-                        if block_end_dt <= block_start_dt:
-                            block_end_dt += timedelta(days=1)
+                        if is_overnight_block:
+                            # For overnight blocks, determine if program is in "before midnight"
+                            # or "after midnight" part
+                            if prog_time_minutes >= block_start_minutes:
+                                # Program is in "before midnight" part (e.g., 23:30 in 23:00-07:00)
+                                # block_start = same day, block_end = next day
+                                block_start_dt = datetime(
+                                    base_date.year, base_date.month, base_date.day,
+                                    block_start_h, block_start_m,
+                                    tzinfo=local_prog_start.tzinfo
+                                )
+                                block_end_dt = datetime(
+                                    base_date.year, base_date.month, base_date.day,
+                                    block_end_h, block_end_m,
+                                    tzinfo=local_prog_start.tzinfo
+                                ) + timedelta(days=1)
+                            else:
+                                # Program is in "after midnight" part (e.g., 05:47 in 23:00-07:00)
+                                # block_start = previous day, block_end = same day
+                                block_start_dt = datetime(
+                                    base_date.year, base_date.month, base_date.day,
+                                    block_start_h, block_start_m,
+                                    tzinfo=local_prog_start.tzinfo
+                                ) - timedelta(days=1)
+                                block_end_dt = datetime(
+                                    base_date.year, base_date.month, base_date.day,
+                                    block_end_h, block_end_m,
+                                    tzinfo=local_prog_start.tzinfo
+                                )
+                        else:
+                            # Normal daytime block
+                            block_start_dt = datetime(
+                                base_date.year, base_date.month, base_date.day,
+                                block_start_h, block_start_m,
+                                tzinfo=local_prog_start.tzinfo
+                            )
+                            block_end_dt = datetime(
+                                base_date.year, base_date.month, base_date.day,
+                                block_end_h, block_end_m,
+                                tzinfo=local_prog_start.tzinfo
+                            )
 
                         context = ScoringContext(
                             current_time=prog_start_dt,

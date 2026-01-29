@@ -414,22 +414,45 @@ class TimingCriterion(BaseCriterion):
 
         # Build block times from block HH:MM strings if not in context
         if block and current_time:
-            if not block_start:
-                block_start = self._build_block_datetime(block.get("start_time"), current_time)
-                # Handle day boundary - if block start > current time by a lot, it's previous day
-                if block_start and current_time:
-                    diff_hours = (current_time - block_start).total_seconds() / 3600
-                    if diff_hours < -12:  # Block is next day
-                        block_start = block_start - timedelta(days=1)
-                    elif diff_hours > 12:  # Block was previous day
-                        block_start = block_start + timedelta(days=1)
+            block_start_str = block.get("start_time", "00:00")
+            block_end_str = block.get("end_time", "00:00")
 
-            if not block_end:
-                block_end = self._build_block_datetime(block.get("end_time"), current_time)
-                # Handle day boundary for block end
-                if block_end and block_start:
-                    if block_end <= block_start:
-                        block_end = block_end + timedelta(days=1)
+            try:
+                block_start_h, block_start_m = map(int, block_start_str.split(":"))
+                block_end_h, block_end_m = map(int, block_end_str.split(":"))
+            except (ValueError, TypeError):
+                block_start_h, block_start_m = 0, 0
+                block_end_h, block_end_m = 0, 0
+
+            prog_time_minutes = current_time.hour * 60 + current_time.minute
+            block_start_minutes = block_start_h * 60 + block_start_m
+            block_end_minutes = block_end_h * 60 + block_end_m
+
+            # Determine if this is an overnight block (end < start in 24h clock)
+            is_overnight_block = block_end_minutes < block_start_minutes
+
+            if not block_start or not block_end:
+                if is_overnight_block:
+                    # For overnight blocks, determine if program is in "before midnight"
+                    # or "after midnight" part
+                    if prog_time_minutes >= block_start_minutes:
+                        # Program is in "before midnight" part (e.g., 23:30 in 23:00-07:00)
+                        block_start = self._build_block_datetime(block_start_str, current_time)
+                        block_end = self._build_block_datetime(block_end_str, current_time)
+                        if block_end:
+                            block_end = block_end + timedelta(days=1)
+                    else:
+                        # Program is in "after midnight" part (e.g., 05:47 in 23:00-07:00)
+                        block_start = self._build_block_datetime(block_start_str, current_time)
+                        if block_start:
+                            block_start = block_start - timedelta(days=1)
+                        block_end = self._build_block_datetime(block_end_str, current_time)
+                else:
+                    # Normal daytime block
+                    if not block_start:
+                        block_start = self._build_block_datetime(block_start_str, current_time)
+                    if not block_end:
+                        block_end = self._build_block_datetime(block_end_str, current_time)
 
         # If we still don't have timing info, use time-of-day score only
         if not current_time or not block:
