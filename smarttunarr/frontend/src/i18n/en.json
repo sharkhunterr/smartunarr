@@ -1,0 +1,265 @@
+{
+  "nav": {
+    "programming": "Programming",
+    "scoring": "Scoring",
+    "profiles": "Profiles",
+    "history": "History",
+    "logs": "Logs",
+    "settings": "Settings"
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "export": "Export",
+    "import": "Import",
+    "test": "Test",
+    "apply": "Apply",
+    "start": "Start",
+    "stop": "Stop",
+    "refresh": "Refresh",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "confirm": "Confirm",
+    "close": "Close"
+  },
+  "programming": {
+    "title": "Channel Programming",
+    "selectChannel": "Select a channel",
+    "selectProfile": "Select a profile",
+    "iterations": "Iterations",
+    "randomness": "Randomness",
+    "durationDays": "Duration",
+    "startDateTime": "Start date and time",
+    "startProgramming": "Start Programming",
+    "progress": "Progress",
+    "iteration": "Iteration {{current}} of {{total}}",
+    "bestScore": "Best score",
+    "applyResult": "Apply result",
+    "noChannels": "No channels available",
+    "noProfiles": "No profiles available"
+  },
+  "scoring": {
+    "title": "Program Scoring",
+    "analyze": "Analyze",
+    "exportCSV": "Export CSV",
+    "exportJSON": "Export JSON",
+    "totalScore": "Total score",
+    "averageScore": "Average score",
+    "violations": "Violations",
+    "penalties": "Penalties",
+    "breakdown": "Score breakdown",
+    "criteria": {
+      "type": "Type",
+      "duration": "Duration",
+      "genre": "Genre",
+      "timing": "Timing",
+      "strategy": "Strategy",
+      "age": "Age",
+      "rating": "Rating",
+      "filter": "Filter",
+      "bonus": "Bonus"
+    },
+    "notEvaluated": "Not evaluated",
+    "expanded": {
+      "contentInfo": "Content Information",
+      "expectedGenres": "Expected genres",
+      "block": "Time block",
+      "ageRating": "Age rating",
+      "mandatoryStatus": "Mandatory",
+      "forbiddenStatus": "Forbidden",
+      "allMandatoryMet": "All mandatory criteria met",
+      "noViolations": "No forbidden violations",
+      "noDetails": "No details available"
+    }
+  },
+  "profiles": {
+    "title": "Programming Profiles",
+    "create": "New profile",
+    "edit": "Edit profile",
+    "delete": "Delete profile",
+    "name": "Name",
+    "version": "Version",
+    "labels": "Labels",
+    "timeBlocks": "Time blocks",
+    "scoringWeights": "Scoring weights",
+    "confirmDelete": "Are you sure you want to delete this profile?"
+  },
+  "history": {
+    "title": "Operation History",
+    "type": "Type",
+    "channel": "Channel",
+    "profile": "Profile",
+    "status": "Status",
+    "date": "Date",
+    "score": "Score",
+    "details": "Details",
+    "startedAt": "Started at",
+    "completedAt": "Completed at",
+    "duration": "Duration",
+    "iterations": "iterations",
+    "bestScore": "Best score",
+    "error": "Error",
+    "resultSummary": "Result summary",
+    "programsGenerated": "Programs generated",
+    "totalDuration": "Total duration",
+    "contentDistribution": "Content distribution",
+    "scoreDistribution": "Score distribution",
+    "rawData": "Raw data",
+    "viewResult": "View result",
+    "viewFullResult": "View full result",
+    "rerun": "Rerun",
+    "types": {
+      "programming": "Programming",
+      "scoring": "Scoring",
+      "sync": "Sync",
+      "aiGeneration": "AI Generation"
+    },
+    "statuses": {
+      "pending": "Pending",
+      "running": "Running",
+      "success": "Success",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "services": "Services",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "language": "Language",
+    "username": "Username",
+    "password": "Password",
+    "token": "Token",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter your API key",
+    "optional": "Optional",
+    "notConfigured": "Not configured",
+    "connected": "Connected",
+    "connectionError": "Connection error",
+    "notTested": "Not tested",
+    "testing": "Testing...",
+    "saveFailed": "Save failed",
+    "connectionFailed": "Connection failed",
+    "plex": {
+      "title": "Plex",
+      "url": "Server URL",
+      "token": "Authentication token"
+    },
+    "tunarr": {
+      "title": "Tunarr",
+      "url": "Server URL",
+      "username": "Username",
+      "password": "Password"
+    },
+    "tmdb": {
+      "title": "TMDB",
+      "apiKey": "API Key"
+    },
+    "ollama": {
+      "title": "Ollama",
+      "url": "Server URL",
+      "model": "Default model"
+    },
+    "testConnection": "Test connection",
+    "connectionSuccess": "Connection successful",
+    "defaults": {
+      "section": "Default Parameters",
+      "title": "Default Values",
+      "iterations": "Iterations",
+      "iterationsHelp": "Number of iterations for programming generation (1-100)",
+      "randomness": "Randomness",
+      "randomnessHelp": "Level of randomness in content selection (0-100%)",
+      "cacheMode": "Cache Mode",
+      "cacheModeHelp": "Defines which data sources to use for generation",
+      "cacheModes": {
+        "cacheOnly": "Cache",
+        "cacheTmdb": "Cache + TMDB",
+        "tmdbOnly": "TMDB",
+        "plexOnly": "Plex"
+      }
+    },
+    "cache": {
+      "section": "Cache Management",
+      "title": "Local Cache",
+      "description": "Local cache stores data to speed up operations. Clearing the cache can resolve some issues.",
+      "clear": "Clear Cache",
+      "cleared": "Cache cleared"
+    },
+    "about": {
+      "section": "About",
+      "title": "SmartTunarr",
+      "version": "Version",
+      "build": "Build",
+      "description": "SmartTunarr is a smart programming tool for Tunarr, using JSON profiles and AI to generate optimized schedules."
+    }
+  },
+  "timeline": {
+    "reset": "Reset",
+    "duration": "Duration",
+    "startTime": "Start time",
+    "metadata": "Metadata"
+  },
+  "content": {
+    "types": {
+      "movie": "Movie",
+      "episode": "Episode",
+      "filler": "Filler"
+    },
+    "genres": "Genres",
+    "year": "Year",
+    "rating": "Rating"
+  },
+  "jobs": {
+    "activeJobs": "{{count}} active job(s)",
+    "recentJobs": "Recent jobs",
+    "finalScore": "Final score",
+    "clearCompleted": "Clear completed",
+    "programming": "Programming",
+    "scoring": "Scoring",
+    "sync": "Sync",
+    "aiGeneration": "AI Generation"
+  },
+  "ai": {
+    "title": "AI Generation",
+    "description": "Describe the type of programming you want and the AI will generate a JSON profile for you.",
+    "prompt": "Description",
+    "promptPlaceholder": "E.g., An action movie night with recent highly-rated films, no horror movies...",
+    "model": "AI Model",
+    "autoModel": "Automatic (recommended)",
+    "temperature": "Creativity",
+    "saveProfile": "Save generated profile",
+    "profileNamePlaceholder": "Profile name",
+    "generate": "Generate profile",
+    "generating": "Generating...",
+    "generationSuccess": "Profile generated successfully",
+    "generationFailed": "Generation failed",
+    "attempts": "{{count}} attempt(s)",
+    "attempt": "Attempt",
+    "attemptDetails": "Attempt details",
+    "generatedProfile": "Generated profile",
+    "forbiddenRules": "Forbidden rules",
+    "mandatoryRules": "Mandatory rules",
+    "toggleDetails": "Show/hide details",
+    "profileSaved": "Profile saved",
+    "viewProfile": "View profile",
+    "examplePrompts": "Example descriptions",
+    "examples": {
+      "actionNight": "Action movie night",
+      "familyWeekend": "Family weekend schedule",
+      "classicMovies": "Classic movies 80-90s",
+      "lateNight": "Late night programming"
+    }
+  }
+}

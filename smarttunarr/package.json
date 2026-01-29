@@ -1,0 +1,17 @@
+{
+  "name": "smarttunarr",
+  "version": "0.1.0",
+  "description": "Intelligent TV Channel Programming for Tunarr",
+  "scripts": {
+    "dev": "./scripts/dev.sh",
+    "stop": "./scripts/stop.sh",
+    "dev:back": "./scripts/dev-back.sh",
+    "dev:front": "./scripts/dev-front.sh",
+    "stop:back": "./scripts/stop-back.sh",
+    "stop:front": "./scripts/stop-front.sh",
+    "logs": "tail -f /tmp/smarttunarr-backend.log",
+    "logs:back": "tail -f /tmp/smarttunarr-backend.log",
+    "logs:front": "tail -f /tmp/smarttunarr-frontend.log"
+  },
+  "private": true
+}

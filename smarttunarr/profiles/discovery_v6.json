@@ -1,0 +1,530 @@
+{
+  "name": "Discovery Mix v6",
+  "version": "6.0",
+  "description": "Découverte de films variés - Mélange équilibré de genres et d'époques",
+  "labels": [
+    "discovery",
+    "mix",
+    "variety",
+    "eclectic",
+    "v6"
+  ],
+  "libraries": [
+    {
+      "id": "1",
+      "name": "Films",
+      "type": "movie",
+      "weight": 80,
+      "enabled": true
+    },
+    {
+      "id": "4",
+      "name": "Séries TV",
+      "type": "show",
+      "weight": 60,
+      "enabled": true
+    },
+    {
+      "id": "3",
+      "name": "Nouveaux/Non Triés",
+      "type": "movie",
+      "weight": 40,
+      "enabled": true
+    }
+  ],
+  "time_blocks": [
+    {
+      "name": "morning_mix",
+      "description": "Matinée - Mix léger",
+      "start_time": "06:00",
+      "end_time": "12:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie",
+          "episode"
+        ],
+        "preferred_genres": [
+          "Comedy",
+          "Drama",
+          "Romance",
+          "Adventure",
+          "Family",
+          "Comédie",
+          "Drame",
+          "Familial"
+        ],
+        "allowed_genres": [
+          "Comedy",
+          "Drama",
+          "Romance",
+          "Adventure",
+          "Family",
+          "Animation",
+          "Fantasy",
+          "Comédie",
+          "Drame",
+          "Familial",
+          "Fantastique"
+        ],
+        "forbidden_genres": [
+          "Horror",
+          "Horreur"
+        ],
+        "min_duration_min": 70,
+        "max_duration_min": 150,
+        "min_tmdb_rating": 5.5,
+        "preferred_tmdb_rating": 6.5,
+        "min_vote_count": 100,
+        "genre_rules": {
+          "forbidden_values": ["Horror", "Horreur"],
+          "forbidden_penalty": -100,
+          "preferred_values": ["Comedy", "Drama", "Romance", "Adventure", "Family", "Comédie", "Drame", "Familial"],
+          "preferred_bonus": 15
+        },
+        "rating_rules": {
+          "preferred_values": ["excellent", "good", "average"],
+          "preferred_bonus": 10
+        },
+        "filter_rules": {
+          "preferred_values": ["hidden gem", "underrated", "indie", "feel-good"],
+          "preferred_bonus": 15
+        }
+      }
+    },
+    {
+      "name": "afternoon_adventure",
+      "description": "Après-midi - Aventure et action",
+      "start_time": "12:00",
+      "end_time": "18:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Action",
+          "Adventure",
+          "Science Fiction",
+          "Fantasy",
+          "Thriller",
+          "Science-Fiction",
+          "Fantastique"
+        ],
+        "allowed_genres": [
+          "Action",
+          "Adventure",
+          "Science Fiction",
+          "Fantasy",
+          "Thriller",
+          "Comedy",
+          "Animation",
+          "Science-Fiction",
+          "Fantastique",
+          "Comédie"
+        ],
+        "forbidden_genres": [],
+        "min_duration_min": 80,
+        "max_duration_min": 180,
+        "min_tmdb_rating": 5.5,
+        "preferred_tmdb_rating": 7.0,
+        "min_vote_count": 200,
+        "genre_rules": {
+          "preferred_values": ["Action", "Adventure", "Science Fiction", "Fantasy", "Thriller", "Science-Fiction", "Fantastique"],
+          "preferred_bonus": 15
+        },
+        "rating_rules": {
+          "preferred_values": ["excellent", "good"],
+          "preferred_bonus": 12
+        },
+        "filter_rules": {
+          "preferred_values": ["adventure", "action", "epic", "blockbuster", "hidden gem"],
+          "preferred_bonus": 12
+        }
+      }
+    },
+    {
+      "name": "evening_drama",
+      "description": "Soirée - Drames et thrillers",
+      "start_time": "18:00",
+      "end_time": "23:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Drama",
+          "Thriller",
+          "Crime",
+          "Mystery",
+          "Romance",
+          "Drame",
+          "Mystère"
+        ],
+        "allowed_genres": [
+          "Drama",
+          "Thriller",
+          "Crime",
+          "Mystery",
+          "Romance",
+          "Biography",
+          "History",
+          "War",
+          "Drame",
+          "Mystère",
+          "Histoire",
+          "Guerre"
+        ],
+        "forbidden_genres": [],
+        "min_duration_min": 90,
+        "max_duration_min": 200,
+        "min_tmdb_rating": 6.0,
+        "preferred_tmdb_rating": 7.5,
+        "min_vote_count": 500,
+        "genre_rules": {
+          "preferred_values": ["Drama", "Thriller", "Crime", "Mystery", "Romance", "Drame", "Mystère"],
+          "preferred_bonus": 18
+        },
+        "rating_rules": {
+          "mandatory_values": ["excellent", "good", "average"],
+          "mandatory_penalty": -25,
+          "preferred_values": ["excellent", "good"],
+          "preferred_bonus": 15
+        },
+        "filter_rules": {
+          "preferred_values": ["drama", "psychological", "emotional", "hidden gem", "underrated"],
+          "preferred_bonus": 15
+        },
+        "timing_rules": {
+          "preferred_values": ["evening"],
+          "preferred_bonus": 10
+        }
+      }
+    },
+    {
+      "name": "late_night_special",
+      "description": "Nuit - Films spéciaux",
+      "start_time": "23:00",
+      "end_time": "06:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Horror",
+          "Thriller",
+          "Mystery",
+          "Science Fiction",
+          "Crime",
+          "Horreur",
+          "Mystère",
+          "Science-Fiction"
+        ],
+        "allowed_genres": [
+          "Horror",
+          "Thriller",
+          "Mystery",
+          "Science Fiction",
+          "Crime",
+          "Drama",
+          "Fantasy",
+          "Horreur",
+          "Mystère",
+          "Science-Fiction",
+          "Drame",
+          "Fantastique"
+        ],
+        "forbidden_genres": [
+          "Family",
+          "Animation",
+          "Familial"
+        ],
+        "min_duration_min": 80,
+        "max_duration_min": 180,
+        "min_tmdb_rating": 5.5,
+        "preferred_tmdb_rating": 7.0,
+        "min_vote_count": 100,
+        "genre_rules": {
+          "forbidden_values": ["Family", "Animation", "Familial"],
+          "forbidden_penalty": -80,
+          "preferred_values": ["Horror", "Thriller", "Mystery", "Science Fiction", "Crime", "Horreur", "Mystère", "Science-Fiction"],
+          "preferred_bonus": 18
+        },
+        "rating_rules": {
+          "preferred_values": ["excellent", "good"],
+          "preferred_bonus": 12
+        },
+        "filter_rules": {
+          "preferred_values": ["cult", "hidden gem", "underrated", "psychological", "mystery", "suspense"],
+          "preferred_bonus": 15
+        },
+        "timing_rules": {
+          "preferred_values": ["night"],
+          "preferred_bonus": 10
+        }
+      }
+    }
+  ],
+  "mandatory_forbidden_criteria": {
+    "mandatory": {
+      "min_tmdb_rating": 5.0,
+      "min_vote_count": 50
+    },
+    "forbidden": {
+      "genres": [],
+      "keywords": [
+        "xxx",
+        "adult only",
+        "porn"
+      ],
+      "tmdb_keywords": [
+        "pornography",
+        "erotic"
+      ],
+      "max_controversial_score": 9.5
+    },
+    "preferred": {
+      "genres": [],
+      "keywords": [
+        "hidden gem",
+        "underrated",
+        "indie",
+        "festival"
+      ],
+      "collections": [],
+      "studios": [],
+      "actors": [],
+      "directors": [],
+      "countries": []
+    }
+  },
+  "enhanced_criteria": {
+    "keywords_safety": {
+      "enabled": true,
+      "safe_keywords": [
+        "hidden gem",
+        "underrated",
+        "indie",
+        "independent",
+        "festival",
+        "sundance",
+        "cannes",
+        "critic's choice"
+      ],
+      "dangerous_keywords": [
+        "pornography",
+        "erotic"
+      ],
+      "safe_bonus_points": 8,
+      "dangerous_penalty_points": -100
+    },
+    "collections_franchises": {
+      "enabled": true,
+      "preferred_collections": [],
+      "preferred_franchises": [],
+      "forbidden_collections": [],
+      "collection_bonus_points": 3,
+      "franchise_bonus_points": 2
+    },
+    "cast_crew": {
+      "enabled": false,
+      "preferred_actors": [],
+      "forbidden_actors": [],
+      "preferred_directors": [],
+      "min_actor_popularity": 5,
+      "popular_actor_bonus": 2
+    },
+    "temporal_intelligence": {
+      "enabled": true,
+      "recency_bonuses": {
+        "enabled": true,
+        "very_recent_days": 60,
+        "very_recent_bonus": 5,
+        "recent_months": 12,
+        "recent_bonus": 3,
+        "this_year_bonus": 2,
+        "max_age_years": null,
+        "old_content_penalty": 0
+      },
+      "seasonal_bonuses": {
+        "enabled": true,
+        "christmas": {
+          "months": [
+            11,
+            12
+          ],
+          "keywords": [
+            "christmas",
+            "holiday",
+            "winter"
+          ],
+          "genres": [
+            "Family",
+            "Comedy",
+            "Romance",
+            "Drama",
+            "Familial",
+            "Comédie",
+            "Drame"
+          ],
+          "bonus_points": 5
+        },
+        "halloween": {
+          "months": [
+            10
+          ],
+          "keywords": [
+            "halloween",
+            "horror",
+            "scary",
+            "spooky"
+          ],
+          "genres": [
+            "Horror",
+            "Thriller",
+            "Mystery",
+            "Horreur",
+            "Mystère"
+          ],
+          "bonus_points": 8
+        },
+        "summer": {
+          "months": [
+            6,
+            7,
+            8
+          ],
+          "keywords": [
+            "summer",
+            "beach",
+            "vacation",
+            "road trip"
+          ],
+          "genres": [
+            "Action",
+            "Adventure",
+            "Comedy",
+            "Comédie"
+          ],
+          "bonus_points": 5
+        }
+      },
+      "prime_time_bonus": {
+        "enabled": true,
+        "prime_hours": [
+          "19:00",
+          "20:00",
+          "21:00"
+        ],
+        "bonus_points": 5
+      }
+    },
+    "cultural_linguistic": {
+      "enabled": true,
+      "preferred_countries": [
+        "US",
+        "GB",
+        "FR",
+        "DE",
+        "IT",
+        "ES",
+        "JP",
+        "KR",
+        "IN",
+        "BR",
+        "MX",
+        "AR",
+        "AU",
+        "CA"
+      ],
+      "preferred_languages": [
+        "en",
+        "fr",
+        "de",
+        "es",
+        "it",
+        "ja",
+        "ko"
+      ],
+      "require_french_audio": false,
+      "country_bonus_points": 3,
+      "language_bonus_points": 2
+    },
+    "quality_indicators": {
+      "enabled": true,
+      "vote_reliability": {
+        "enabled": true,
+        "excellent_votes": 5000,
+        "good_votes": 1000,
+        "acceptable_votes": 200,
+        "minimum_votes": 50
+      },
+      "multi_source_rating": {
+        "enabled": false,
+        "sources": [
+          "tmdb"
+        ],
+        "aggregation_method": "average"
+      },
+      "technical_quality": {
+        "enabled": false,
+        "prefer_4k": false,
+        "prefer_hdr": false,
+        "quality_bonus_points": 2
+      }
+    },
+    "educational_value": {
+      "enabled": true,
+      "educational_keywords": [
+        "documentary",
+        "biography",
+        "historical",
+        "based on true story"
+      ],
+      "bonus_points": 5
+    }
+  },
+  "strategies": {
+    "maintain_sequence": false,
+    "maximize_variety": true,
+    "marathon_mode": false,
+    "avoid_repeats_days": 14,
+    "filler_insertion": {
+      "enabled": false,
+      "types": [],
+      "max_duration_min": 5
+    },
+    "bonuses": {
+      "holiday_bonus": true,
+      "recent_release_bonus": true,
+      "popular_content_bonus": false
+    }
+  },
+  "scoring_weights": {
+    "type": 10,
+    "duration": 10,
+    "genre": 15,
+    "timing": 10,
+    "strategy": 10,
+    "age": 5,
+    "rating": 15,
+    "filter": 5,
+    "bonus": 5,
+    "keywords": 5,
+    "collections": 3,
+    "cast": 3,
+    "temporal": 9
+  },
+  "default_iterations": 15,
+  "default_randomness": 0.35
+}

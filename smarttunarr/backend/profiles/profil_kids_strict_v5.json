@@ -1,0 +1,135 @@
+{
+  "name": "Kids Ultra Safe v5",
+  "version": "5.0",
+  "labels": ["kids", "family", "safe", "strict"],
+  "libraries": [
+    {
+      "id": "1",
+      "name": "Films",
+      "type": "movie",
+      "weight": 100
+    }
+  ],
+  "time_blocks": [
+    {
+      "name": "morning_cartoons",
+      "start_time": "06:00",
+      "end_time": "12:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "allowed_types": ["movie", "episode"],
+        "preferred_genres": ["Animation", "Family", "Comedy", "Musical"],
+        "allowed_genres": ["Animation", "Family", "Comedy", "Musical", "Adventure", "Fantasy"],
+        "forbidden_genres": ["Horror", "Thriller", "Crime", "War", "Drama", "Mystery", "Action"],
+        "min_duration_min": 60,
+        "max_duration_min": 120,
+        "max_age_rating": "G",
+        "min_tmdb_rating": 5.0,
+        "preferred_tmdb_rating": 7.0,
+        "min_vote_count": 100
+      }
+    },
+    {
+      "name": "afternoon_adventure",
+      "start_time": "12:00",
+      "end_time": "17:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "allowed_types": ["movie", "episode"],
+        "preferred_genres": ["Animation", "Family", "Adventure", "Comedy", "Fantasy"],
+        "allowed_genres": ["Animation", "Family", "Adventure", "Comedy", "Fantasy", "Musical"],
+        "forbidden_genres": ["Horror", "Thriller", "Crime", "War", "Drama"],
+        "min_duration_min": 60,
+        "max_duration_min": 150,
+        "max_age_rating": "PG",
+        "min_tmdb_rating": 5.0,
+        "preferred_tmdb_rating": 6.5,
+        "min_vote_count": 50
+      }
+    },
+    {
+      "name": "evening_family",
+      "start_time": "17:00",
+      "end_time": "21:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "allowed_types": ["movie", "episode"],
+        "preferred_genres": ["Animation", "Family", "Comedy", "Adventure"],
+        "allowed_genres": ["Animation", "Family", "Comedy", "Adventure", "Fantasy", "Musical"],
+        "forbidden_genres": ["Horror", "Thriller", "Crime", "War", "Action", "Mystery"],
+        "min_duration_min": 80,
+        "max_duration_min": 180,
+        "max_age_rating": "G",
+        "min_tmdb_rating": 6.0,
+        "preferred_tmdb_rating": 7.5,
+        "min_vote_count": 200
+      }
+    },
+    {
+      "name": "night_restricted",
+      "start_time": "21:00",
+      "end_time": "06:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "allowed_types": ["movie"],
+        "preferred_genres": ["Animation", "Family"],
+        "allowed_genres": ["Animation", "Family", "Comedy"],
+        "forbidden_genres": ["Horror", "Thriller", "Crime", "War", "Action", "Drama", "Mystery", "Sci-Fi"],
+        "min_duration_min": 80,
+        "max_duration_min": 120,
+        "max_age_rating": "G",
+        "min_tmdb_rating": 7.0,
+        "preferred_tmdb_rating": 8.0,
+        "min_vote_count": 500
+      }
+    }
+  ],
+  "mandatory_forbidden_criteria": {
+    "mandatory": {
+      "required_genres": ["Animation", "Family", "Comedy", "Musical", "Adventure", "Fantasy"],
+      "min_tmdb_rating": 4.5
+    },
+    "forbidden": {
+      "genres": [
+        "Horror", "Horreur",
+        "Thriller",
+        "Crime",
+        "War", "Guerre",
+        "Mystery", "Mystere"
+      ],
+      "keywords": [
+        "violence", "gore", "blood", "death", "murder", "weapon", "gun",
+        "horror", "scary", "nightmare", "ghost", "zombie", "monster", "demon",
+        "adult", "mature", "sexual", "nude", "drugs", "alcohol",
+        "crime", "gangster", "mafia", "serial killer", "psycho"
+      ]
+    }
+  },
+  "strategies": {
+    "maintain_sequence": true,
+    "maximize_variety": true,
+    "marathon_mode": false,
+    "filler_insertion": {
+      "enabled": false,
+      "types": [],
+      "max_duration_min": 5
+    },
+    "bonuses": {
+      "holiday_bonus": true,
+      "recent_release_bonus": true
+    }
+  },
+  "scoring_weights": {
+    "type": 10,
+    "duration": 10,
+    "genre": 25,
+    "timing": 10,
+    "strategy": 5,
+    "age": 20,
+    "rating": 10,
+    "filter": 5,
+    "bonus": 5
+  },
+  "default_iterations": 15,
+  "default_randomness": 0.15
+}

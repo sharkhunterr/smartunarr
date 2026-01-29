@@ -1,0 +1,568 @@
+import { useState, useEffect, Fragment } from 'react'
+import { useTranslation } from 'react-i18next'
+import {
+  History,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader2,
+  Trash2,
+  Eye,
+  RefreshCw,
+  Filter,
+  Play,
+  BarChart3,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  X
+} from 'lucide-react'
+import clsx from 'clsx'
+import { historyApi, programmingApi, scoringApi } from '@/services/api'
+import type { HistoryEntry, ProgramResult, ScoringResult } from '@/types'
+import { Timeline } from '@/components/timeline'
+
+const statusIcons = {
+  success: CheckCircle,
+  failed: XCircle,
+  cancelled: Clock,
+}
+
+const statusColors = {
+  success: 'text-green-500',
+  failed: 'text-red-500',
+  cancelled: 'text-yellow-500',
+}
+
+const typeIcons = {
+  programming: Play,
+  scoring: BarChart3,
+  ai_generation: Sparkles,
+}
+
+type FilterType = 'all' | 'programming' | 'scoring' | 'ai_generation'
+
+interface ResultModalProps {
+  entry: HistoryEntry
+  result: ProgramResult | ScoringResult | null
+  onClose: () => void
+}
+
+function ResultModal({ entry, result, onClose }: ResultModalProps) {
+  const { t } = useTranslation()
+
+  if (!result) return null
+
+  const isProgramming = entry.type === 'programming' || entry.type === 'ai_generation'
+  const programResult = isProgramming ? (result as ProgramResult) : null
+  const scoringResult = !isProgramming ? (result as ScoringResult) : null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50">
+      <div className="w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+          <div className="min-w-0 flex-1 pr-2">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate">
+              {t(`history.types.${entry.type}`)} - {entry.channel_name}
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+              {entry.profile_name} • {new Date(entry.created_at).toLocaleString('fr-FR')}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-3 sm:p-6">
+          {programResult && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+                <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Score total</div>
+                  <div className="text-xl sm:text-2xl font-bold text-primary-600 dark:text-primary-400">
+                    {programResult.total_score.toFixed(1)}
+                  </div>
+                </div>
+                <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Score moyen</div>
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                    {programResult.average_score.toFixed(1)}
+                  </div>
+                </div>
+                <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Programmes</div>
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                    {programResult.programs?.length || 0}
+                  </div>
+                </div>
+                <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Durée totale</div>
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                    {programResult.total_duration_min} min
+                  </div>
+                </div>
+              </div>
+
+              <Timeline
+                programs={programResult.programs || []}
+                showScores={true}
+                compact={true}
+              />
+            </div>
+          )}
+
+          {scoringResult && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+                <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Score total</div>
+                  <div className="text-xl sm:text-2xl font-bold text-primary-600 dark:text-primary-400">
+                    {scoringResult.total_score.toFixed(1)}
+                  </div>
+                </div>
+                <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Score moyen</div>
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                    {scoringResult.average_score.toFixed(1)}
+                  </div>
+                </div>
+                <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Programmes</div>
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                    {scoringResult.total_items}
+                  </div>
+                </div>
+                <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Violations</div>
+                  <div className={clsx(
+                    'text-xl sm:text-2xl font-bold',
+                    scoringResult.violations_count > 0 ? 'text-red-500' : 'text-green-500'
+                  )}>
+                    {scoringResult.violations_count}
+                  </div>
+                </div>
+              </div>
+
+              <Timeline
+                programs={scoringResult.programs || []}
+                showScores={true}
+                compact={true}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function HistoryPage() {
+  const { t } = useTranslation()
+
+  const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<FilterType>('all')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [actionId, setActionId] = useState<string | null>(null)
+
+  // Modal state
+  const [viewEntry, setViewEntry] = useState<HistoryEntry | null>(null)
+  const [viewResult, setViewResult] = useState<ProgramResult | ScoringResult | null>(null)
+  const [loadingResult, setLoadingResult] = useState(false)
+
+  useEffect(() => {
+    loadHistory()
+  }, [filter])
+
+  const loadHistory = async () => {
+    setLoading(true)
+    try {
+      const params = filter !== 'all' ? { type: filter as 'programming' | 'scoring' | 'ai_generation' } : {}
+      const data = await historyApi.list(params)
+      setHistory(data)
+    } catch {
+      // History API not implemented yet, use empty array
+      setHistory([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Supprimer cet élément de l\'historique ?')) return
+
+    setActionId(id)
+    try {
+      await historyApi.delete(id)
+      setHistory(prev => prev.filter(h => h.id !== id))
+    } catch {
+      // Error deleting
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const handleClearAll = async () => {
+    if (!confirm('Supprimer tout l\'historique ?')) return
+
+    setLoading(true)
+    try {
+      await historyApi.clear(filter !== 'all' ? filter : undefined)
+      setHistory([])
+    } catch {
+      // Error clearing
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleViewResult = async (entry: HistoryEntry) => {
+    if (!entry.result_id) return
+
+    setViewEntry(entry)
+    setLoadingResult(true)
+
+    try {
+      let result: ProgramResult | ScoringResult
+      if (entry.type === 'programming' || entry.type === 'ai_generation') {
+        result = await programmingApi.getResult(entry.result_id)
+      } else {
+        result = await scoringApi.getResult(entry.result_id)
+      }
+      setViewResult(result)
+    } catch {
+      setViewEntry(null)
+    } finally {
+      setLoadingResult(false)
+    }
+  }
+
+  const formatDuration = (seconds?: number): string => {
+    if (!seconds) return '-'
+    if (seconds < 60) return `${seconds}s`
+    const minutes = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${minutes}m ${secs}s`
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+          {t('history.title')}
+        </h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadHistory}
+            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+          >
+            <RefreshCw className="w-4 sm:w-5 h-4 sm:h-5" />
+          </button>
+          {history.length > 0 && (
+            <button
+              onClick={handleClearAll}
+              className="flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Tout supprimer</span>
+              <span className="sm:hidden">Supprimer</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+          {(['all', 'programming', 'scoring', 'ai_generation'] as FilterType[]).map(type => (
+            <button
+              key={type}
+              onClick={() => setFilter(type)}
+              className={clsx(
+                'px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap',
+                filter === type
+                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              )}
+            >
+              {type === 'all' ? 'Tout' : t(`history.types.${type}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {history.length === 0 ? (
+        <div className="text-center py-8 sm:py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <History className="w-10 sm:w-12 h-10 sm:h-12 mx-auto text-gray-400 mb-4" />
+          <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">Aucun historique</p>
+        </div>
+      ) : (
+        <>
+          {/* Desktop table view */}
+          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('history.status')}
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('history.type')}
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('history.channel')}
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('history.profile')}
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('history.date')}
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('history.duration')}
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('history.score')}
+                    </th>
+                    <th className="text-right px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {history.map(entry => {
+                    const StatusIcon = statusIcons[entry.status] || Clock
+                    const TypeIcon = typeIcons[entry.type] || Play
+                    const isExpanded = expandedId === entry.id
+
+                    return (
+                      <Fragment key={entry.id}>
+                        <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                          <td className="px-4 py-3">
+                            <StatusIcon
+                              className={clsx('w-5 h-5', statusColors[entry.status])}
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2 text-gray-900 dark:text-white">
+                              <TypeIcon className="w-4 h-4 text-gray-400" />
+                              {t(`history.types.${entry.type}`)}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                            {entry.channel_name || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                            {entry.profile_name || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                            {new Date(entry.created_at).toLocaleString('fr-FR')}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                            {formatDuration(entry.duration_sec)}
+                          </td>
+                          <td className="px-4 py-3">
+                            {entry.score ? (
+                              <span className="font-medium text-primary-600 dark:text-primary-400">
+                                {entry.score.toFixed(1)}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-1">
+                              {entry.result_id && (
+                                <button
+                                  onClick={() => handleViewResult(entry)}
+                                  className="p-2 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+                                  title={t('history.viewResult')}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setExpandedId(isExpanded ? null : entry.id)}
+                                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                                title={t('history.details')}
+                              >
+                                {isExpanded ? (
+                                  <ChevronUp className="w-4 h-4" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleDelete(entry.id)}
+                                disabled={actionId === entry.id}
+                                className="p-2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors disabled:opacity-50"
+                                title={t('common.delete')}
+                              >
+                                {actionId === entry.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan={8} className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50">
+                              <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                {entry.iterations && (
+                                  <div>
+                                    <span className="text-gray-500 dark:text-gray-400">{t('history.iterations')}:</span>
+                                    <span className="ml-2 text-gray-900 dark:text-white">{entry.iterations}</span>
+                                  </div>
+                                )}
+                                {entry.error && (
+                                  <div className="md:col-span-3">
+                                    <span className="text-gray-500 dark:text-gray-400">{t('history.error')}:</span>
+                                    <span className="ml-2 text-red-600 dark:text-red-400">{entry.error}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mobile card view */}
+          <div className="md:hidden space-y-3">
+            {history.map(entry => {
+              const StatusIcon = statusIcons[entry.status] || Clock
+              const TypeIcon = typeIcons[entry.type] || Play
+              const isExpanded = expandedId === entry.id
+
+              return (
+                <div
+                  key={entry.id}
+                  className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+                >
+                  {/* Header row */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <StatusIcon className={clsx('w-4 h-4', statusColors[entry.status])} />
+                      <TypeIcon className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {t(`history.types.${entry.type}`)}
+                      </span>
+                    </div>
+                    {entry.score && (
+                      <span className="font-medium text-primary-600 dark:text-primary-400 text-sm">
+                        {entry.score.toFixed(1)}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                    <div className="flex justify-between">
+                      <span>{entry.channel_name || '-'}</span>
+                      <span>{formatDuration(entry.duration_sec)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="truncate max-w-[50%]">{entry.profile_name || '-'}</span>
+                      <span>{new Date(entry.created_at).toLocaleDateString('fr-FR')}</span>
+                    </div>
+                  </div>
+
+                  {/* Expanded details */}
+                  {isExpanded && (entry.iterations || entry.error) && (
+                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs">
+                      {entry.iterations && (
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">{t('history.iterations')}:</span>
+                          <span className="ml-1 text-gray-900 dark:text-white">{entry.iterations}</span>
+                        </div>
+                      )}
+                      {entry.error && (
+                        <div className="mt-1">
+                          <span className="text-gray-500 dark:text-gray-400">{t('history.error')}:</span>
+                          <span className="ml-1 text-red-600 dark:text-red-400">{entry.error}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex justify-end gap-1 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    {entry.result_id && (
+                      <button
+                        onClick={() => handleViewResult(entry)}
+                        className="p-1.5 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setExpandedId(isExpanded ? null : entry.id)}
+                      className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(entry.id)}
+                      disabled={actionId === entry.id}
+                      className="p-1.5 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors disabled:opacity-50"
+                    >
+                      {actionId === entry.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Result modal */}
+      {viewEntry && (
+        loadingResult ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <Loader2 className="w-8 h-8 animate-spin text-white" />
+          </div>
+        ) : (
+          <ResultModal
+            entry={viewEntry}
+            result={viewResult}
+            onClose={() => {
+              setViewEntry(null)
+              setViewResult(null)
+            }}
+          />
+        )
+      )}
+    </div>
+  )
+}

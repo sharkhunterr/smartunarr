@@ -1,0 +1,350 @@
+{
+  "name": "Kids Ultra Safe v6",
+  "version": "6.0",
+  "description": "Profil enfants ultra-sécurisé avec scoring enrichi TMDB - sécurité maximale",
+  "labels": ["kids", "family", "safe", "strict", "v6", "enhanced"],
+
+  "libraries": [
+    {
+      "id": "1",
+      "name": "Films",
+      "type": "movie",
+      "weight": 100,
+      "enabled": true
+    }
+  ],
+
+  "time_blocks": [
+    {
+      "name": "morning_cartoons",
+      "description": "Dessins animés du matin - Critères stricts",
+      "start_time": "06:00",
+      "end_time": "12:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "allowed_types": ["movie", "episode"],
+        "preferred_genres": ["Animation", "Family", "Comedy", "Musical"],
+        "allowed_genres": ["Animation", "Family", "Comedy", "Musical", "Adventure", "Fantasy"],
+        "forbidden_genres": ["Horror", "Thriller", "Crime", "War", "Drama", "Mystery", "Action"],
+        "min_duration_min": 60,
+        "max_duration_min": 120,
+        "max_age_rating": "G",
+        "allowed_age_ratings": ["G", "TP", "Tous publics", "U"],
+        "min_tmdb_rating": 5.0,
+        "preferred_tmdb_rating": 7.0,
+        "min_vote_count": 100
+      }
+    },
+    {
+      "name": "afternoon_adventure",
+      "description": "Aventures de l'après-midi",
+      "start_time": "12:00",
+      "end_time": "17:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "allowed_types": ["movie", "episode"],
+        "preferred_genres": ["Animation", "Family", "Adventure", "Comedy", "Fantasy"],
+        "allowed_genres": ["Animation", "Family", "Adventure", "Comedy", "Fantasy", "Musical"],
+        "forbidden_genres": ["Horror", "Thriller", "Crime", "War", "Drama"],
+        "min_duration_min": 60,
+        "max_duration_min": 150,
+        "max_age_rating": "PG",
+        "allowed_age_ratings": ["G", "PG", "TP", "Tous publics", "U"],
+        "min_tmdb_rating": 5.0,
+        "preferred_tmdb_rating": 6.5,
+        "min_vote_count": 50
+      }
+    },
+    {
+      "name": "evening_family",
+      "description": "Soirée familiale",
+      "start_time": "17:00",
+      "end_time": "21:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "allowed_types": ["movie", "episode"],
+        "preferred_genres": ["Animation", "Family", "Comedy", "Adventure"],
+        "allowed_genres": ["Animation", "Family", "Comedy", "Adventure", "Fantasy", "Musical"],
+        "forbidden_genres": ["Horror", "Thriller", "Crime", "War", "Action", "Mystery"],
+        "min_duration_min": 80,
+        "max_duration_min": 180,
+        "max_age_rating": "G",
+        "allowed_age_ratings": ["G", "TP", "Tous publics", "U"],
+        "min_tmdb_rating": 6.0,
+        "preferred_tmdb_rating": 7.5,
+        "min_vote_count": 200
+      }
+    },
+    {
+      "name": "night_restricted",
+      "description": "Nuit - Restrictions maximales",
+      "start_time": "21:00",
+      "end_time": "06:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "allowed_types": ["movie"],
+        "preferred_genres": ["Animation", "Family"],
+        "allowed_genres": ["Animation", "Family", "Comedy"],
+        "forbidden_genres": ["Horror", "Thriller", "Crime", "War", "Action", "Drama", "Mystery", "Sci-Fi"],
+        "min_duration_min": 80,
+        "max_duration_min": 120,
+        "max_age_rating": "G",
+        "allowed_age_ratings": ["G", "TP", "Tous publics"],
+        "min_tmdb_rating": 7.0,
+        "preferred_tmdb_rating": 8.0,
+        "min_vote_count": 500
+      }
+    }
+  ],
+
+  "mandatory_forbidden_criteria": {
+    "mandatory": {
+      "required_genres": ["Animation", "Family", "Comedy", "Musical", "Adventure", "Fantasy"],
+      "min_tmdb_rating": 4.5,
+      "min_vote_count": 50,
+      "allowed_age_ratings": ["G", "TP", "Tous publics", "U", "PG"]
+    },
+
+    "forbidden": {
+      "genres": [
+        "Horror", "Horreur",
+        "Thriller",
+        "Crime",
+        "War", "Guerre",
+        "Mystery", "Mystère",
+        "Western"
+      ],
+      "age_ratings": [
+        "+12", "+16", "+18",
+        "12+", "16+", "18+",
+        "PG-13", "R", "NC-17",
+        "-12", "-16", "-18"
+      ],
+      "keywords": [
+        "violence", "gore", "blood", "death", "murder", "weapon", "gun",
+        "horror", "scary", "nightmare", "ghost", "zombie", "monster", "demon",
+        "adult", "mature", "sexual", "nude", "drugs", "alcohol",
+        "crime", "gangster", "mafia", "serial killer", "psycho"
+      ],
+      "tmdb_keywords": [
+        "violence", "gore", "blood", "death", "murder", "weapon",
+        "horror", "scary", "nightmare", "ghost", "zombie", "demon",
+        "adult content", "nudity", "drugs", "alcohol abuse",
+        "crime", "serial killer", "torture", "revenge"
+      ],
+      "collections": [
+        "Saw", "Hostel", "Final Destination", "Conjuring", "Insidious",
+        "Scream", "Halloween", "Friday the 13th", "Nightmare on Elm Street"
+      ],
+      "actors": [],
+      "directors": [],
+      "max_controversial_score": 3.0
+    },
+
+    "preferred": {
+      "genres": ["Animation", "Family", "Comedy", "Musical", "Adventure"],
+      "keywords": [
+        "family", "children", "friendship", "adventure", "magic",
+        "disney", "pixar", "dreamworks", "educational", "animals"
+      ],
+      "collections": [
+        "Disney Classics", "Pixar", "DreamWorks Animation",
+        "Studio Ghibli", "Illumination", "Blue Sky"
+      ],
+      "studios": [
+        "Walt Disney Pictures", "Pixar", "DreamWorks Animation",
+        "Illumination Entertainment", "Studio Ghibli", "Blue Sky Studios",
+        "Sony Pictures Animation", "Warner Animation Group"
+      ],
+      "actors": [
+        "Tom Hanks", "Robin Williams", "Ellen DeGeneres", "John Goodman",
+        "Amy Poehler", "Chris Pratt", "Scarlett Johansson", "Josh Gad",
+        "Idris Elba", "Taron Egerton", "Dwayne Johnson", "Kevin Hart"
+      ],
+      "countries": ["US", "FR", "GB", "JP", "CA"],
+      "languages": ["fr", "en"]
+    }
+  },
+
+  "enhanced_criteria": {
+    "keywords_safety": {
+      "enabled": true,
+      "safe_keywords": [
+        "family", "children", "kids", "friendship", "adventure", "magic",
+        "animation", "cartoon", "disney", "pixar", "dreamworks",
+        "educational", "learning", "animals", "nature", "musical",
+        "dog", "cat", "rescue", "team", "help", "cheerful", "heartwarming",
+        "princess", "fairy tale", "superhero for kids", "talking animals"
+      ],
+      "dangerous_keywords": [
+        "violence", "violent", "gore", "blood", "death", "kill", "murder",
+        "weapon", "gun", "knife", "fight", "battle", "war", "crime",
+        "horror", "scary", "nightmare", "ghost", "zombie", "monster",
+        "adult", "mature", "sexual", "nude", "drugs", "alcohol",
+        "gangster", "mafia", "serial killer", "psycho", "demon",
+        "revenge", "betrayal", "dark", "evil", "torture", "disturbing"
+      ],
+      "safe_bonus_points": 10,
+      "dangerous_penalty_points": -200
+    },
+
+    "collections_franchises": {
+      "enabled": true,
+      "preferred_collections": [
+        "Toy Story Collection", "Finding Nemo Collection", "The Incredibles Collection",
+        "Cars Collection", "Monsters, Inc. Collection", "Shrek Collection",
+        "How to Train Your Dragon Collection", "Despicable Me Collection",
+        "Ice Age Collection", "Kung Fu Panda Collection", "Madagascar Collection"
+      ],
+      "preferred_franchises": [
+        "Disney Princess", "Pixar", "DreamWorks", "Illumination",
+        "Studio Ghibli", "Paw Patrol", "Peppa Pig"
+      ],
+      "forbidden_collections": [
+        "Saw Collection", "The Conjuring Universe", "Insidious Collection",
+        "Final Destination Collection", "Scream Collection", "Halloween Collection",
+        "A Nightmare on Elm Street Collection", "Friday the 13th Collection",
+        "The Purge Collection", "Paranormal Activity Collection"
+      ],
+      "collection_bonus_points": 15,
+      "franchise_bonus_points": 10
+    },
+
+    "cast_crew": {
+      "enabled": true,
+      "preferred_actors": [
+        "Tom Hanks", "Robin Williams", "Ellen DeGeneres", "John Goodman",
+        "Amy Poehler", "Chris Pratt", "Idris Elba", "Dwayne Johnson"
+      ],
+      "forbidden_actors": [],
+      "preferred_directors": [
+        "Brad Bird", "Pete Docter", "Andrew Stanton", "Lee Unkrich",
+        "Chris Buck", "Jennifer Lee", "Byron Howard", "Rich Moore"
+      ],
+      "min_actor_popularity": 5,
+      "popular_actor_bonus": 5
+    },
+
+    "temporal_intelligence": {
+      "enabled": true,
+
+      "recency_bonuses": {
+        "enabled": true,
+        "very_recent_days": 90,
+        "very_recent_bonus": 5,
+        "recent_months": 12,
+        "recent_bonus": 3,
+        "this_year_bonus": 2,
+        "max_age_years": 25,
+        "old_content_penalty": -3
+      },
+
+      "seasonal_bonuses": {
+        "enabled": true,
+        "christmas": {
+          "months": [11, 12],
+          "keywords": ["christmas", "santa", "holiday", "winter", "snow", "noel"],
+          "genres": ["Family", "Animation", "Musical", "Comedy"],
+          "bonus_points": 10
+        },
+        "halloween": {
+          "months": [10],
+          "keywords": [],
+          "genres": [],
+          "bonus_points": 0
+        },
+        "summer": {
+          "months": [6, 7, 8],
+          "keywords": ["summer", "beach", "vacation", "adventure", "road trip"],
+          "genres": ["Adventure", "Comedy", "Animation"],
+          "bonus_points": 5
+        }
+      },
+
+      "prime_time_bonus": {
+        "enabled": true,
+        "prime_hours": ["18:00", "19:00", "20:00"],
+        "bonus_points": 5
+      }
+    },
+
+    "cultural_linguistic": {
+      "enabled": true,
+      "preferred_countries": ["US", "FR", "GB", "JP", "CA", "DE", "AU"],
+      "preferred_languages": ["fr", "en"],
+      "require_french_audio": false,
+      "country_bonus_points": 3,
+      "language_bonus_points": 3
+    },
+
+    "quality_indicators": {
+      "enabled": true,
+
+      "vote_reliability": {
+        "enabled": true,
+        "excellent_votes": 5000,
+        "good_votes": 2000,
+        "acceptable_votes": 500,
+        "minimum_votes": 100
+      },
+
+      "multi_source_rating": {
+        "enabled": false,
+        "sources": ["tmdb"],
+        "aggregation_method": "average"
+      },
+
+      "technical_quality": {
+        "enabled": false,
+        "prefer_4k": false,
+        "prefer_hdr": false,
+        "quality_bonus_points": 2
+      }
+    },
+
+    "educational_value": {
+      "enabled": true,
+      "educational_keywords": [
+        "educational", "learning", "school", "science", "nature",
+        "documentary", "biography", "historical", "discovery"
+      ],
+      "bonus_points": 8
+    }
+  },
+
+  "strategies": {
+    "maintain_sequence": true,
+    "maximize_variety": true,
+    "marathon_mode": false,
+    "avoid_repeats_days": 14,
+    "filler_insertion": {
+      "enabled": false,
+      "types": [],
+      "max_duration_min": 5
+    },
+    "bonuses": {
+      "holiday_bonus": true,
+      "recent_release_bonus": true,
+      "popular_content_bonus": true
+    }
+  },
+
+  "scoring_weights": {
+    "type": 8,
+    "duration": 8,
+    "genre": 20,
+    "timing": 8,
+    "strategy": 4,
+    "age": 18,
+    "rating": 10,
+    "filter": 4,
+    "bonus": 5,
+    "keywords": 8,
+    "collections": 5,
+    "cast": 4,
+    "temporal": 3
+  },
+
+  "default_iterations": 20,
+  "default_randomness": 0.1
+}

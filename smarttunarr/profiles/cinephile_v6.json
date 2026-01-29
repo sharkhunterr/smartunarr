@@ -1,0 +1,652 @@
+{
+  "name": "Cinephile Premium v6",
+  "version": "6.0",
+  "description": "Pour les amateurs de cinéma - Films acclamés, réalisateurs cultes et classiques",
+  "labels": [
+    "cinephile",
+    "art",
+    "classic",
+    "awards",
+    "quality",
+    "v6"
+  ],
+  "libraries": [
+    {
+      "id": "1",
+      "name": "Films",
+      "type": "movie",
+      "weight": 100,
+      "enabled": true
+    },
+    {
+      "id": "3",
+      "name": "Nouveaux/Non Triés",
+      "type": "movie",
+      "weight": 30,
+      "enabled": true
+    }
+  ],
+  "time_blocks": [
+    {
+      "name": "morning_classics",
+      "description": "Matinée - Classiques et films cultes",
+      "start_time": "08:00",
+      "end_time": "13:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Drama",
+          "Comedy",
+          "Romance",
+          "History",
+          "Biography",
+          "Drame",
+          "Comédie",
+          "Histoire"
+        ],
+        "allowed_genres": [
+          "Drama",
+          "Comedy",
+          "Romance",
+          "History",
+          "Biography",
+          "War",
+          "Western",
+          "Musical",
+          "Drame",
+          "Comédie",
+          "Histoire",
+          "Guerre"
+        ],
+        "forbidden_genres": [],
+        "min_duration_min": 90,
+        "max_duration_min": 200,
+        "min_tmdb_rating": 7.0,
+        "preferred_tmdb_rating": 8.0,
+        "min_vote_count": 500,
+        "genre_rules": {
+          "preferred_values": ["Drama", "Comedy", "Romance", "History", "Biography", "Drame", "Comédie", "Histoire"],
+          "preferred_bonus": 20
+        },
+        "rating_rules": {
+          "mandatory_values": ["excellent", "good"],
+          "mandatory_penalty": -40,
+          "preferred_values": ["excellent"],
+          "preferred_bonus": 25
+        },
+        "filter_rules": {
+          "forbidden_values": ["mockbuster", "b-movie", "direct-to-video"],
+          "forbidden_penalty": -150,
+          "preferred_values": ["oscar", "cannes", "classic", "masterpiece", "criterion"],
+          "preferred_bonus": 25
+        }
+      }
+    },
+    {
+      "name": "afternoon_arthouse",
+      "description": "Après-midi - Cinéma d'auteur",
+      "start_time": "13:00",
+      "end_time": "18:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Drama",
+          "Mystery",
+          "Thriller",
+          "Crime",
+          "Science Fiction",
+          "Drame",
+          "Mystère",
+          "Science-Fiction"
+        ],
+        "allowed_genres": [
+          "Drama",
+          "Mystery",
+          "Thriller",
+          "Crime",
+          "Science Fiction",
+          "Fantasy",
+          "Animation",
+          "Drame",
+          "Mystère",
+          "Science-Fiction",
+          "Fantastique"
+        ],
+        "forbidden_genres": [],
+        "min_duration_min": 90,
+        "max_duration_min": 210,
+        "min_tmdb_rating": 7.0,
+        "preferred_tmdb_rating": 7.5,
+        "min_vote_count": 300,
+        "genre_rules": {
+          "preferred_values": ["Drama", "Mystery", "Thriller", "Crime", "Science Fiction", "Drame", "Mystère", "Science-Fiction"],
+          "preferred_bonus": 20
+        },
+        "rating_rules": {
+          "mandatory_values": ["excellent", "good"],
+          "mandatory_penalty": -35,
+          "preferred_values": ["excellent"],
+          "preferred_bonus": 20
+        },
+        "filter_rules": {
+          "forbidden_values": ["mockbuster", "b-movie", "direct-to-video", "asylum"],
+          "forbidden_penalty": -150,
+          "preferred_values": ["auteur", "arthouse", "a24", "criterion", "indie", "psychological"],
+          "preferred_bonus": 25
+        }
+      }
+    },
+    {
+      "name": "evening_masterpieces",
+      "description": "Soirée - Chefs-d'œuvre",
+      "start_time": "18:00",
+      "end_time": "22:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Drama",
+          "Thriller",
+          "Crime",
+          "Mystery",
+          "Science Fiction",
+          "Drame",
+          "Mystère",
+          "Science-Fiction"
+        ],
+        "allowed_genres": [
+          "Drama",
+          "Thriller",
+          "Crime",
+          "Mystery",
+          "Science Fiction",
+          "War",
+          "History",
+          "Biography",
+          "Drame",
+          "Mystère",
+          "Science-Fiction",
+          "Guerre",
+          "Histoire"
+        ],
+        "forbidden_genres": [],
+        "min_duration_min": 100,
+        "max_duration_min": 240,
+        "min_tmdb_rating": 7.5,
+        "preferred_tmdb_rating": 8.5,
+        "min_vote_count": 1000,
+        "genre_rules": {
+          "preferred_values": ["Drama", "Thriller", "Crime", "Mystery", "Science Fiction", "Drame", "Mystère", "Science-Fiction"],
+          "preferred_bonus": 25
+        },
+        "rating_rules": {
+          "mandatory_values": ["excellent"],
+          "mandatory_penalty": -50,
+          "preferred_values": ["excellent"],
+          "preferred_bonus": 30
+        },
+        "filter_rules": {
+          "forbidden_values": ["mockbuster", "b-movie", "direct-to-video", "asylum"],
+          "forbidden_penalty": -200,
+          "preferred_values": ["oscar", "cannes", "palme", "masterpiece", "best picture", "golden globe"],
+          "preferred_bonus": 30
+        },
+        "timing_rules": {
+          "preferred_values": ["evening"],
+          "preferred_bonus": 15
+        }
+      }
+    },
+    {
+      "name": "night_cult",
+      "description": "Nuit - Films cultes et expérimentaux",
+      "start_time": "22:00",
+      "end_time": "08:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Thriller",
+          "Horror",
+          "Mystery",
+          "Crime",
+          "Science Fiction",
+          "Horreur",
+          "Mystère",
+          "Science-Fiction"
+        ],
+        "allowed_genres": [
+          "Thriller",
+          "Horror",
+          "Mystery",
+          "Crime",
+          "Science Fiction",
+          "Drama",
+          "Fantasy",
+          "Horreur",
+          "Mystère",
+          "Science-Fiction",
+          "Drame",
+          "Fantastique"
+        ],
+        "forbidden_genres": [
+          "Family",
+          "Animation",
+          "Familial"
+        ],
+        "min_duration_min": 90,
+        "max_duration_min": 200,
+        "min_tmdb_rating": 7.0,
+        "preferred_tmdb_rating": 8.0,
+        "min_vote_count": 200,
+        "genre_rules": {
+          "forbidden_values": ["Family", "Animation", "Familial"],
+          "forbidden_penalty": -100,
+          "preferred_values": ["Thriller", "Horror", "Mystery", "Crime", "Science Fiction", "Horreur", "Mystère", "Science-Fiction"],
+          "preferred_bonus": 20
+        },
+        "rating_rules": {
+          "mandatory_values": ["excellent", "good"],
+          "mandatory_penalty": -30,
+          "preferred_values": ["excellent"],
+          "preferred_bonus": 20
+        },
+        "filter_rules": {
+          "forbidden_values": ["mockbuster", "b-movie", "asylum"],
+          "forbidden_penalty": -150,
+          "preferred_values": ["cult", "psychological", "neo-noir", "experimental", "avant-garde", "kubrick", "lynch", "cronenberg"],
+          "preferred_bonus": 25
+        },
+        "timing_rules": {
+          "preferred_values": ["night"],
+          "preferred_bonus": 10
+        }
+      }
+    }
+  ],
+  "mandatory_forbidden_criteria": {
+    "mandatory": {
+      "min_tmdb_rating": 6.5,
+      "min_vote_count": 100
+    },
+    "forbidden": {
+      "genres": [],
+      "keywords": [
+        "xxx",
+        "adult only",
+        "porn",
+        "erotic",
+        "b-movie",
+        "mockbuster"
+      ],
+      "tmdb_keywords": [
+        "pornography",
+        "erotic",
+        "mockbuster",
+        "direct-to-video"
+      ],
+      "max_controversial_score": 9.0
+    },
+    "preferred": {
+      "genres": [
+        "Drama",
+        "Thriller",
+        "Crime",
+        "Mystery",
+        "History",
+        "Drame",
+        "Mystère",
+        "Histoire"
+      ],
+      "keywords": [
+        "oscar",
+        "cannes",
+        "palme d'or",
+        "golden globe",
+        "bafta",
+        "masterpiece",
+        "classic",
+        "cult",
+        "auteur",
+        "cinema",
+        "academy award",
+        "best picture",
+        "criterion"
+      ],
+      "collections": [
+        "The Godfather Collection",
+        "The Dark Knight Collection",
+        "Quentin Tarantino Collection",
+        "Martin Scorsese Collection",
+        "Stanley Kubrick Collection",
+        "Alfred Hitchcock Collection",
+        "Criterion Collection",
+        "David Fincher Collection"
+      ],
+      "studios": [
+        "A24",
+        "Focus Features",
+        "Searchlight Pictures",
+        "Miramax",
+        "Annapurna Pictures",
+        "NEON",
+        "IFC Films",
+        "Sony Pictures Classics"
+      ],
+      "actors": [
+        "Daniel Day-Lewis",
+        "Meryl Streep",
+        "Anthony Hopkins",
+        "Cate Blanchett",
+        "Joaquin Phoenix",
+        "Frances McDormand",
+        "Gary Oldman",
+        "Tilda Swinton",
+        "Javier Bardem",
+        "Kate Winslet",
+        "Christian Bale",
+        "Viola Davis",
+        "Denzel Washington",
+        "Philip Seymour Hoffman",
+        "Heath Ledger"
+      ],
+      "directors": [
+        "Martin Scorsese",
+        "Quentin Tarantino",
+        "Christopher Nolan",
+        "David Fincher",
+        "Denis Villeneuve",
+        "Paul Thomas Anderson",
+        "Coen Brothers",
+        "Stanley Kubrick",
+        "Alfred Hitchcock",
+        "Francis Ford Coppola",
+        "Ridley Scott",
+        "Terrence Malick",
+        "Wong Kar-wai",
+        "Park Chan-wook",
+        "Bong Joon-ho",
+        "Akira Kurosawa"
+      ],
+      "countries": [
+        "US",
+        "GB",
+        "FR",
+        "IT",
+        "DE",
+        "JP",
+        "KR",
+        "ES"
+      ]
+    }
+  },
+  "enhanced_criteria": {
+    "keywords_safety": {
+      "enabled": true,
+      "safe_keywords": [
+        "oscar winner",
+        "academy award",
+        "cannes",
+        "palme d'or",
+        "masterpiece",
+        "classic",
+        "cult film",
+        "auteur",
+        "criterion",
+        "best picture",
+        "golden globe",
+        "bafta",
+        "sundance",
+        "neo-noir",
+        "psychological",
+        "philosophical",
+        "artistic"
+      ],
+      "dangerous_keywords": [
+        "pornography",
+        "erotic",
+        "mockbuster",
+        "asylum"
+      ],
+      "safe_bonus_points": 10,
+      "dangerous_penalty_points": -50
+    },
+    "collections_franchises": {
+      "enabled": true,
+      "preferred_collections": [
+        "The Godfather Collection",
+        "The Dark Knight Collection",
+        "Before Trilogy",
+        "Three Colours Trilogy",
+        "Vengeance Trilogy",
+        "The Lord of the Rings Collection",
+        "Dollars Trilogy",
+        "Cornetto Trilogy",
+        "Apocalypse Trilogy"
+      ],
+      "preferred_franchises": [
+        "Criterion Collection",
+        "A24",
+        "Studio Ghibli"
+      ],
+      "forbidden_collections": [
+        "Scary Movie Collection",
+        "Epic Movie",
+        "Disaster Movie"
+      ],
+      "collection_bonus_points": 10,
+      "franchise_bonus_points": 8
+    },
+    "cast_crew": {
+      "enabled": true,
+      "preferred_actors": [
+        "Daniel Day-Lewis",
+        "Meryl Streep",
+        "Anthony Hopkins",
+        "Joaquin Phoenix",
+        "Cate Blanchett",
+        "Christian Bale"
+      ],
+      "forbidden_actors": [],
+      "preferred_directors": [
+        "Martin Scorsese",
+        "Quentin Tarantino",
+        "Christopher Nolan",
+        "David Fincher",
+        "Denis Villeneuve",
+        "Paul Thomas Anderson",
+        "Stanley Kubrick",
+        "Alfred Hitchcock",
+        "Akira Kurosawa"
+      ],
+      "min_actor_popularity": 10,
+      "popular_actor_bonus": 5
+    },
+    "temporal_intelligence": {
+      "enabled": true,
+      "recency_bonuses": {
+        "enabled": false,
+        "very_recent_days": 30,
+        "very_recent_bonus": 3,
+        "recent_months": 12,
+        "recent_bonus": 2,
+        "this_year_bonus": 1,
+        "max_age_years": null,
+        "old_content_penalty": 0
+      },
+      "seasonal_bonuses": {
+        "enabled": true,
+        "christmas": {
+          "months": [
+            12
+          ],
+          "keywords": [
+            "christmas",
+            "holiday",
+            "miracle"
+          ],
+          "genres": [
+            "Drama",
+            "Comedy",
+            "Drame",
+            "Comédie"
+          ],
+          "bonus_points": 3
+        },
+        "halloween": {
+          "months": [
+            10
+          ],
+          "keywords": [
+            "psychological horror",
+            "suspense"
+          ],
+          "genres": [
+            "Horror",
+            "Thriller",
+            "Mystery",
+            "Horreur",
+            "Mystère"
+          ],
+          "bonus_points": 5
+        },
+        "summer": {
+          "months": [
+            6,
+            7,
+            8
+          ],
+          "keywords": [],
+          "genres": [],
+          "bonus_points": 0
+        }
+      },
+      "prime_time_bonus": {
+        "enabled": true,
+        "prime_hours": [
+          "20:00",
+          "21:00"
+        ],
+        "bonus_points": 8
+      }
+    },
+    "cultural_linguistic": {
+      "enabled": true,
+      "preferred_countries": [
+        "US",
+        "GB",
+        "FR",
+        "IT",
+        "DE",
+        "JP",
+        "KR",
+        "ES",
+        "MX",
+        "AR",
+        "IN",
+        "IR"
+      ],
+      "preferred_languages": [
+        "en",
+        "fr",
+        "it",
+        "de",
+        "ja",
+        "ko",
+        "es"
+      ],
+      "require_french_audio": false,
+      "country_bonus_points": 5,
+      "language_bonus_points": 3
+    },
+    "quality_indicators": {
+      "enabled": true,
+      "vote_reliability": {
+        "enabled": true,
+        "excellent_votes": 5000,
+        "good_votes": 2000,
+        "acceptable_votes": 500,
+        "minimum_votes": 100
+      },
+      "multi_source_rating": {
+        "enabled": true,
+        "sources": [
+          "tmdb",
+          "imdb",
+          "metacritic"
+        ],
+        "aggregation_method": "weighted"
+      },
+      "technical_quality": {
+        "enabled": false,
+        "prefer_4k": false,
+        "prefer_hdr": false,
+        "quality_bonus_points": 2
+      }
+    },
+    "educational_value": {
+      "enabled": true,
+      "educational_keywords": [
+        "historical",
+        "biography",
+        "documentary",
+        "based on true story",
+        "adapted from novel",
+        "philosophical",
+        "social commentary"
+      ],
+      "bonus_points": 5
+    }
+  },
+  "strategies": {
+    "maintain_sequence": false,
+    "maximize_variety": true,
+    "marathon_mode": false,
+    "avoid_repeats_days": 30,
+    "filler_insertion": {
+      "enabled": false,
+      "types": [],
+      "max_duration_min": 5
+    },
+    "bonuses": {
+      "holiday_bonus": false,
+      "recent_release_bonus": false,
+      "popular_content_bonus": false
+    }
+  },
+  "scoring_weights": {
+    "type": 5,
+    "duration": 5,
+    "genre": 12,
+    "timing": 8,
+    "strategy": 5,
+    "age": 5,
+    "rating": 25,
+    "filter": 5,
+    "bonus": 5,
+    "keywords": 8,
+    "collections": 7,
+    "cast": 10,
+    "temporal": 5
+  },
+  "default_iterations": 20,
+  "default_randomness": 0.15
+}

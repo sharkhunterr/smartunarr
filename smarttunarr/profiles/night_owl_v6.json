@@ -1,0 +1,600 @@
+{
+  "name": "Night Owl Adult v6",
+  "version": "6.0",
+  "description": "Programmation nocturne adulte - Thrillers, horreur et films matures",
+  "labels": [
+    "night",
+    "adult",
+    "mature",
+    "horror",
+    "thriller",
+    "v6"
+  ],
+  "libraries": [
+    {
+      "id": "1",
+      "name": "Films",
+      "type": "movie",
+      "weight": 100,
+      "enabled": true
+    },
+    {
+      "id": "4",
+      "name": "Séries TV",
+      "type": "show",
+      "weight": 70,
+      "enabled": true
+    }
+  ],
+  "time_blocks": [
+    {
+      "name": "early_evening_thriller",
+      "description": "Début de soirée - Thrillers",
+      "start_time": "19:00",
+      "end_time": "22:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Thriller",
+          "Crime",
+          "Mystery",
+          "Drama",
+          "Mystère",
+          "Drame"
+        ],
+        "allowed_genres": [
+          "Thriller",
+          "Crime",
+          "Mystery",
+          "Drama",
+          "Action",
+          "Science Fiction",
+          "Mystère",
+          "Drame",
+          "Science-Fiction"
+        ],
+        "forbidden_genres": [
+          "Family",
+          "Animation",
+          "Familial"
+        ],
+        "min_duration_min": 90,
+        "max_duration_min": 180,
+        "min_tmdb_rating": 6.0,
+        "preferred_tmdb_rating": 7.5,
+        "min_vote_count": 500,
+        "genre_rules": {
+          "forbidden_values": ["Family", "Animation", "Familial"],
+          "forbidden_penalty": -150,
+          "preferred_values": ["Thriller", "Crime", "Mystery", "Drama", "Mystère", "Drame"],
+          "preferred_bonus": 20
+        },
+        "age_rules": {
+          "forbidden_values": ["G", "TP", "Tous publics"],
+          "forbidden_penalty": -100,
+          "preferred_values": ["R", "PG-13", "+16", "16+"],
+          "preferred_bonus": 10
+        },
+        "rating_rules": {
+          "preferred_values": ["excellent", "good"],
+          "preferred_bonus": 15
+        },
+        "filter_rules": {
+          "preferred_values": ["psychological", "suspense", "twist", "dark", "noir"],
+          "preferred_bonus": 15
+        }
+      }
+    },
+    {
+      "name": "prime_horror",
+      "description": "Prime Time - Horreur",
+      "start_time": "22:00",
+      "end_time": "01:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Horror",
+          "Thriller",
+          "Mystery",
+          "Horreur",
+          "Mystère"
+        ],
+        "allowed_genres": [
+          "Horror",
+          "Thriller",
+          "Mystery",
+          "Science Fiction",
+          "Fantasy",
+          "Horreur",
+          "Mystère",
+          "Science-Fiction",
+          "Fantastique"
+        ],
+        "forbidden_genres": [
+          "Family",
+          "Animation",
+          "Comedy",
+          "Romance",
+          "Familial",
+          "Comédie"
+        ],
+        "min_duration_min": 80,
+        "max_duration_min": 150,
+        "min_tmdb_rating": 5.5,
+        "preferred_tmdb_rating": 7.0,
+        "min_vote_count": 300,
+        "genre_rules": {
+          "forbidden_values": ["Family", "Animation", "Comedy", "Romance", "Familial", "Comédie"],
+          "forbidden_penalty": -150,
+          "mandatory_values": ["Horror", "Thriller", "Mystery", "Horreur", "Mystère"],
+          "mandatory_penalty": -50,
+          "preferred_values": ["Horror", "Horreur"],
+          "preferred_bonus": 25
+        },
+        "age_rules": {
+          "forbidden_values": ["G", "TP", "Tous publics"],
+          "forbidden_penalty": -100,
+          "preferred_values": ["R", "+18", "18+", "NC-17"],
+          "preferred_bonus": 15
+        },
+        "filter_rules": {
+          "preferred_values": ["horror", "supernatural", "paranormal", "slasher", "haunted", "possession", "jump scare"],
+          "preferred_bonus": 20
+        },
+        "timing_rules": {
+          "preferred_values": ["night"],
+          "preferred_bonus": 15
+        }
+      }
+    },
+    {
+      "name": "deep_night_extreme",
+      "description": "Nuit profonde - Contenu extrême",
+      "start_time": "01:00",
+      "end_time": "05:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Horror",
+          "Thriller",
+          "Crime",
+          "Horreur"
+        ],
+        "allowed_genres": [
+          "Horror",
+          "Thriller",
+          "Crime",
+          "Mystery",
+          "Drama",
+          "Horreur",
+          "Mystère",
+          "Drame"
+        ],
+        "forbidden_genres": [
+          "Family",
+          "Animation",
+          "Familial"
+        ],
+        "min_duration_min": 80,
+        "max_duration_min": 140,
+        "min_tmdb_rating": 5.0,
+        "preferred_tmdb_rating": 6.5,
+        "min_vote_count": 100,
+        "genre_rules": {
+          "forbidden_values": ["Family", "Animation", "Familial"],
+          "forbidden_penalty": -150,
+          "mandatory_values": ["Horror", "Thriller", "Crime", "Horreur"],
+          "mandatory_penalty": -40,
+          "preferred_values": ["Horror", "Horreur"],
+          "preferred_bonus": 25
+        },
+        "age_rules": {
+          "forbidden_values": ["G", "TP", "Tous publics", "PG"],
+          "forbidden_penalty": -120,
+          "preferred_values": ["R", "+18", "18+", "NC-17"],
+          "preferred_bonus": 20
+        },
+        "filter_rules": {
+          "preferred_values": ["horror", "gore", "slasher", "extreme", "cult horror", "body horror", "torture"],
+          "preferred_bonus": 25
+        },
+        "timing_rules": {
+          "mandatory_values": ["night"],
+          "mandatory_penalty": -30,
+          "preferred_values": ["night"],
+          "preferred_bonus": 15
+        }
+      }
+    },
+    {
+      "name": "early_morning_cool_down",
+      "description": "Petit matin - Transition",
+      "start_time": "05:00",
+      "end_time": "19:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Drama",
+          "Thriller",
+          "Crime",
+          "Mystery",
+          "Science Fiction",
+          "Drame",
+          "Mystère",
+          "Science-Fiction"
+        ],
+        "allowed_genres": [
+          "Drama",
+          "Thriller",
+          "Crime",
+          "Mystery",
+          "Science Fiction",
+          "Action",
+          "Adventure",
+          "Drame",
+          "Mystère",
+          "Science-Fiction"
+        ],
+        "forbidden_genres": [],
+        "min_duration_min": 90,
+        "max_duration_min": 180,
+        "min_tmdb_rating": 6.0,
+        "preferred_tmdb_rating": 7.0,
+        "min_vote_count": 500,
+        "genre_rules": {
+          "preferred_values": ["Drama", "Thriller", "Crime", "Mystery", "Science Fiction", "Drame", "Mystère", "Science-Fiction"],
+          "preferred_bonus": 15
+        },
+        "rating_rules": {
+          "preferred_values": ["excellent", "good"],
+          "preferred_bonus": 10
+        },
+        "filter_rules": {
+          "preferred_values": ["psychological", "suspense", "noir", "crime", "mystery"],
+          "preferred_bonus": 10
+        }
+      }
+    }
+  ],
+  "mandatory_forbidden_criteria": {
+    "mandatory": {
+      "min_tmdb_rating": 4.5,
+      "min_vote_count": 50
+    },
+    "forbidden": {
+      "genres": [
+        "Family",
+        "Animation",
+        "Familial"
+      ],
+      "age_ratings": [
+        "G",
+        "TP",
+        "Tous publics"
+      ],
+      "keywords": [
+        "xxx",
+        "porn",
+        "erotic"
+      ],
+      "tmdb_keywords": [
+        "pornography"
+      ],
+      "max_controversial_score": 10.0
+    },
+    "preferred": {
+      "genres": [
+        "Horror",
+        "Thriller",
+        "Crime",
+        "Mystery",
+        "Horreur",
+        "Mystère"
+      ],
+      "keywords": [
+        "psychological",
+        "suspense",
+        "twist",
+        "serial killer",
+        "paranormal",
+        "supernatural",
+        "haunted",
+        "possession",
+        "slasher",
+        "gore",
+        "cult horror",
+        "body horror"
+      ],
+      "collections": [
+        "The Conjuring Universe",
+        "Insidious Collection",
+        "A Nightmare on Elm Street Collection",
+        "Halloween Collection",
+        "Scream Collection",
+        "Saw Collection",
+        "Final Destination Collection",
+        "The Purge Collection",
+        "Alien Collection",
+        "Predator Collection"
+      ],
+      "studios": [
+        "Blumhouse Productions",
+        "A24",
+        "Platinum Dunes",
+        "Ghost House Pictures",
+        "Twisted Pictures"
+      ],
+      "directors": [
+        "James Wan",
+        "Jordan Peele",
+        "Ari Aster",
+        "Mike Flanagan",
+        "David Fincher",
+        "Alfred Hitchcock",
+        "John Carpenter",
+        "Wes Craven",
+        "Dario Argento",
+        "Guillermo del Toro"
+      ]
+    }
+  },
+  "enhanced_criteria": {
+    "keywords_safety": {
+      "enabled": true,
+      "safe_keywords": [
+        "horror",
+        "thriller",
+        "suspense",
+        "psychological",
+        "supernatural",
+        "paranormal",
+        "slasher",
+        "cult classic",
+        "jump scare",
+        "haunted",
+        "possession",
+        "serial killer"
+      ],
+      "dangerous_keywords": [
+        "pornography"
+      ],
+      "safe_bonus_points": 8,
+      "dangerous_penalty_points": -100
+    },
+    "collections_franchises": {
+      "enabled": true,
+      "preferred_collections": [
+        "The Conjuring Universe",
+        "Insidious Collection",
+        "A Nightmare on Elm Street Collection",
+        "Halloween Collection",
+        "Scream Collection",
+        "Saw Collection",
+        "Final Destination Collection",
+        "The Purge Collection",
+        "Alien Collection",
+        "The Exorcist Collection",
+        "It Collection",
+        "Child's Play Collection",
+        "Hellraiser Collection"
+      ],
+      "preferred_franchises": [
+        "Blumhouse",
+        "A24 Horror"
+      ],
+      "forbidden_collections": [
+        "Disney Classics",
+        "Pixar",
+        "DreamWorks Animation"
+      ],
+      "collection_bonus_points": 12,
+      "franchise_bonus_points": 8
+    },
+    "cast_crew": {
+      "enabled": true,
+      "preferred_actors": [
+        "Patrick Wilson",
+        "Vera Farmiga",
+        "Toni Collette",
+        "Florence Pugh",
+        "Anya Taylor-Joy",
+        "Lupita Nyong'o",
+        "Jamie Lee Curtis",
+        "Neve Campbell"
+      ],
+      "forbidden_actors": [],
+      "preferred_directors": [
+        "James Wan",
+        "Jordan Peele",
+        "Ari Aster",
+        "Mike Flanagan",
+        "David Fincher",
+        "John Carpenter",
+        "Guillermo del Toro"
+      ],
+      "min_actor_popularity": 5,
+      "popular_actor_bonus": 5
+    },
+    "temporal_intelligence": {
+      "enabled": true,
+      "recency_bonuses": {
+        "enabled": true,
+        "very_recent_days": 90,
+        "very_recent_bonus": 8,
+        "recent_months": 12,
+        "recent_bonus": 5,
+        "this_year_bonus": 3,
+        "max_age_years": null,
+        "old_content_penalty": 0
+      },
+      "seasonal_bonuses": {
+        "enabled": true,
+        "christmas": {
+          "months": [
+            12
+          ],
+          "keywords": [
+            "christmas horror",
+            "krampus"
+          ],
+          "genres": [
+            "Horror",
+            "Horreur"
+          ],
+          "bonus_points": 5
+        },
+        "halloween": {
+          "months": [
+            10
+          ],
+          "keywords": [
+            "halloween",
+            "horror",
+            "scary",
+            "spooky",
+            "monster"
+          ],
+          "genres": [
+            "Horror",
+            "Thriller",
+            "Horreur"
+          ],
+          "bonus_points": 15
+        },
+        "summer": {
+          "months": [
+            6,
+            7,
+            8
+          ],
+          "keywords": [
+            "summer horror",
+            "camp",
+            "beach horror"
+          ],
+          "genres": [
+            "Horror",
+            "Thriller",
+            "Horreur"
+          ],
+          "bonus_points": 5
+        }
+      },
+      "prime_time_bonus": {
+        "enabled": true,
+        "prime_hours": [
+          "22:00",
+          "23:00",
+          "00:00",
+          "01:00"
+        ],
+        "bonus_points": 10
+      }
+    },
+    "cultural_linguistic": {
+      "enabled": true,
+      "preferred_countries": [
+        "US",
+        "GB",
+        "JP",
+        "KR",
+        "ES",
+        "IT",
+        "FR"
+      ],
+      "preferred_languages": [
+        "en",
+        "ja",
+        "ko",
+        "es",
+        "fr"
+      ],
+      "require_french_audio": false,
+      "country_bonus_points": 3,
+      "language_bonus_points": 2
+    },
+    "quality_indicators": {
+      "enabled": true,
+      "vote_reliability": {
+        "enabled": true,
+        "excellent_votes": 3000,
+        "good_votes": 1000,
+        "acceptable_votes": 300,
+        "minimum_votes": 50
+      },
+      "multi_source_rating": {
+        "enabled": false,
+        "sources": [
+          "tmdb"
+        ],
+        "aggregation_method": "average"
+      },
+      "technical_quality": {
+        "enabled": false,
+        "prefer_4k": false,
+        "prefer_hdr": false,
+        "quality_bonus_points": 2
+      }
+    },
+    "educational_value": {
+      "enabled": false,
+      "educational_keywords": [],
+      "bonus_points": 0
+    }
+  },
+  "strategies": {
+    "maintain_sequence": false,
+    "maximize_variety": true,
+    "marathon_mode": true,
+    "avoid_repeats_days": 7,
+    "filler_insertion": {
+      "enabled": true,
+      "types": [
+        "trailer"
+      ],
+      "max_duration_min": 3
+    },
+    "bonuses": {
+      "holiday_bonus": true,
+      "recent_release_bonus": true,
+      "popular_content_bonus": true
+    }
+  },
+  "scoring_weights": {
+    "type": 8,
+    "duration": 8,
+    "genre": 18,
+    "timing": 12,
+    "strategy": 5,
+    "age": 5,
+    "rating": 12,
+    "filter": 5,
+    "bonus": 8,
+    "keywords": 8,
+    "collections": 8,
+    "cast": 5,
+    "temporal": 8
+  },
+  "default_iterations": 15,
+  "default_randomness": 0.2
+}

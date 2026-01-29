@@ -1,0 +1,1529 @@
+openapi: 3.1.0
+info:
+  title: SmartTunarr API
+  version: 1.0.0
+  description: Intelligent TV Channel Programming System API
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development
+
+tags:
+  - name: Programming
+    description: Channel programming operations
+  - name: Scoring
+    description: Program scoring and analysis
+  - name: Profiles
+    description: Programming profile management
+  - name: Channels
+    description: Tunarr channel management
+  - name: Services
+    description: External service configuration
+  - name: History
+    description: Operation history and audit
+  - name: AI
+    description: Ollama AI integration
+
+paths:
+  # Programming endpoints
+  /programming/generate:
+    post:
+      tags: [Programming]
+      summary: Generate optimized programming for a channel
+      operationId: generateProgramming
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgrammingRequest'
+      responses:
+        '202':
+          description: Programming generation started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgrammingJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /programming/jobs/{jobId}:
+    get:
+      tags: [Programming]
+      summary: Get programming job status
+      operationId: getProgrammingJob
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgrammingJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /programming/jobs/{jobId}/apply:
+    post:
+      tags: [Programming]
+      summary: Apply generated programming to channel
+      operationId: applyProgramming
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Programming applied successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplyResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Scoring endpoints
+  /scoring/analyze:
+    post:
+      tags: [Scoring]
+      summary: Analyze and score existing channel programming
+      operationId: analyzeProgramming
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScoringRequest'
+      responses:
+        '200':
+          description: Scoring results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /scoring/export:
+    post:
+      tags: [Scoring]
+      summary: Export scoring report
+      operationId: exportScoringReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '200':
+          description: Export file
+          content:
+            text/csv:
+              schema:
+                type: string
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringReport'
+
+  # Profile endpoints
+  /profiles:
+    get:
+      tags: [Profiles]
+      summary: List all profiles
+      operationId: listProfiles
+      parameters:
+        - name: label
+          in: query
+          schema:
+            type: string
+          description: Filter by label
+      responses:
+        '200':
+          description: Profile list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProfileSummary'
+
+    post:
+      tags: [Profiles]
+      summary: Create a new profile
+      operationId: createProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileCreate'
+      responses:
+        '201':
+          description: Profile created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /profiles/{profileId}:
+    get:
+      tags: [Profiles]
+      summary: Get profile details
+      operationId: getProfile
+      parameters:
+        - $ref: '#/components/parameters/ProfileId'
+      responses:
+        '200':
+          description: Profile details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Profiles]
+      summary: Update profile
+      operationId: updateProfile
+      parameters:
+        - $ref: '#/components/parameters/ProfileId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Profiles]
+      summary: Delete profile
+      operationId: deleteProfile
+      parameters:
+        - $ref: '#/components/parameters/ProfileId'
+      responses:
+        '204':
+          description: Profile deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /profiles/{profileId}/export:
+    get:
+      tags: [Profiles]
+      summary: Export profile as JSON file
+      operationId: exportProfile
+      parameters:
+        - $ref: '#/components/parameters/ProfileId'
+      responses:
+        '200':
+          description: Profile JSON file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileExport'
+
+  /profiles/import:
+    post:
+      tags: [Profiles]
+      summary: Import profile from JSON file
+      operationId: importProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileImport'
+      responses:
+        '201':
+          description: Profile imported
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /profiles/validate:
+    post:
+      tags: [Profiles]
+      summary: Validate profile JSON without saving
+      operationId: validateProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileImport'
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResult'
+
+  # Channel endpoints
+  /channels:
+    get:
+      tags: [Channels]
+      summary: List available Tunarr channels
+      operationId: listChannels
+      responses:
+        '200':
+          description: Channel list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Channel'
+
+  /channels/{channelId}:
+    get:
+      tags: [Channels]
+      summary: Get channel details with current programming
+      operationId: getChannel
+      parameters:
+        - $ref: '#/components/parameters/ChannelId'
+      responses:
+        '200':
+          description: Channel details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /channels/{channelId}/sync:
+    post:
+      tags: [Channels]
+      summary: Sync channel programming from Tunarr
+      operationId: syncChannel
+      parameters:
+        - $ref: '#/components/parameters/ChannelId'
+      responses:
+        '200':
+          description: Sync completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResult'
+
+  # Service endpoints
+  /services:
+    get:
+      tags: [Services]
+      summary: List configured services
+      operationId: listServices
+      responses:
+        '200':
+          description: Service list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Service'
+
+  /services/{serviceType}:
+    get:
+      tags: [Services]
+      summary: Get service configuration
+      operationId: getService
+      parameters:
+        - $ref: '#/components/parameters/ServiceType'
+      responses:
+        '200':
+          description: Service configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Services]
+      summary: Update service configuration
+      operationId: updateService
+      parameters:
+        - $ref: '#/components/parameters/ServiceType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceUpdate'
+      responses:
+        '200':
+          description: Service updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /services/{serviceType}/test:
+    post:
+      tags: [Services]
+      summary: Test service connection
+      operationId: testService
+      parameters:
+        - $ref: '#/components/parameters/ServiceType'
+      responses:
+        '200':
+          description: Test result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceTestResult'
+
+  /services/plex/libraries:
+    get:
+      tags: [Services]
+      summary: List Plex libraries
+      operationId: listPlexLibraries
+      responses:
+        '200':
+          description: Library list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlexLibrary'
+
+  /services/ollama/models:
+    get:
+      tags: [Services]
+      summary: List available Ollama models
+      operationId: listOllamaModels
+      responses:
+        '200':
+          description: Model list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OllamaModel'
+
+  # History endpoints
+  /history:
+    get:
+      tags: [History]
+      summary: List operation history
+      operationId: listHistory
+      parameters:
+        - name: channel_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [programming, scoring]
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: History entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryList'
+
+  /history/{entryId}:
+    get:
+      tags: [History]
+      summary: Get history entry details
+      operationId: getHistoryEntry
+      parameters:
+        - name: entryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: History entry details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryEntry'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # AI endpoints
+  /ai/generate-profile:
+    post:
+      tags: [AI]
+      summary: Generate profile from natural language description
+      operationId: generateProfileFromPrompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIPromptRequest'
+      responses:
+        '200':
+          description: Generated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIGeneratedProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /ai/history:
+    get:
+      tags: [AI]
+      summary: List AI generation history
+      operationId: listAIHistory
+      responses:
+        '200':
+          description: AI history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AIHistoryEntry'
+
+  # Settings endpoints
+  /settings:
+    get:
+      tags: [Settings]
+      summary: Get application settings
+      operationId: getSettings
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+
+    put:
+      tags: [Settings]
+      summary: Update application settings
+      operationId: updateSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsUpdate'
+      responses:
+        '200':
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+
+  /settings/logs:
+    get:
+      tags: [Settings]
+      summary: Get application logs
+      operationId: getLogs
+      parameters:
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum: [debug, info, warning, error]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LogEntry'
+
+components:
+  parameters:
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ProfileId:
+      name: profileId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ChannelId:
+      name: channelId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ServiceType:
+      name: serviceType
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [plex, tmdb, tunarr, ollama]
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    # Programming schemas
+    ProgrammingRequest:
+      type: object
+      required: [channel_id, profile_id]
+      properties:
+        channel_id:
+          type: string
+          format: uuid
+        profile_id:
+          type: string
+          format: uuid
+        iterations:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+        randomness:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.3
+        duration_hours:
+          type: integer
+          minimum: 1
+          maximum: 168
+          default: 24
+
+    ProgrammingJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        current_iteration:
+          type: integer
+        total_iterations:
+          type: integer
+        best_score:
+          type: number
+        programs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProgramItem'
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        error:
+          type: string
+
+    ProgramItem:
+      type: object
+      properties:
+        content_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        type:
+          type: string
+          enum: [movie, episode, trailer]
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        duration_ms:
+          type: integer
+        block_name:
+          type: string
+        score:
+          $ref: '#/components/schemas/ScoreBreakdown'
+
+    ApplyResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        channel_id:
+          type: string
+          format: uuid
+        programs_applied:
+          type: integer
+        history_id:
+          type: string
+          format: uuid
+
+    # Scoring schemas
+    ScoringRequest:
+      type: object
+      required: [channel_id, profile_id]
+      properties:
+        channel_id:
+          type: string
+          format: uuid
+        profile_id:
+          type: string
+          format: uuid
+
+    ScoringReport:
+      type: object
+      properties:
+        channel_id:
+          type: string
+          format: uuid
+        profile_id:
+          type: string
+          format: uuid
+        global_score:
+          type: number
+        block_scores:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlockScore'
+        program_scores:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProgramScore'
+        forbidden_violations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Violation'
+        mandatory_penalties:
+          type: array
+          items:
+            $ref: '#/components/schemas/Penalty'
+        scored_at:
+          type: string
+          format: date-time
+
+    BlockScore:
+      type: object
+      properties:
+        block_name:
+          type: string
+        score:
+          type: number
+        program_count:
+          type: integer
+
+    ProgramScore:
+      type: object
+      properties:
+        title:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        total_score:
+          type: number
+        breakdown:
+          $ref: '#/components/schemas/ScoreBreakdown'
+
+    ScoreBreakdown:
+      type: object
+      properties:
+        type_score:
+          type: number
+        duration_score:
+          type: number
+        genre_score:
+          type: number
+        timing_score:
+          type: number
+        strategy_score:
+          type: number
+        age_score:
+          type: number
+        rating_score:
+          type: number
+        filter_score:
+          type: number
+        bonus_score:
+          type: number
+
+    Violation:
+      type: object
+      properties:
+        program_title:
+          type: string
+        criterion:
+          type: string
+        value:
+          type: string
+        rule:
+          type: string
+
+    Penalty:
+      type: object
+      properties:
+        criterion:
+          type: string
+        expected:
+          type: string
+        penalty_amount:
+          type: number
+
+    ExportRequest:
+      type: object
+      required: [scoring_report]
+      properties:
+        scoring_report:
+          $ref: '#/components/schemas/ScoringReport'
+        format:
+          type: string
+          enum: [csv, json]
+          default: csv
+
+    # Profile schemas
+    ProfileSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        version:
+          type: string
+        labels:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        version:
+          type: string
+        libraries:
+          type: array
+          items:
+            $ref: '#/components/schemas/LibraryRef'
+        time_blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeBlock'
+        mandatory_forbidden_criteria:
+          $ref: '#/components/schemas/Criteria'
+        strategies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Strategy'
+        scoring_weights:
+          $ref: '#/components/schemas/ScoringWeights'
+        default_iterations:
+          type: integer
+        default_randomness:
+          type: number
+        labels:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProfileCreate:
+      type: object
+      required: [name, libraries, time_blocks, mandatory_forbidden_criteria, scoring_weights]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        libraries:
+          type: array
+          items:
+            $ref: '#/components/schemas/LibraryRef'
+        time_blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeBlock'
+        mandatory_forbidden_criteria:
+          $ref: '#/components/schemas/Criteria'
+        strategies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Strategy'
+        scoring_weights:
+          $ref: '#/components/schemas/ScoringWeights'
+        default_iterations:
+          type: integer
+          default: 10
+        default_randomness:
+          type: number
+          default: 0.3
+        labels:
+          type: array
+          items:
+            type: string
+
+    ProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        libraries:
+          type: array
+          items:
+            $ref: '#/components/schemas/LibraryRef'
+        time_blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeBlock'
+        mandatory_forbidden_criteria:
+          $ref: '#/components/schemas/Criteria'
+        strategies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Strategy'
+        scoring_weights:
+          $ref: '#/components/schemas/ScoringWeights'
+        default_iterations:
+          type: integer
+        default_randomness:
+          type: number
+        labels:
+          type: array
+          items:
+            type: string
+
+    ProfileExport:
+      type: object
+      properties:
+        profile_name:
+          type: string
+        version:
+          type: string
+        libraries:
+          type: array
+          items:
+            $ref: '#/components/schemas/LibraryRef'
+        time_blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeBlock'
+        mandatory_forbidden_criteria:
+          $ref: '#/components/schemas/Criteria'
+        strategies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Strategy'
+        scoring_weights:
+          $ref: '#/components/schemas/ScoringWeights'
+
+    ProfileImport:
+      type: object
+      required: [profile_name, version, libraries, time_blocks, mandatory_forbidden_criteria, scoring_weights]
+      properties:
+        profile_name:
+          type: string
+        version:
+          type: string
+        libraries:
+          type: array
+          items:
+            $ref: '#/components/schemas/LibraryRef'
+        time_blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeBlock'
+        mandatory_forbidden_criteria:
+          $ref: '#/components/schemas/Criteria'
+        strategies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Strategy'
+        scoring_weights:
+          $ref: '#/components/schemas/ScoringWeights'
+
+    ValidationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+        warnings:
+          type: array
+          items:
+            type: string
+
+    ValidationError:
+      type: object
+      properties:
+        path:
+          type: string
+        message:
+          type: string
+        expected:
+          type: string
+
+    LibraryRef:
+      type: object
+      required: [name, type, plex_id]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [movie, show, trailer]
+        plex_id:
+          type: string
+
+    TimeBlock:
+      type: object
+      required: [name, start_time, end_time]
+      properties:
+        name:
+          type: string
+        start_time:
+          type: string
+          pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+        end_time:
+          type: string
+          pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+        criteria:
+          $ref: '#/components/schemas/Criteria'
+
+    Criteria:
+      type: object
+      properties:
+        genre_criteria:
+          $ref: '#/components/schemas/GenreCriteria'
+        age_criteria:
+          $ref: '#/components/schemas/AgeCriteria'
+        rating_criteria:
+          $ref: '#/components/schemas/RatingCriteria'
+        content_safety:
+          $ref: '#/components/schemas/ContentSafety'
+
+    GenreCriteria:
+      type: object
+      properties:
+        mandatory_genres:
+          type: object
+          properties:
+            required:
+              type: boolean
+            genres:
+              type: array
+              items:
+                type: string
+        forbidden_genres:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            genres:
+              type: array
+              items:
+                type: string
+        preferred_genres:
+          type: array
+          items:
+            type: string
+
+    AgeCriteria:
+      type: object
+      properties:
+        mandatory_age:
+          type: object
+          properties:
+            required:
+              type: boolean
+            allowed_ratings:
+              type: array
+              items:
+                type: string
+        forbidden_age:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            forbidden_ratings:
+              type: array
+              items:
+                type: string
+
+    RatingCriteria:
+      type: object
+      properties:
+        mandatory_rating:
+          type: object
+          properties:
+            required:
+              type: boolean
+            min_tmdb_rating:
+              type: number
+            min_vote_count:
+              type: integer
+
+    ContentSafety:
+      type: object
+      properties:
+        forbidden_keywords:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            dangerous_keywords:
+              type: array
+              items:
+                type: string
+        mandatory_keywords:
+          type: object
+          properties:
+            required:
+              type: boolean
+            safe_keywords:
+              type: array
+              items:
+                type: string
+
+    Strategy:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [movie_sequence, trailer_insert, genre_block, rating_progression]
+        count:
+          type: integer
+        after:
+          type: integer
+        genres:
+          type: array
+          items:
+            type: string
+
+    ScoringWeights:
+      type: object
+      properties:
+        type:
+          type: integer
+          minimum: 0
+          maximum: 100
+        duration:
+          type: integer
+          minimum: 0
+          maximum: 100
+        genre:
+          type: integer
+          minimum: 0
+          maximum: 100
+        timing:
+          type: integer
+          minimum: 0
+          maximum: 100
+        strategy:
+          type: integer
+          minimum: 0
+          maximum: 100
+        age:
+          type: integer
+          minimum: 0
+          maximum: 100
+        rating:
+          type: integer
+          minimum: 0
+          maximum: 100
+        filters:
+          type: integer
+          minimum: 0
+          maximum: 100
+        bonus:
+          type: integer
+          minimum: 0
+          maximum: 100
+
+    # Channel schemas
+    Channel:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tunarr_id:
+          type: string
+        name:
+          type: string
+        number:
+          type: integer
+        last_sync:
+          type: string
+          format: date-time
+
+    ChannelDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tunarr_id:
+          type: string
+        name:
+          type: string
+        number:
+          type: integer
+        last_sync:
+          type: string
+          format: date-time
+        programs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProgramItem'
+
+    SyncResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        programs_synced:
+          type: integer
+        synced_at:
+          type: string
+          format: date-time
+
+    # Service schemas
+    Service:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [plex, tmdb, tunarr, ollama]
+        name:
+          type: string
+        url:
+          type: string
+        is_active:
+          type: boolean
+        is_configured:
+          type: boolean
+        last_test:
+          type: string
+          format: date-time
+        last_test_success:
+          type: boolean
+        default_model:
+          type: string
+
+    ServiceUpdate:
+      type: object
+      properties:
+        url:
+          type: string
+        api_key:
+          type: string
+        token:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+        default_model:
+          type: string
+        is_active:
+          type: boolean
+
+    ServiceTestResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        details:
+          type: object
+
+    PlexLibrary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        item_count:
+          type: integer
+
+    OllamaModel:
+      type: object
+      properties:
+        name:
+          type: string
+        size:
+          type: string
+        modified_at:
+          type: string
+          format: date-time
+
+    # History schemas
+    HistoryList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistorySummary'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    HistorySummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [programming, scoring]
+        channel_name:
+          type: string
+        profile_name:
+          type: string
+        status:
+          type: string
+          enum: [running, success, failed]
+        best_score:
+          type: number
+        started_at:
+          type: string
+          format: date-time
+
+    HistoryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [programming, scoring]
+        channel_id:
+          type: string
+          format: uuid
+        channel_name:
+          type: string
+        profile_id:
+          type: string
+          format: uuid
+        profile_name:
+          type: string
+        status:
+          type: string
+          enum: [running, success, failed]
+        iterations:
+          type: integer
+        best_score:
+          type: number
+        result_summary:
+          type: object
+        error_message:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+
+    # AI schemas
+    AIPromptRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+          minLength: 10
+          maxLength: 2000
+        model:
+          type: string
+
+    AIGeneratedProfile:
+      type: object
+      properties:
+        profile:
+          $ref: '#/components/schemas/ProfileImport'
+        validation:
+          $ref: '#/components/schemas/ValidationResult'
+        prompt_used:
+          type: string
+        model_used:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+
+    AIHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        prompt:
+          type: string
+        model:
+          type: string
+        success:
+          type: boolean
+        profile_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    # Settings schemas
+    Settings:
+      type: object
+      properties:
+        theme:
+          type: string
+          enum: [light, dark, system]
+        language:
+          type: string
+          enum: [fr, en]
+        metadata_mode:
+          type: string
+          enum: [cache_only, tmdb_only, cache_and_tmdb, plex_only]
+
+    SettingsUpdate:
+      type: object
+      properties:
+        theme:
+          type: string
+          enum: [light, dark, system]
+        language:
+          type: string
+          enum: [fr, en]
+        metadata_mode:
+          type: string
+          enum: [cache_only, tmdb_only, cache_and_tmdb, plex_only]
+
+    LogEntry:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        level:
+          type: string
+          enum: [debug, info, warning, error]
+        message:
+          type: string
+        context:
+          type: object
+
+    # Common schemas
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object

@@ -1,0 +1,529 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smarttunarr.local/schemas/profile/v6.0",
+  "title": "SmartTunarr Programming Profile v6",
+  "description": "JSON Schema for programming profile validation v6.0 - Enhanced scoring system with TMDB integration",
+  "type": "object",
+  "required": ["name", "version", "libraries", "time_blocks", "scoring_weights"],
+
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Profile display name"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[456]\\.[0-9]+$",
+      "description": "Schema version (4.x, 5.x or 6.x)"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Profile description"
+    },
+    "labels": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 50},
+      "description": "Profile labels for organization"
+    },
+
+    "libraries": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Plex libraries to source content from",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": {"type": "string", "description": "Plex library section ID"},
+          "name": {"type": "string", "description": "Library display name"},
+          "type": {"type": "string", "enum": ["movie", "show", "mixed"], "description": "Library content type"},
+          "weight": {"type": "number", "minimum": 0, "maximum": 100, "default": 50, "description": "Selection weight"},
+          "enabled": {"type": "boolean", "default": true, "description": "Whether library is enabled"}
+        }
+      }
+    },
+
+    "time_blocks": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Time blocks defining programming schedule",
+      "items": {
+        "type": "object",
+        "required": ["name", "start_time", "end_time"],
+        "properties": {
+          "name": {"type": "string", "description": "Block display name"},
+          "description": {"type": "string", "description": "Block description"},
+          "start_time": {"type": "string", "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"},
+          "end_time": {"type": "string", "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"},
+
+          "criteria": {
+            "type": "object",
+            "description": "Block-specific content criteria",
+            "properties": {
+              "preferred_types": {"type": "array", "items": {"type": "string"}},
+              "allowed_types": {"type": "array", "items": {"type": "string"}},
+              "excluded_types": {"type": "array", "items": {"type": "string"}},
+              "preferred_genres": {"type": "array", "items": {"type": "string"}},
+              "allowed_genres": {"type": "array", "items": {"type": "string"}},
+              "forbidden_genres": {"type": "array", "items": {"type": "string"}},
+              "min_duration_min": {"type": "integer", "minimum": 1},
+              "max_duration_min": {"type": "integer", "minimum": 1},
+              "max_age_rating": {"type": "string"},
+              "allowed_age_ratings": {"type": "array", "items": {"type": "string"}},
+              "min_tmdb_rating": {"type": "number", "minimum": 0, "maximum": 10},
+              "preferred_tmdb_rating": {"type": "number", "minimum": 0, "maximum": 10},
+              "min_vote_count": {"type": "integer", "minimum": 0},
+              "max_release_age_years": {"type": "integer", "minimum": 0, "description": "Maximum age of content in years"}
+            }
+          },
+
+          "scoring_overrides": {
+            "type": "object",
+            "description": "Block-specific scoring weight overrides",
+            "additionalProperties": {"type": "number", "minimum": 0, "maximum": 100}
+          }
+        }
+      }
+    },
+
+    "mandatory_forbidden_criteria": {
+      "type": "object",
+      "description": "Global mandatory and forbidden rules - ENHANCED v6",
+      "properties": {
+
+        "mandatory": {
+          "type": "object",
+          "description": "Content MUST meet these criteria",
+          "properties": {
+            "content_ids": {"type": "array", "items": {"type": "string"}, "description": "Specific content IDs required"},
+            "min_duration_min": {"type": "integer", "minimum": 1},
+            "min_tmdb_rating": {"type": "number", "minimum": 0, "maximum": 10},
+            "min_vote_count": {"type": "integer", "minimum": 0},
+            "required_genres": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "At least ONE of these genres required"
+            },
+            "required_all_genres": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "ALL of these genres required"
+            },
+            "allowed_age_ratings": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Only these age ratings allowed (whitelist)"
+            },
+            "required_keywords": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "At least ONE of these TMDB keywords required"
+            },
+            "required_collections": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Must belong to one of these collections"
+            },
+            "required_studios": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Must be from one of these studios"
+            },
+            "required_countries": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Must be from one of these countries (ISO codes)"
+            },
+            "required_languages": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Must have audio in one of these languages"
+            }
+          }
+        },
+
+        "forbidden": {
+          "type": "object",
+          "description": "Content MUST NOT have these - ELIMINATORY",
+          "properties": {
+            "content_ids": {"type": "array", "items": {"type": "string"}},
+            "types": {"type": "array", "items": {"type": "string"}},
+            "genres": {"type": "array", "items": {"type": "string"}},
+            "age_ratings": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Forbidden age ratings (blacklist)"
+            },
+            "keywords": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Forbidden keywords in title/overview"
+            },
+            "tmdb_keywords": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Forbidden TMDB keywords (from API)"
+            },
+            "collections": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Forbidden collections/franchises"
+            },
+            "studios": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Forbidden studios"
+            },
+            "actors": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Forbidden actors"
+            },
+            "directors": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Forbidden directors"
+            },
+            "max_controversial_score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10,
+              "description": "Maximum controversy score allowed"
+            }
+          }
+        },
+
+        "preferred": {
+          "type": "object",
+          "description": "Bonus points for matching these criteria",
+          "properties": {
+            "genres": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Preferred genres (bonus points)"
+            },
+            "keywords": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Preferred TMDB keywords (bonus)"
+            },
+            "collections": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Preferred collections/franchises"
+            },
+            "studios": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Preferred studios (Disney, Pixar, etc.)"
+            },
+            "actors": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Preferred actors (family-friendly)"
+            },
+            "directors": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Preferred directors"
+            },
+            "countries": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Preferred countries of origin"
+            },
+            "languages": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Preferred audio languages"
+            }
+          }
+        }
+      }
+    },
+
+    "enhanced_criteria": {
+      "type": "object",
+      "description": "v6 Enhanced scoring criteria with TMDB integration",
+      "properties": {
+
+        "keywords_safety": {
+          "type": "object",
+          "description": "TMDB keywords-based safety filtering",
+          "properties": {
+            "enabled": {"type": "boolean", "default": true},
+            "safe_keywords": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Safe keywords that give bonus points"
+            },
+            "dangerous_keywords": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Dangerous keywords - eliminatory"
+            },
+            "safe_bonus_points": {"type": "number", "default": 5},
+            "dangerous_penalty_points": {"type": "number", "default": -100}
+          }
+        },
+
+        "collections_franchises": {
+          "type": "object",
+          "description": "Collection and franchise preferences",
+          "properties": {
+            "enabled": {"type": "boolean", "default": true},
+            "preferred_collections": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Preferred collections (Disney Classics, Pixar, etc.)"
+            },
+            "preferred_franchises": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Preferred franchises (Marvel, Star Wars, etc.)"
+            },
+            "forbidden_collections": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "collection_bonus_points": {"type": "number", "default": 10},
+            "franchise_bonus_points": {"type": "number", "default": 5}
+          }
+        },
+
+        "cast_crew": {
+          "type": "object",
+          "description": "Cast and crew preferences",
+          "properties": {
+            "enabled": {"type": "boolean", "default": true},
+            "preferred_actors": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Family-friendly actors"
+            },
+            "forbidden_actors": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Adult-oriented actors"
+            },
+            "preferred_directors": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "min_actor_popularity": {
+              "type": "number",
+              "description": "Minimum TMDB actor popularity score"
+            },
+            "popular_actor_bonus": {"type": "number", "default": 3}
+          }
+        },
+
+        "temporal_intelligence": {
+          "type": "object",
+          "description": "Time-based and seasonal bonuses",
+          "properties": {
+            "enabled": {"type": "boolean", "default": true},
+
+            "recency_bonuses": {
+              "type": "object",
+              "properties": {
+                "enabled": {"type": "boolean", "default": true},
+                "very_recent_days": {"type": "integer", "default": 30},
+                "very_recent_bonus": {"type": "number", "default": 8},
+                "recent_months": {"type": "integer", "default": 6},
+                "recent_bonus": {"type": "number", "default": 6},
+                "this_year_bonus": {"type": "number", "default": 4},
+                "max_age_years": {"type": "integer", "description": "Penalty for older content"},
+                "old_content_penalty": {"type": "number", "default": -5}
+              }
+            },
+
+            "seasonal_bonuses": {
+              "type": "object",
+              "properties": {
+                "enabled": {"type": "boolean", "default": true},
+                "christmas": {
+                  "type": "object",
+                  "properties": {
+                    "months": {"type": "array", "items": {"type": "integer"}, "default": [11, 12]},
+                    "keywords": {"type": "array", "items": {"type": "string"}},
+                    "genres": {"type": "array", "items": {"type": "string"}},
+                    "bonus_points": {"type": "number", "default": 5}
+                  }
+                },
+                "halloween": {
+                  "type": "object",
+                  "properties": {
+                    "months": {"type": "array", "items": {"type": "integer"}, "default": [10]},
+                    "keywords": {"type": "array", "items": {"type": "string"}},
+                    "genres": {"type": "array", "items": {"type": "string"}},
+                    "bonus_points": {"type": "number", "default": 5}
+                  }
+                },
+                "summer": {
+                  "type": "object",
+                  "properties": {
+                    "months": {"type": "array", "items": {"type": "integer"}, "default": [6, 7, 8]},
+                    "keywords": {"type": "array", "items": {"type": "string"}},
+                    "genres": {"type": "array", "items": {"type": "string"}},
+                    "bonus_points": {"type": "number", "default": 3}
+                  }
+                }
+              }
+            },
+
+            "prime_time_bonus": {
+              "type": "object",
+              "properties": {
+                "enabled": {"type": "boolean", "default": true},
+                "prime_hours": {"type": "array", "items": {"type": "string"}, "default": ["20:00", "21:00", "22:00"]},
+                "bonus_points": {"type": "number", "default": 10}
+              }
+            }
+          }
+        },
+
+        "cultural_linguistic": {
+          "type": "object",
+          "description": "Cultural and language preferences",
+          "properties": {
+            "enabled": {"type": "boolean", "default": false},
+            "preferred_countries": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "ISO country codes (FR, US, GB, etc.)"
+            },
+            "preferred_languages": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "ISO language codes (fr, en, etc.)"
+            },
+            "require_french_audio": {"type": "boolean", "default": false},
+            "country_bonus_points": {"type": "number", "default": 5},
+            "language_bonus_points": {"type": "number", "default": 5}
+          }
+        },
+
+        "quality_indicators": {
+          "type": "object",
+          "description": "Quality-based scoring",
+          "properties": {
+            "enabled": {"type": "boolean", "default": true},
+
+            "vote_reliability": {
+              "type": "object",
+              "description": "Rating reliability based on vote count",
+              "properties": {
+                "enabled": {"type": "boolean", "default": true},
+                "excellent_votes": {"type": "integer", "default": 10000},
+                "good_votes": {"type": "integer", "default": 5000},
+                "acceptable_votes": {"type": "integer", "default": 1000},
+                "minimum_votes": {"type": "integer", "default": 100}
+              }
+            },
+
+            "multi_source_rating": {
+              "type": "object",
+              "description": "Aggregate ratings from multiple sources",
+              "properties": {
+                "enabled": {"type": "boolean", "default": false},
+                "sources": {
+                  "type": "array",
+                  "items": {"type": "string", "enum": ["tmdb", "imdb", "metacritic", "rotten_tomatoes"]}
+                },
+                "aggregation_method": {"type": "string", "enum": ["average", "weighted", "minimum"]}
+              }
+            },
+
+            "technical_quality": {
+              "type": "object",
+              "properties": {
+                "enabled": {"type": "boolean", "default": false},
+                "prefer_4k": {"type": "boolean", "default": false},
+                "prefer_hdr": {"type": "boolean", "default": false},
+                "quality_bonus_points": {"type": "number", "default": 3}
+              }
+            }
+          }
+        },
+
+        "educational_value": {
+          "type": "object",
+          "description": "Educational content bonuses",
+          "properties": {
+            "enabled": {"type": "boolean", "default": false},
+            "educational_keywords": {
+              "type": "array",
+              "items": {"type": "string"},
+              "default": ["educational", "learning", "documentary", "biography", "historical"]
+            },
+            "bonus_points": {"type": "number", "default": 10}
+          }
+        }
+      }
+    },
+
+    "strategies": {
+      "type": "object",
+      "description": "Programming strategy configuration",
+      "properties": {
+        "maintain_sequence": {"type": "boolean", "default": false},
+        "maximize_variety": {"type": "boolean", "default": false},
+        "marathon_mode": {"type": "boolean", "default": false},
+        "avoid_repeats_days": {"type": "integer", "minimum": 0, "default": 7},
+        "filler_insertion": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean", "default": false},
+            "types": {"type": "array", "items": {"type": "string"}},
+            "max_duration_min": {"type": "integer", "minimum": 1}
+          }
+        },
+        "bonuses": {
+          "type": "object",
+          "properties": {
+            "holiday_bonus": {"type": "boolean", "default": false},
+            "recent_release_bonus": {"type": "boolean", "default": false},
+            "popular_content_bonus": {"type": "boolean", "default": false}
+          }
+        }
+      }
+    },
+
+    "scoring_weights": {
+      "type": "object",
+      "description": "Scoring criterion weights (should sum to ~100)",
+      "properties": {
+        "type": {"type": "number", "minimum": 0, "maximum": 100, "default": 10},
+        "duration": {"type": "number", "minimum": 0, "maximum": 100, "default": 10},
+        "genre": {"type": "number", "minimum": 0, "maximum": 100, "default": 15},
+        "timing": {"type": "number", "minimum": 0, "maximum": 100, "default": 10},
+        "strategy": {"type": "number", "minimum": 0, "maximum": 100, "default": 5},
+        "age": {"type": "number", "minimum": 0, "maximum": 100, "default": 15},
+        "rating": {"type": "number", "minimum": 0, "maximum": 100, "default": 10},
+        "filter": {"type": "number", "minimum": 0, "maximum": 100, "default": 5},
+        "bonus": {"type": "number", "minimum": 0, "maximum": 100, "default": 5},
+        "keywords": {"type": "number", "minimum": 0, "maximum": 100, "default": 5, "description": "v6: TMDB keywords score"},
+        "collections": {"type": "number", "minimum": 0, "maximum": 100, "default": 5, "description": "v6: Collections/franchises score"},
+        "cast": {"type": "number", "minimum": 0, "maximum": 100, "default": 5, "description": "v6: Cast/crew score"},
+        "temporal": {"type": "number", "minimum": 0, "maximum": 100, "default": 5, "description": "v6: Temporal/seasonal score"}
+      }
+    },
+
+    "default_iterations": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 10
+    },
+    "default_randomness": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.3
+    }
+  }
+}

@@ -1,0 +1,630 @@
+{
+  "name": "Blockbuster Ultimate v6",
+  "version": "6.0",
+  "description": "Films grand public populaires - Blockbusters, franchises et succès commerciaux",
+  "labels": [
+    "blockbuster",
+    "popular",
+    "mainstream",
+    "action",
+    "v6"
+  ],
+  "libraries": [
+    {
+      "id": "1",
+      "name": "Films",
+      "type": "movie",
+      "weight": 100,
+      "enabled": true
+    },
+    {
+      "id": "3",
+      "name": "Nouveaux/Non Triés",
+      "type": "movie",
+      "weight": 50,
+      "enabled": true
+    }
+  ],
+  "time_blocks": [
+    {
+      "name": "morning_family_blockbuster",
+      "description": "Matinée - Blockbusters familiaux",
+      "start_time": "07:00",
+      "end_time": "14:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie",
+          "episode"
+        ],
+        "preferred_genres": [
+          "Family",
+          "Animation",
+          "Adventure",
+          "Comedy",
+          "Fantasy",
+          "Familial",
+          "Comédie",
+          "Fantastique"
+        ],
+        "allowed_genres": [
+          "Family",
+          "Animation",
+          "Adventure",
+          "Comedy",
+          "Fantasy",
+          "Action",
+          "Science Fiction",
+          "Familial",
+          "Comédie",
+          "Fantastique",
+          "Science-Fiction"
+        ],
+        "forbidden_genres": [
+          "Horror",
+          "Thriller",
+          "Crime",
+          "Horreur"
+        ],
+        "min_duration_min": 80,
+        "max_duration_min": 180,
+        "max_age_rating": "PG-13",
+        "min_tmdb_rating": 6.0,
+        "preferred_tmdb_rating": 7.0,
+        "min_vote_count": 1000,
+        "genre_rules": {
+          "forbidden_values": ["Horror", "Horreur"],
+          "forbidden_penalty": -150,
+          "preferred_values": ["Family", "Animation", "Adventure", "Familial", "Fantasy"],
+          "preferred_bonus": 20
+        },
+        "age_rules": {
+          "forbidden_values": ["R", "NC-17", "+16", "+18", "16+", "18+"],
+          "forbidden_penalty": -150
+        },
+        "rating_rules": {
+          "preferred_values": ["excellent", "good"],
+          "preferred_bonus": 15
+        },
+        "filter_rules": {
+          "preferred_values": ["marvel", "disney", "pixar", "dreamworks", "family"],
+          "preferred_bonus": 15
+        }
+      }
+    },
+    {
+      "name": "afternoon_action",
+      "description": "Après-midi - Action et aventure",
+      "start_time": "14:00",
+      "end_time": "19:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Action",
+          "Adventure",
+          "Science Fiction",
+          "Fantasy",
+          "Thriller",
+          "Science-Fiction",
+          "Fantastique"
+        ],
+        "allowed_genres": [
+          "Action",
+          "Adventure",
+          "Science Fiction",
+          "Fantasy",
+          "Thriller",
+          "Comedy",
+          "Crime",
+          "Science-Fiction",
+          "Fantastique",
+          "Comédie"
+        ],
+        "forbidden_genres": [
+          "Horror",
+          "Documentary",
+          "Horreur",
+          "Documentaire"
+        ],
+        "min_duration_min": 90,
+        "max_duration_min": 200,
+        "max_age_rating": "R",
+        "min_tmdb_rating": 6.5,
+        "preferred_tmdb_rating": 7.5,
+        "min_vote_count": 2000,
+        "genre_rules": {
+          "forbidden_values": ["Documentary", "Documentaire"],
+          "forbidden_penalty": -100,
+          "preferred_values": ["Action", "Adventure", "Science Fiction", "Science-Fiction", "Thriller"],
+          "preferred_bonus": 20
+        },
+        "rating_rules": {
+          "mandatory_values": ["excellent", "good", "average"],
+          "mandatory_penalty": -30,
+          "preferred_values": ["excellent", "good"],
+          "preferred_bonus": 15
+        },
+        "filter_rules": {
+          "preferred_values": ["blockbuster", "superhero", "marvel", "dc", "franchise", "sequel"],
+          "preferred_bonus": 20
+        }
+      }
+    },
+    {
+      "name": "prime_time_blockbuster",
+      "description": "Prime Time - Les plus gros succès",
+      "start_time": "19:00",
+      "end_time": "23:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Action",
+          "Adventure",
+          "Science Fiction",
+          "Drama",
+          "Thriller",
+          "Science-Fiction",
+          "Drame"
+        ],
+        "allowed_genres": [
+          "Action",
+          "Adventure",
+          "Science Fiction",
+          "Drama",
+          "Thriller",
+          "Fantasy",
+          "Crime",
+          "Comedy",
+          "Science-Fiction",
+          "Drame",
+          "Fantastique",
+          "Comédie"
+        ],
+        "forbidden_genres": [],
+        "min_duration_min": 100,
+        "max_duration_min": 220,
+        "min_tmdb_rating": 7.0,
+        "preferred_tmdb_rating": 8.0,
+        "min_vote_count": 5000,
+        "genre_rules": {
+          "preferred_values": ["Action", "Adventure", "Science Fiction", "Science-Fiction", "Drama", "Drame", "Thriller"],
+          "preferred_bonus": 25
+        },
+        "rating_rules": {
+          "mandatory_values": ["excellent", "good"],
+          "mandatory_penalty": -40,
+          "preferred_values": ["excellent"],
+          "preferred_bonus": 25
+        },
+        "filter_rules": {
+          "preferred_values": ["blockbuster", "epic", "superhero", "marvel", "dc", "franchise", "christopher nolan", "james cameron"],
+          "preferred_bonus": 25
+        },
+        "timing_rules": {
+          "preferred_values": ["evening"],
+          "preferred_bonus": 15
+        }
+      }
+    },
+    {
+      "name": "late_night_mature",
+      "description": "Nuit - Contenu mature",
+      "start_time": "23:00",
+      "end_time": "07:00",
+      "criteria": {
+        "preferred_types": [
+          "movie"
+        ],
+        "allowed_types": [
+          "movie"
+        ],
+        "preferred_genres": [
+          "Thriller",
+          "Crime",
+          "Horror",
+          "Drama",
+          "Action",
+          "Horreur",
+          "Drame"
+        ],
+        "allowed_genres": [
+          "Thriller",
+          "Crime",
+          "Horror",
+          "Drama",
+          "Action",
+          "Mystery",
+          "Science Fiction",
+          "Horreur",
+          "Drame",
+          "Mystère",
+          "Science-Fiction"
+        ],
+        "forbidden_genres": [
+          "Animation",
+          "Family",
+          "Familial"
+        ],
+        "min_duration_min": 90,
+        "max_duration_min": 200,
+        "min_tmdb_rating": 6.5,
+        "preferred_tmdb_rating": 7.5,
+        "min_vote_count": 1000,
+        "genre_rules": {
+          "forbidden_values": ["Animation", "Family", "Familial"],
+          "forbidden_penalty": -100,
+          "preferred_values": ["Thriller", "Crime", "Horror", "Horreur", "Drama", "Drame", "Action", "Mystery", "Mystère"],
+          "preferred_bonus": 20
+        },
+        "rating_rules": {
+          "preferred_values": ["excellent", "good"],
+          "preferred_bonus": 15
+        },
+        "filter_rules": {
+          "preferred_values": ["thriller", "crime", "horror", "dark", "intense", "suspense"],
+          "preferred_bonus": 15
+        },
+        "timing_rules": {
+          "preferred_values": ["night"],
+          "preferred_bonus": 10
+        }
+      }
+    }
+  ],
+  "mandatory_forbidden_criteria": {
+    "mandatory": {
+      "min_tmdb_rating": 5.5,
+      "min_vote_count": 500
+    },
+    "forbidden": {
+      "genres": [],
+      "keywords": [
+        "xxx",
+        "adult only",
+        "porn",
+        "erotic"
+      ],
+      "tmdb_keywords": [
+        "pornography",
+        "erotic",
+        "softcore",
+        "hardcore"
+      ],
+      "max_controversial_score": 8.0
+    },
+    "preferred": {
+      "genres": [
+        "Action",
+        "Adventure",
+        "Science Fiction",
+        "Thriller",
+        "Science-Fiction"
+      ],
+      "keywords": [
+        "blockbuster",
+        "superhero",
+        "epic",
+        "explosion",
+        "chase",
+        "special effects",
+        "sequel",
+        "franchise",
+        "marvel",
+        "dc comics"
+      ],
+      "collections": [
+        "Marvel Cinematic Universe",
+        "DC Extended Universe",
+        "Fast & Furious Collection",
+        "Mission: Impossible Collection",
+        "James Bond Collection",
+        "Jurassic Park Collection",
+        "Transformers Collection",
+        "Star Wars Collection",
+        "The Lord of the Rings Collection",
+        "Harry Potter Collection"
+      ],
+      "studios": [
+        "Marvel Studios",
+        "Warner Bros. Pictures",
+        "Universal Pictures",
+        "Paramount Pictures",
+        "20th Century Studios",
+        "Sony Pictures",
+        "Legendary Pictures",
+        "New Line Cinema",
+        "Lionsgate"
+      ],
+      "actors": [
+        "Dwayne Johnson",
+        "Tom Cruise",
+        "Robert Downey Jr.",
+        "Chris Hemsworth",
+        "Chris Evans",
+        "Scarlett Johansson",
+        "Gal Gadot",
+        "Jason Statham",
+        "Vin Diesel",
+        "Ryan Reynolds",
+        "Chris Pratt",
+        "Zendaya",
+        "Leonardo DiCaprio",
+        "Brad Pitt",
+        "Tom Hardy",
+        "Keanu Reeves"
+      ],
+      "directors": [
+        "Christopher Nolan",
+        "James Cameron",
+        "Steven Spielberg",
+        "Anthony Russo",
+        "Joe Russo",
+        "Michael Bay",
+        "Zack Snyder",
+        "Denis Villeneuve",
+        "James Wan",
+        "Jon Favreau"
+      ]
+    }
+  },
+  "enhanced_criteria": {
+    "keywords_safety": {
+      "enabled": true,
+      "safe_keywords": [
+        "blockbuster",
+        "superhero",
+        "epic",
+        "action packed",
+        "special effects",
+        "franchise",
+        "sequel",
+        "prequel",
+        "marvel",
+        "dc",
+        "comic book",
+        "adventure",
+        "hero",
+        "explosion",
+        "car chase",
+        "heist"
+      ],
+      "dangerous_keywords": [
+        "pornography",
+        "erotic",
+        "softcore",
+        "snuff"
+      ],
+      "safe_bonus_points": 5,
+      "dangerous_penalty_points": -100
+    },
+    "collections_franchises": {
+      "enabled": true,
+      "preferred_collections": [
+        "Marvel Cinematic Universe",
+        "DC Extended Universe",
+        "Fast & Furious Collection",
+        "Mission: Impossible Collection",
+        "James Bond Collection",
+        "Jurassic Park Collection",
+        "Transformers Collection",
+        "Star Wars Collection",
+        "The Lord of the Rings Collection",
+        "Harry Potter Collection",
+        "The Dark Knight Collection",
+        "X-Men Collection",
+        "Spider-Man Collection",
+        "The Avengers Collection",
+        "Pirates of the Caribbean Collection",
+        "The Matrix Collection",
+        "John Wick Collection",
+        "Mad Max Collection"
+      ],
+      "preferred_franchises": [
+        "Marvel",
+        "DC Comics",
+        "Star Wars",
+        "Harry Potter",
+        "Lord of the Rings",
+        "Fast & Furious",
+        "Mission Impossible"
+      ],
+      "forbidden_collections": [],
+      "collection_bonus_points": 15,
+      "franchise_bonus_points": 10
+    },
+    "cast_crew": {
+      "enabled": true,
+      "preferred_actors": [
+        "Dwayne Johnson",
+        "Tom Cruise",
+        "Robert Downey Jr.",
+        "Chris Hemsworth",
+        "Leonardo DiCaprio",
+        "Tom Hardy",
+        "Keanu Reeves",
+        "Ryan Gosling"
+      ],
+      "forbidden_actors": [],
+      "preferred_directors": [
+        "Christopher Nolan",
+        "James Cameron",
+        "Steven Spielberg",
+        "Denis Villeneuve",
+        "Ridley Scott",
+        "Martin Scorsese"
+      ],
+      "min_actor_popularity": 20,
+      "popular_actor_bonus": 8
+    },
+    "temporal_intelligence": {
+      "enabled": true,
+      "recency_bonuses": {
+        "enabled": true,
+        "very_recent_days": 60,
+        "very_recent_bonus": 10,
+        "recent_months": 6,
+        "recent_bonus": 7,
+        "this_year_bonus": 5,
+        "max_age_years": null,
+        "old_content_penalty": 0
+      },
+      "seasonal_bonuses": {
+        "enabled": true,
+        "christmas": {
+          "months": [
+            11,
+            12
+          ],
+          "keywords": [
+            "christmas",
+            "holiday"
+          ],
+          "genres": [
+            "Family",
+            "Comedy",
+            "Romance",
+            "Familial",
+            "Comédie"
+          ],
+          "bonus_points": 5
+        },
+        "halloween": {
+          "months": [
+            10
+          ],
+          "keywords": [
+            "halloween",
+            "horror",
+            "scary"
+          ],
+          "genres": [
+            "Horror",
+            "Thriller",
+            "Horreur"
+          ],
+          "bonus_points": 8
+        },
+        "summer": {
+          "months": [
+            5,
+            6,
+            7,
+            8
+          ],
+          "keywords": [
+            "summer blockbuster",
+            "action",
+            "adventure"
+          ],
+          "genres": [
+            "Action",
+            "Adventure",
+            "Science Fiction",
+            "Science-Fiction"
+          ],
+          "bonus_points": 10
+        }
+      },
+      "prime_time_bonus": {
+        "enabled": true,
+        "prime_hours": [
+          "19:00",
+          "20:00",
+          "21:00",
+          "22:00"
+        ],
+        "bonus_points": 10
+      }
+    },
+    "cultural_linguistic": {
+      "enabled": false,
+      "preferred_countries": [
+        "US",
+        "GB"
+      ],
+      "preferred_languages": [
+        "en",
+        "fr"
+      ],
+      "require_french_audio": false,
+      "country_bonus_points": 2,
+      "language_bonus_points": 2
+    },
+    "quality_indicators": {
+      "enabled": true,
+      "vote_reliability": {
+        "enabled": true,
+        "excellent_votes": 10000,
+        "good_votes": 5000,
+        "acceptable_votes": 2000,
+        "minimum_votes": 500
+      },
+      "multi_source_rating": {
+        "enabled": false,
+        "sources": [
+          "tmdb",
+          "imdb"
+        ],
+        "aggregation_method": "average"
+      },
+      "technical_quality": {
+        "enabled": true,
+        "prefer_4k": true,
+        "prefer_hdr": true,
+        "quality_bonus_points": 5
+      }
+    },
+    "educational_value": {
+      "enabled": false,
+      "educational_keywords": [],
+      "bonus_points": 0
+    }
+  },
+  "strategies": {
+    "maintain_sequence": false,
+    "maximize_variety": true,
+    "marathon_mode": false,
+    "avoid_repeats_days": 7,
+    "filler_insertion": {
+      "enabled": true,
+      "types": [
+        "trailer"
+      ],
+      "max_duration_min": 5
+    },
+    "bonuses": {
+      "holiday_bonus": true,
+      "recent_release_bonus": true,
+      "popular_content_bonus": true
+    }
+  },
+  "scoring_weights": {
+    "type": 8,
+    "duration": 8,
+    "genre": 15,
+    "timing": 10,
+    "strategy": 5,
+    "age": 8,
+    "rating": 15,
+    "filter": 5,
+    "bonus": 8,
+    "keywords": 5,
+    "collections": 8,
+    "cast": 8,
+    "temporal": 7
+  },
+  "default_iterations": 15,
+  "default_randomness": 0.25
+}

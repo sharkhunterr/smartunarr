@@ -1,0 +1,265 @@
+{
+  "nav": {
+    "programming": "Programmation",
+    "scoring": "Notation",
+    "profiles": "Profils",
+    "history": "Historique",
+    "logs": "Logs",
+    "settings": "Parametres"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Creer",
+    "export": "Exporter",
+    "import": "Importer",
+    "test": "Tester",
+    "apply": "Appliquer",
+    "start": "Demarrer",
+    "stop": "Arreter",
+    "refresh": "Actualiser",
+    "success": "Succes",
+    "error": "Erreur",
+    "warning": "Attention",
+    "confirm": "Confirmer",
+    "close": "Fermer"
+  },
+  "programming": {
+    "title": "Programmation de chaine",
+    "selectChannel": "Selectionner une chaine",
+    "selectProfile": "Selectionner un profil",
+    "iterations": "Iterations",
+    "randomness": "Aleatoire",
+    "durationDays": "Duree",
+    "startDateTime": "Date et heure de debut",
+    "startProgramming": "Lancer la programmation",
+    "progress": "Progression",
+    "iteration": "Iteration {{current}} sur {{total}}",
+    "bestScore": "Meilleur score",
+    "applyResult": "Appliquer le resultat",
+    "noChannels": "Aucune chaine disponible",
+    "noProfiles": "Aucun profil disponible"
+  },
+  "scoring": {
+    "title": "Notation de programme",
+    "analyze": "Analyser",
+    "exportCSV": "Exporter CSV",
+    "exportJSON": "Exporter JSON",
+    "totalScore": "Score total",
+    "averageScore": "Score moyen",
+    "violations": "Violations",
+    "penalties": "Penalites",
+    "breakdown": "Detail des scores",
+    "criteria": {
+      "type": "Type",
+      "duration": "Duree",
+      "genre": "Genre",
+      "timing": "Horaire",
+      "strategy": "Strategie",
+      "age": "Age",
+      "rating": "Note",
+      "filter": "Filtre",
+      "bonus": "Bonus"
+    },
+    "notEvaluated": "Non evalue",
+    "expanded": {
+      "contentInfo": "Informations du contenu",
+      "expectedGenres": "Genres attendus",
+      "block": "Bloc horaire",
+      "ageRating": "Classification",
+      "mandatoryStatus": "Obligatoire",
+      "forbiddenStatus": "Interdit",
+      "allMandatoryMet": "Tous les criteres obligatoires sont respectes",
+      "noViolations": "Aucune violation de regles interdites",
+      "noDetails": "Aucun detail disponible"
+    }
+  },
+  "profiles": {
+    "title": "Profils de programmation",
+    "create": "Nouveau profil",
+    "edit": "Modifier le profil",
+    "delete": "Supprimer le profil",
+    "name": "Nom",
+    "version": "Version",
+    "labels": "Labels",
+    "timeBlocks": "Blocs horaires",
+    "scoringWeights": "Poids de notation",
+    "confirmDelete": "Etes-vous sur de vouloir supprimer ce profil ?"
+  },
+  "history": {
+    "title": "Historique des operations",
+    "type": "Type",
+    "channel": "Chaine",
+    "profile": "Profil",
+    "status": "Statut",
+    "date": "Date",
+    "score": "Score",
+    "details": "Details",
+    "startedAt": "Debut",
+    "completedAt": "Fin",
+    "duration": "Duree",
+    "iterations": "iterations",
+    "bestScore": "Meilleur score",
+    "error": "Erreur",
+    "resultSummary": "Resume du resultat",
+    "programsGenerated": "Programmes generes",
+    "totalDuration": "Duree totale",
+    "contentDistribution": "Distribution du contenu",
+    "scoreDistribution": "Distribution des scores",
+    "rawData": "Donnees brutes",
+    "viewResult": "Voir le resultat",
+    "viewFullResult": "Voir le resultat complet",
+    "rerun": "Relancer",
+    "types": {
+      "programming": "Programmation",
+      "scoring": "Notation",
+      "sync": "Synchronisation",
+      "aiGeneration": "Generation IA"
+    },
+    "statuses": {
+      "pending": "En attente",
+      "running": "En cours",
+      "success": "Reussi",
+      "failed": "Echec",
+      "cancelled": "Annule"
+    }
+  },
+  "settings": {
+    "title": "Parametres",
+    "services": "Services",
+    "appearance": "Apparence",
+    "theme": "Theme",
+    "themes": {
+      "light": "Clair",
+      "dark": "Sombre",
+      "system": "Systeme"
+    },
+    "language": "Langue",
+    "username": "Nom d'utilisateur",
+    "password": "Mot de passe",
+    "token": "Token",
+    "apiKey": "Cle API",
+    "apiKeyPlaceholder": "Entrez votre cle API",
+    "optional": "Optionnel",
+    "notConfigured": "Non configure",
+    "connected": "Connecte",
+    "connectionError": "Erreur de connexion",
+    "notTested": "Non teste",
+    "testing": "Test en cours...",
+    "saveFailed": "Echec de l'enregistrement",
+    "connectionFailed": "Echec de connexion",
+    "plex": {
+      "title": "Plex",
+      "url": "URL du serveur",
+      "token": "Token d'authentification"
+    },
+    "tunarr": {
+      "title": "Tunarr",
+      "url": "URL du serveur",
+      "username": "Nom d'utilisateur",
+      "password": "Mot de passe"
+    },
+    "tmdb": {
+      "title": "TMDB",
+      "apiKey": "Cle API"
+    },
+    "ollama": {
+      "title": "Ollama",
+      "url": "URL du serveur",
+      "model": "Modele par defaut"
+    },
+    "testConnection": "Tester la connexion",
+    "connectionSuccess": "Connexion reussie",
+    "defaults": {
+      "section": "Parametres par defaut",
+      "title": "Valeurs par defaut",
+      "iterations": "Iterations",
+      "iterationsHelp": "Nombre d'iterations pour la generation de programmation (1-100)",
+      "randomness": "Aleatoire",
+      "randomnessHelp": "Niveau d'aleatoire dans la selection du contenu (0-100%)",
+      "cacheMode": "Mode de cache",
+      "cacheModeHelp": "Definit quelles sources de donnees utiliser pour la generation",
+      "cacheModes": {
+        "cacheOnly": "Cache",
+        "cacheTmdb": "Cache + TMDB",
+        "tmdbOnly": "TMDB",
+        "plexOnly": "Plex"
+      }
+    },
+    "cache": {
+      "section": "Gestion du cache",
+      "title": "Cache local",
+      "description": "Le cache local stocke les donnees pour accelerer les operations. Vider le cache peut resoudre certains problemes.",
+      "clear": "Vider le cache",
+      "cleared": "Cache vide"
+    },
+    "about": {
+      "section": "A propos",
+      "title": "SmartTunarr",
+      "version": "Version",
+      "build": "Build",
+      "description": "SmartTunarr est un outil de programmation intelligente pour Tunarr, utilisant des profils JSON et l'IA pour generer des programmes optimises."
+    }
+  },
+  "timeline": {
+    "reset": "Reinitialiser",
+    "duration": "Duree",
+    "startTime": "Heure de debut",
+    "metadata": "Metadonnees"
+  },
+  "content": {
+    "types": {
+      "movie": "Film",
+      "episode": "Episode",
+      "filler": "Remplissage"
+    },
+    "genres": "Genres",
+    "year": "Annee",
+    "rating": "Note"
+  },
+  "jobs": {
+    "activeJobs": "{{count}} tache(s) en cours",
+    "recentJobs": "Taches recentes",
+    "finalScore": "Score final",
+    "clearCompleted": "Effacer les terminees",
+    "programming": "Programmation",
+    "scoring": "Notation",
+    "sync": "Synchronisation",
+    "aiGeneration": "Generation IA"
+  },
+  "ai": {
+    "title": "Generation par IA",
+    "description": "Decrivez le type de programmation souhaite et l'IA generera un profil JSON pour vous.",
+    "prompt": "Description",
+    "promptPlaceholder": "Ex: Une soiree cinema action avec des films recents bien notes, pas de films d'horreur...",
+    "model": "Modele IA",
+    "autoModel": "Automatique (recommande)",
+    "temperature": "Creativite",
+    "saveProfile": "Enregistrer le profil genere",
+    "profileNamePlaceholder": "Nom du profil",
+    "generate": "Generer le profil",
+    "generating": "Generation en cours...",
+    "generationSuccess": "Profil genere avec succes",
+    "generationFailed": "Echec de la generation",
+    "attempts": "{{count}} tentative(s)",
+    "attempt": "Tentative",
+    "attemptDetails": "Details des tentatives",
+    "generatedProfile": "Profil genere",
+    "forbiddenRules": "Regles interdites",
+    "mandatoryRules": "Regles obligatoires",
+    "toggleDetails": "Afficher/masquer les details",
+    "profileSaved": "Profil enregistre",
+    "viewProfile": "Voir le profil",
+    "examplePrompts": "Exemples de descriptions",
+    "examples": {
+      "actionNight": "Soiree cinema action",
+      "familyWeekend": "Programme familial weekend",
+      "classicMovies": "Films classiques 80-90",
+      "lateNight": "Programme de nuit"
+    }
+  }
+}

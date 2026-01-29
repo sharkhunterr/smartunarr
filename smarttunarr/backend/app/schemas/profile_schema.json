@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smarttunarr.local/schemas/profile/v5.0",
+  "title": "SmartTunarr Programming Profile",
+  "description": "JSON Schema for programming profile validation v5.0",
+  "type": "object",
+  "required": ["name", "version", "libraries", "time_blocks", "scoring_weights"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Profile display name"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[45]\\.[0-9]+$",
+      "description": "Schema version (4.x or 5.x)"
+    },
+    "libraries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Plex library section ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Library display name"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["movie", "show", "mixed"],
+            "description": "Library content type"
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 50,
+            "description": "Selection weight for this library"
+          }
+        }
+      },
+      "minItems": 1,
+      "description": "Plex libraries to source content from"
+    },
+    "time_blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "start_time", "end_time"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Block display name"
+          },
+          "start_time": {
+            "type": "string",
+            "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+            "description": "Block start time (HH:MM)"
+          },
+          "end_time": {
+            "type": "string",
+            "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+            "description": "Block end time (HH:MM)"
+          },
+          "criteria": {
+            "type": "object",
+            "properties": {
+              "preferred_types": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Preferred content types for this block"
+              },
+              "allowed_types": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Allowed content types"
+              },
+              "excluded_types": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Excluded content types"
+              },
+              "preferred_genres": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Preferred genres"
+              },
+              "allowed_genres": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Allowed genres"
+              },
+              "forbidden_genres": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Forbidden genres"
+              },
+              "min_duration_min": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Minimum content duration in minutes"
+              },
+              "max_duration_min": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum content duration in minutes"
+              },
+              "max_age_rating": {
+                "type": "string",
+                "description": "Maximum allowed age rating"
+              },
+              "min_tmdb_rating": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 10,
+                "description": "Minimum TMDB rating"
+              },
+              "preferred_tmdb_rating": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 10,
+                "description": "Preferred TMDB rating threshold"
+              },
+              "min_vote_count": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Minimum vote count for rating confidence"
+              }
+            }
+          }
+        }
+      },
+      "description": "Time blocks defining programming schedule"
+    },
+    "mandatory_forbidden_criteria": {
+      "type": "object",
+      "properties": {
+        "mandatory": {
+          "type": "object",
+          "properties": {
+            "content_ids": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Content IDs that must be included"
+            },
+            "min_duration_min": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Minimum content duration"
+            },
+            "min_tmdb_rating": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10,
+              "description": "Minimum TMDB rating"
+            },
+            "required_genres": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "At least one of these genres required"
+            }
+          }
+        },
+        "forbidden": {
+          "type": "object",
+          "properties": {
+            "content_ids": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Content IDs that must be excluded"
+            },
+            "types": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Forbidden content types"
+            },
+            "keywords": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Forbidden keywords in title"
+            },
+            "genres": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Forbidden genres"
+            }
+          }
+        }
+      },
+      "description": "Global mandatory and forbidden rules"
+    },
+    "strategies": {
+      "type": "object",
+      "properties": {
+        "maintain_sequence": {
+          "type": "boolean",
+          "default": false,
+          "description": "Maintain episode sequence order"
+        },
+        "maximize_variety": {
+          "type": "boolean",
+          "default": false,
+          "description": "Maximize genre variety"
+        },
+        "marathon_mode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable marathon/binge programming"
+        },
+        "filler_insertion": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "types": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "max_duration_min": {"type": "integer"}
+          }
+        },
+        "bonuses": {
+          "type": "object",
+          "properties": {
+            "holiday_bonus": {"type": "boolean"},
+            "recent_release_bonus": {"type": "boolean"}
+          }
+        }
+      },
+      "description": "Programming strategy configuration"
+    },
+    "scoring_weights": {
+      "type": "object",
+      "properties": {
+        "type": {"type": "number", "minimum": 0, "maximum": 100, "default": 15},
+        "duration": {"type": "number", "minimum": 0, "maximum": 100, "default": 20},
+        "genre": {"type": "number", "minimum": 0, "maximum": 100, "default": 15},
+        "timing": {"type": "number", "minimum": 0, "maximum": 100, "default": 10},
+        "strategy": {"type": "number", "minimum": 0, "maximum": 100, "default": 10},
+        "age": {"type": "number", "minimum": 0, "maximum": 100, "default": 15},
+        "rating": {"type": "number", "minimum": 0, "maximum": 100, "default": 10},
+        "filter": {"type": "number", "minimum": 0, "maximum": 100, "default": 10},
+        "bonus": {"type": "number", "minimum": 0, "maximum": 100, "default": 5}
+      },
+      "description": "Scoring criterion weights"
+    },
+    "default_iterations": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 10,
+      "description": "Default number of iterations"
+    },
+    "default_randomness": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.3,
+      "description": "Default randomness factor"
+    },
+    "labels": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 50},
+      "description": "Profile labels for organization"
+    }
+  }
+}
