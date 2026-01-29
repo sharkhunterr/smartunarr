@@ -503,8 +503,16 @@ async def _run_scoring(
                     except Exception as e:
                         logger.warning(f"Failed to create ScoringContext for {prog.get('title')}: {e}")
 
+                # Ensure content has timing info for overflow calculation
+                # (cached content doesn't have start_time/end_time, add from program data)
+                content_with_timing = {
+                    **content,
+                    "start_time": prog.get("start"),
+                    "end_time": prog.get("end"),
+                }
+
                 # Score the program
-                score_result = scoring_engine.score(content, meta, profile_dict, block, context)
+                score_result = scoring_engine.score(content_with_timing, meta, profile_dict, block, context)
 
                 # Track violations
                 if score_result.forbidden_violations:

@@ -803,86 +803,411 @@ function ExpandedRow({ prog, block, profile }: ExpandedRowProps) {
     }
   ]
 
+  // Score pill component (inline badge)
+  const ScorePill = ({ value }: { value: number | null }) => {
+    if (value === null) return <span className="text-gray-400 text-[10px]">—</span>
+    return (
+      <span className={clsx(
+        'inline-flex items-center justify-center min-w-[24px] px-1 py-0.5 rounded text-[10px] font-bold text-white',
+        value >= 80 ? 'bg-green-500' :
+        value >= 60 ? 'bg-lime-500' :
+        value >= 40 ? 'bg-yellow-500' :
+        value >= 20 ? 'bg-orange-500' :
+        'bg-red-500'
+      )}>
+        {value.toFixed(0)}
+      </span>
+    )
+  }
+
+  // Get criterion-specific rules from block criteria
+  const getCriterionRules = (criterionKey: string): CriterionRules | undefined => {
+    const rulesKey = `${criterionKey}_rules` as keyof BlockCriteria
+    return criteria[rulesKey] as CriterionRules | undefined
+  }
+
+  // Get M/F/P values for a criterion
+  const getMFPValues = (criterionKey: string): { m: string[], f: string[], p: string[] } => {
+    const rules = getCriterionRules(criterionKey)
+    let m: string[] = []
+    let f: string[] = []
+    let p: string[] = []
+
+    // Add rule values
+    if (rules) {
+      m = [...(rules.mandatory_values || [])]
+      f = [...(rules.forbidden_values || [])]
+      p = [...(rules.preferred_values || [])]
+    }
+
+    // Add criterion-specific explicit values
+    switch (criterionKey) {
+      case 'type':
+        m = [...m, ...(criteria.allowed_types || [])]
+        f = [...f, ...(criteria.excluded_types || [])]
+        p = [...p, ...(criteria.preferred_types || [])]
+        break
+      case 'genre':
+        m = [...m, ...(criteria.allowed_genres || [])]
+        f = [...f, ...(criteria.forbidden_genres || [])]
+        p = [...p, ...(criteria.preferred_genres || [])]
+        break
+      case 'age':
+        m = [...m, ...(criteria.allowed_age_ratings || [])]
+        break
+      case 'filter':
+        m = [...m, ...(criteria.include_keywords || [])]
+        f = [...f, ...(criteria.exclude_keywords || [])]
+        break
+    }
+
+    return { m, f, p }
+  }
+
+  // Check if content matches M/F/P
+  // Uses EXACT matching (after normalization) to avoid false positives like "PG" matching "G"
+  // Returns null for all statuses if no content values to check (e.g., timing, duration, rating)
+  const checkMFPStatus = (criterionKey: string, contentValues: string[]): { mOk: boolean | null, fOk: boolean | null, pOk: boolean | null } => {
+    // If no content values to check, we can't determine M/F/P status
+    if (contentValues.length === 0) {
+      return { mOk: null, fOk: null, pOk: null }
+    }
+
+    const { m, f, p } = getMFPValues(criterionKey)
+    const contentLower = contentValues.map(v => normalizeAccents(v.toLowerCase().trim()))
+
+    // Mandatory: null if not defined, true if any match, false if no match
+    let mOk: boolean | null = null
+    if (m.length > 0) {
+      mOk = m.some(mv => {
+        const mvLower = normalizeAccents(mv.toLowerCase().trim())
+        return contentLower.some(cv => cv === mvLower)
+      })
+    }
+
+    // Forbidden: null if not defined, true if no match (good), false if any match (bad)
+    let fOk: boolean | null = null
+    if (f.length > 0) {
+      const hasForbidden = f.some(fv => {
+        const fvLower = normalizeAccents(fv.toLowerCase().trim())
+        return contentLower.some(cv => cv === fvLower)
+      })
+      fOk = !hasForbidden // true = no forbidden found (good)
+    }
+
+    // Preferred: null if not defined, true if any match
+    let pOk: boolean | null = null
+    if (p.length > 0) {
+      pOk = p.some(pv => {
+        const pvLower = normalizeAccents(pv.toLowerCase().trim())
+        return contentLower.some(cv => cv === pvLower)
+      })
+    }
+
+    return { mOk, fOk, pOk }
+  }
+
+  // MFP status cell component with tooltip
+  const MFPCell = ({ values, status, type, criterion }: { values: string[], status: boolean | null, type: 'M' | 'F' | 'P', criterion: string }) => {
+    if (values.length === 0) return <span className="text-gray-300 dark:text-gray-600">—</span>
+
+    const colors = {
+      M: { active: 'text-orange-600 dark:text-orange-400', inactive: 'text-orange-400/50 dark:text-orange-600/50' },
+      F: { active: 'text-red-600 dark:text-red-400', inactive: 'text-red-400/50 dark:text-red-600/50' },
+      P: { active: 'text-green-600 dark:text-green-400', inactive: 'text-green-400/50 dark:text-green-600/50' }
+    }
+
+    const icons = {
+      M: status === true ? '✓' : status === false ? '✗' : '○',
+      F: status === true ? '✓' : status === false ? '✗' : '○', // true = no forbidden (good)
+      P: status === true ? '★' : '○'
+    }
+
+    const bgColors = {
+      M: status === true ? 'bg-orange-100 dark:bg-orange-900/30' : status === false ? 'bg-red-100 dark:bg-red-900/30' : '',
+      F: status === false ? 'bg-red-100 dark:bg-red-900/30' : '', // false = forbidden found (bad)
+      P: status === true ? 'bg-green-100 dark:bg-green-900/30' : ''
+    }
+
+    const typeLabels = { M: 'Obligatoire', F: 'Interdit', P: 'Préféré' }
+    const statusLabels = {
+      M: status === true ? '✓ Respecté' : status === false ? '✗ Non respecté' : 'Non vérifié',
+      F: status === true ? '✓ Aucun interdit' : status === false ? '✗ Interdit détecté' : 'Non vérifié',
+      P: status === true ? '★ Match' : 'Pas de match'
+    }
+
+    // Build tooltip content
+    const tooltip = `[${criterion}] ${typeLabels[type]}: ${values.join(', ')}\n${statusLabels[type]}`
+
+    return (
+      <div
+        className={clsx('px-1 py-0.5 rounded text-[9px] leading-tight cursor-help', bgColors[type])}
+        title={tooltip}
+      >
+        <div className="flex items-center gap-0.5">
+          <span className={clsx('font-bold', status !== null ? colors[type].active : colors[type].inactive)}>
+            {icons[type]}
+          </span>
+          <span className={clsx('truncate', status !== null ? colors[type].active : 'text-gray-500 dark:text-gray-400')}>
+            {values.slice(0, 2).join(', ')}{values.length > 2 && `+${values.length - 2}`}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  // TimingMFPCell - special display for minute-based timing rules
+  const TimingMFPCell = ({ type, timingDetails }: { type: 'M' | 'F' | 'P', timingDetails: TimingDetails | null }) => {
+    const rules = timingDetails?.timing_rules
+    if (!rules) return <span className="text-gray-300 dark:text-gray-600">—</span>
+
+    // Get the threshold for this type
+    const threshold = type === 'M' ? rules.mandatory_max_minutes
+      : type === 'F' ? rules.forbidden_max_minutes
+      : rules.preferred_max_minutes
+
+    if (threshold === null || threshold === undefined) {
+      return <span className="text-gray-300 dark:text-gray-600">—</span>
+    }
+
+    // Get actual offset
+    const isFirst = timingDetails?.is_first_in_block
+    const isLast = timingDetails?.is_last_in_block
+    const offset = isFirst && isLast
+      ? Math.max(timingDetails?.late_start_minutes || 0, timingDetails?.overflow_minutes || 0)
+      : isFirst
+        ? (timingDetails?.late_start_minutes || 0)
+        : (timingDetails?.overflow_minutes || 0)
+
+    // Determine status
+    let status: boolean | null = null
+    if (isFirst || isLast) {
+      if (type === 'F') {
+        status = offset <= threshold  // true = no forbidden (good), false = forbidden violated
+      } else if (type === 'M') {
+        status = offset <= threshold  // true = mandatory met, false = exceeded
+      } else if (type === 'P') {
+        status = offset <= threshold  // true = within preferred (bonus)
+      }
+    }
+
+    const colors = {
+      M: { active: 'text-orange-600 dark:text-orange-400', inactive: 'text-orange-400/50 dark:text-orange-600/50' },
+      F: { active: 'text-red-600 dark:text-red-400', inactive: 'text-red-400/50 dark:text-red-600/50' },
+      P: { active: 'text-green-600 dark:text-green-400', inactive: 'text-green-400/50 dark:text-green-600/50' }
+    }
+
+    const icons = {
+      M: status === true ? '✓' : status === false ? '✗' : '○',
+      F: status === true ? '✓' : status === false ? '✗' : '○',
+      P: status === true ? '★' : '○'
+    }
+
+    const bgColors = {
+      M: status === true ? 'bg-orange-100 dark:bg-orange-900/30' : status === false ? 'bg-red-100 dark:bg-red-900/30' : '',
+      F: status === false ? 'bg-red-100 dark:bg-red-900/30' : '',
+      P: status === true ? 'bg-green-100 dark:bg-green-900/30' : ''
+    }
+
+    const operator = type === 'F' ? '>' : '≤'
+    const label = `${operator}${threshold}min`
+    const typeLabels = { M: 'Obligatoire', F: 'Interdit', P: 'Préféré' }
+    const tooltip = `[Timing] ${typeLabels[type]}: ${label}\nActuel: ${offset.toFixed(0)}min\n${status === true ? '✓ OK' : status === false ? '✗ Dépassé' : 'Non applicable'}`
+
+    return (
+      <div
+        className={clsx('px-1 py-0.5 rounded text-[9px] leading-tight cursor-help', bgColors[type])}
+        title={tooltip}
+      >
+        <div className="flex items-center gap-0.5">
+          <span className={clsx('font-bold', status !== null ? colors[type].active : colors[type].inactive)}>
+            {icons[type]}
+          </span>
+          <span className={clsx('truncate', status !== null ? colors[type].active : 'text-gray-500 dark:text-gray-400')}>
+            {label}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  // Build row data with MFP info
+  const criteriaRows = [
+    { key: 'duration', label: 'Durée', content: prog.duration_min ? `${Math.round(prog.duration_min)}min` : null, contentValues: [] as string[] },
+    { key: 'type', label: 'Type', content: prog.type ? (prog.type === 'movie' ? 'Film' : prog.type === 'episode' ? 'Série' : prog.type) : null, contentValues: prog.type ? [prog.type] : [] },
+    { key: 'genre', label: 'Genre', content: prog.genres?.join(', ') || null, contentValues: prog.genres || [] },
+    { key: 'timing', label: 'Timing', content: (() => {
+      const td = score?.criteria?.timing?.details as TimingDetails | null
+      if (td?.is_first_in_block && td?.late_start_minutes && td.late_start_minutes > 0) return `Retard +${td.late_start_minutes.toFixed(0)}min`
+      if (td?.is_last_in_block && td?.overflow_minutes && td.overflow_minutes > 0) return `Dépassement +${td.overflow_minutes.toFixed(0)}min`
+      if (td?.is_first_in_block || td?.is_last_in_block) return 'OK'
+      return null
+    })(), contentValues: [] as string[] },
+    { key: 'strategy', label: 'Strat.', content: null, contentValues: [] as string[] },
+    { key: 'age', label: 'Âge', content: prog.content_rating || null, contentValues: prog.content_rating ? [prog.content_rating] : [] },
+    { key: 'rating', label: 'Note', content: prog.tmdb_rating && !isNaN(Number(prog.tmdb_rating)) ? `${Number(prog.tmdb_rating).toFixed(1)}/10` : null, contentValues: [] as string[] },
+    { key: 'filter', label: 'Filtre', content: prog.keywords?.slice(0, 3).join(', ') || null, contentValues: prog.keywords || [] },
+    { key: 'bonus', label: 'Bonus', content: score?.bonuses?.slice(0, 2).join(', ') || null, contentValues: score?.bonuses || [] },
+  ]
+
+  // Collect violations for summary (after criteriaRows is defined)
+  // Only include violations for criteria that:
+  // 1. Are not skipped (e.g., timing for middle programs)
+  // 2. Have contentValues to check (duration/timing don't have string values to match)
+  const violations: { type: 'M' | 'F', criterion: string, expected: string[], content: string[] }[] = []
+  criteriaRows.forEach(row => {
+    // Skip if criterion is skipped (not applicable)
+    const criterionData = score?.criteria?.[row.key as keyof NonNullable<typeof score.criteria>]
+    if (criterionData?.skipped) return
+
+    // Skip if no content values to check (duration, timing, rating use numeric ranges, not string matching)
+    if (row.contentValues.length === 0) return
+
+    const { m, f } = getMFPValues(row.key)
+    const { mOk, fOk } = checkMFPStatus(row.key, row.contentValues)
+    if (mOk === false && m.length > 0) {
+      violations.push({ type: 'M', criterion: row.label, expected: m, content: row.contentValues })
+    }
+    if (fOk === false && f.length > 0) {
+      violations.push({ type: 'F', criterion: row.label, expected: f, content: row.contentValues })
+    }
+  })
+
   return (
-    <tr className="bg-gray-50 dark:bg-gray-800/50">
-      <td colSpan={16} className="px-4 py-3">
-        {/* Header with title and final score */}
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2">
-            {prog.type === 'movie' ? <Film className="w-5 h-5 text-blue-500" /> : <Tv className="w-5 h-5 text-purple-500" />}
-            <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white">{prog.title}</h4>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                {prog.year || '?'} • {prog.duration_min ? `${Math.round(prog.duration_min)} min` : '?'}
-                {prog.tmdb_rating && !isNaN(Number(prog.tmdb_rating)) && <> • <span className={getScoreColor(Number(prog.tmdb_rating) * 10)}>★ {Number(prog.tmdb_rating).toFixed(1)}</span></>}
-              </div>
-            </div>
+    <tr className="bg-gray-50/50 dark:bg-gray-800/30">
+      <td colSpan={16} className="p-2">
+        {/* Compact header bar */}
+        <div className={clsx(
+          'flex items-center gap-2 px-2 py-1.5 rounded-lg mb-1.5',
+          score?.forbidden_violated ? 'bg-red-500' :
+          (score?.total ?? 0) >= 80 ? 'bg-green-500' :
+          (score?.total ?? 0) >= 60 ? 'bg-lime-500' :
+          (score?.total ?? 0) >= 40 ? 'bg-yellow-500' :
+          (score?.total ?? 0) >= 20 ? 'bg-orange-500' :
+          'bg-red-500'
+        )}>
+          {prog.type === 'movie' ? <Film className="w-3.5 h-3.5 text-white/80" /> : <Tv className="w-3.5 h-3.5 text-white/80" />}
+          <span className="font-semibold text-white text-xs truncate flex-1">{prog.title}</span>
+          <div className="flex items-center gap-1.5 text-white/80 text-[10px]">
+            {prog.year && <span>{prog.year}</span>}
+            {prog.duration_min && <span>{Math.round(prog.duration_min)}m</span>}
+            {prog.tmdb_rating && !isNaN(Number(prog.tmdb_rating)) && (
+              <span className="flex items-center gap-0.5"><Star className="w-2.5 h-2.5 fill-current" />{Number(prog.tmdb_rating).toFixed(1)}</span>
+            )}
           </div>
-          <div className="text-right">
-            <div className={clsx('text-2xl font-bold', getScoreColor(score?.total ?? 0))}>{(score?.total ?? 0).toFixed(0)}</div>
-            <div className="text-[10px] text-gray-500 uppercase">Score</div>
-          </div>
+          <span className="text-lg font-black text-white ml-1">{(score?.total ?? 0).toFixed(0)}</span>
+          {score?.forbidden_violated && <Ban className="w-3.5 h-3.5 text-white" />}
         </div>
 
-        {/* Criteria table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="px-2 py-1.5 text-left font-semibold text-gray-700 dark:text-gray-300 w-20">Critère</th>
-                <th className="px-2 py-1.5 text-left font-semibold text-gray-700 dark:text-gray-300">Contenu</th>
-                <th className="px-2 py-1.5 text-left font-semibold text-gray-700 dark:text-gray-300">Attendu (M/F/P)</th>
-                <th className="px-2 py-1.5 text-center font-semibold text-gray-700 dark:text-gray-300 w-16">Score</th>
+        {/* Criteria table with M/F/P columns */}
+        <div className="rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <table className="w-full text-[10px]">
+            <thead className="bg-gray-100 dark:bg-gray-900/50">
+              <tr>
+                <th className="px-1.5 py-1 text-left font-medium text-gray-500 dark:text-gray-400 w-12">Crit.</th>
+                <th className="px-1.5 py-1 text-left font-medium text-gray-500 dark:text-gray-400 w-24">Contenu</th>
+                <th className="px-1.5 py-1 text-left font-medium text-orange-500 w-28">M (Obligatoire)</th>
+                <th className="px-1.5 py-1 text-left font-medium text-red-500 w-28">F (Interdit)</th>
+                <th className="px-1.5 py-1 text-left font-medium text-green-500 w-28">P (Préféré)</th>
+                <th className="px-1.5 py-1 text-center font-medium text-purple-500 w-10">×</th>
+                <th className="px-1.5 py-1 text-center font-medium text-gray-500 dark:text-gray-400 w-10">Score</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-              {rows.map((row, idx) => (
-                <tr key={idx} className={clsx(row.isTotal && 'bg-gray-100 dark:bg-gray-900/50 font-semibold')}>
-                  <td className="px-2 py-1.5 text-gray-600 dark:text-gray-400 font-medium">{row.label}</td>
-                  <td className="px-2 py-1.5 text-gray-900 dark:text-white">
-                    {row.content !== null ? (typeof row.content === 'string' ? row.content : row.content) : ''}
-                  </td>
-                  <td className="px-2 py-1.5">
-                    {row.expected !== null ? (typeof row.expected === 'string' ? <span className="text-gray-600 dark:text-gray-400">{row.expected}</span> : row.expected) : ''}
-                  </td>
-                  <td className={clsx('px-2 py-1.5 text-center', row.score !== null ? getScoreColor(row.score) : 'text-gray-400')}>
-                    {row.score !== null ? row.score.toFixed(0) : '—'}
-                  </td>
-                </tr>
-              ))}
+              {criteriaRows.map((row, idx) => {
+                const { m, f, p } = getMFPValues(row.key)
+                const { mOk, fOk, pOk } = checkMFPStatus(row.key, row.contentValues)
+                const multiplier = getMultiplier(row.key as keyof CriterionMultipliers)
+                const scoreVal = getScore(row.key)
+
+                // Special handling for timing: use minute-based M/F/P display
+                const isTiming = row.key === 'timing'
+                const timingDetails = isTiming ? (score?.criteria?.timing?.details as TimingDetails | null) : null
+
+                return (
+                  <tr key={row.key} className={clsx(
+                    idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50/50 dark:bg-gray-900/20'
+                  )}>
+                    <td className="px-1.5 py-1 font-medium text-gray-700 dark:text-gray-300">{row.label}</td>
+                    <td className="px-1.5 py-1 text-gray-900 dark:text-white truncate max-w-[100px]" title={row.content || ''}>
+                      {row.content || <span className="text-gray-400">—</span>}
+                    </td>
+                    <td className="px-1.5 py-1">
+                      {isTiming ? (
+                        <TimingMFPCell type="M" timingDetails={timingDetails} />
+                      ) : (
+                        <MFPCell values={m} status={mOk} type="M" criterion={row.label} />
+                      )}
+                    </td>
+                    <td className="px-1.5 py-1">
+                      {isTiming ? (
+                        <TimingMFPCell type="F" timingDetails={timingDetails} />
+                      ) : (
+                        <MFPCell values={f} status={fOk} type="F" criterion={row.label} />
+                      )}
+                    </td>
+                    <td className="px-1.5 py-1">
+                      {isTiming ? (
+                        <TimingMFPCell type="P" timingDetails={timingDetails} />
+                      ) : (
+                        <MFPCell values={p} status={pOk} type="P" criterion={row.label} />
+                      )}
+                    </td>
+                    <td className="px-1.5 py-1 text-center">
+                      {multiplier !== 1.0 ? (
+                        <span className="text-purple-600 dark:text-purple-400 font-medium">×{multiplier.toFixed(1)}</span>
+                      ) : (
+                        <span className="text-gray-300 dark:text-gray-600">—</span>
+                      )}
+                    </td>
+                    <td className="px-1.5 py-1 text-center">
+                      <ScorePill value={scoreVal} />
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
 
-        {/* Forbidden Violations */}
-        {score?.forbidden_violated && score?.forbidden_details && score.forbidden_details.length > 0 && (
-          <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
-              <Ban className="w-3 h-3 text-red-500" /> Violations Forbidden (Score = 0)
-            </h5>
-            <ul className="space-y-0.5">
-              {score.forbidden_details.map((v: { criterion?: string; message?: string; rule?: string; values?: string[] }, i: number) => (
-                <li key={i} className="text-xs text-red-600 dark:text-red-400">
-                  • {v.criterion && <span className="font-medium">[{v.criterion}]</span>} {v.message || v.rule || (v.values ? `Valeurs interdites: ${v.values.join(', ')}` : 'Violation')}
-                </li>
+        {/* Violations summary */}
+        {violations.length > 0 && (
+          <div className="mt-1.5 rounded border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10 p-1.5">
+            <div className="flex items-center gap-1 text-[10px] font-semibold text-red-700 dark:text-red-300 mb-1">
+              <AlertTriangle className="w-3 h-3" />
+              {violations.length} violation(s) détectée(s)
+            </div>
+            <div className="space-y-0.5">
+              {violations.map((v, i) => (
+                <div key={i} className="flex items-start gap-1.5 text-[9px]">
+                  <span className={clsx(
+                    'font-bold px-1 rounded',
+                    v.type === 'M' ? 'bg-orange-200 dark:bg-orange-800 text-orange-700 dark:text-orange-300' :
+                    'bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-300'
+                  )}>
+                    {v.type === 'M' ? 'M' : 'F'}
+                  </span>
+                  <span className="text-gray-700 dark:text-gray-300">
+                    <strong>{v.criterion}</strong>:
+                    {v.type === 'M' ? (
+                      <> Requis <span className="text-orange-600 dark:text-orange-400">{v.expected.join(', ')}</span> — Contenu: <span className="text-gray-500">{v.content.length > 0 ? v.content.join(', ') : 'aucun'}</span></>
+                    ) : (
+                      <> Interdit <span className="text-red-600 dark:text-red-400">{v.expected.join(', ')}</span> — Trouvé: <span className="text-red-500">{v.content.filter(c => v.expected.some(e => normalizeAccents(c.toLowerCase()).includes(normalizeAccents(e.toLowerCase())))).join(', ')}</span></>
+                    )}
+                  </span>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         )}
 
-        {/* Mandatory Penalties */}
-        {score?.penalties && score.penalties.length > 0 && (
-          <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
-              <AlertCircle className="w-3 h-3 text-orange-500" /> Pénalités Mandatory
-            </h5>
-            <ul className="space-y-0.5">
-              {score.penalties.map((p, i) => (
-                <li key={i} className="text-xs text-orange-600 dark:text-orange-400">• {p}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* Compact MFP policy footer */}
+        <div className="mt-1 flex items-center gap-3 text-[9px] text-gray-500 dark:text-gray-400">
+          <span>MFP:</span>
+          <span className="text-orange-500">M: +{mfpPolicy.mandatory_matched_bonus}/{mfpPolicy.mandatory_missed_penalty}</span>
+          <span className="text-red-500">F: {mfpPolicy.forbidden_detected_penalty}</span>
+          <span className="text-green-500">P: +{mfpPolicy.preferred_matched_bonus}</span>
+        </div>
       </td>
     </tr>
   )

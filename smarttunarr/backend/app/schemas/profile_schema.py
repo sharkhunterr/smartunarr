@@ -59,6 +59,38 @@ class CriterionRules(BaseModel):
     )
 
 
+class TimingRules(BaseModel):
+    """Timing-specific M/F/P rules based on overflow/late start minutes.
+
+    For first-in-block: checks late_start_minutes
+    For last-in-block: checks overflow_minutes
+
+    Example:
+        preferred_max_minutes: 5   -> bonus if <= 5 min late/overflow
+        mandatory_max_minutes: 10  -> OK if <= 10 min, penalty otherwise
+        forbidden_max_minutes: 25  -> forbidden violation if > 25 min
+    """
+
+    preferred_max_minutes: float | None = Field(
+        None, ge=0, description="Max minutes for preferred (bonus if <= this)"
+    )
+    preferred_bonus: float = Field(
+        20.0, description="Bonus points if within preferred threshold"
+    )
+    mandatory_max_minutes: float | None = Field(
+        None, ge=0, description="Max minutes for mandatory (penalty if > this)"
+    )
+    mandatory_penalty: float = Field(
+        -50.0, description="Penalty if exceeds mandatory threshold"
+    )
+    forbidden_max_minutes: float | None = Field(
+        None, ge=0, description="Max minutes for forbidden (violation if > this)"
+    )
+    forbidden_penalty: float = Field(
+        -200.0, description="Penalty if exceeds forbidden threshold"
+    )
+
+
 class LibraryConfig(BaseModel):
     """Library configuration."""
 
@@ -93,7 +125,7 @@ class BlockCriteria(BaseModel):
     type_rules: CriterionRules | None = Field(None, description="Rules for type criterion")
     duration_rules: CriterionRules | None = Field(None, description="Rules for duration criterion")
     genre_rules: CriterionRules | None = Field(None, description="Rules for genre criterion")
-    timing_rules: CriterionRules | None = Field(None, description="Rules for timing criterion")
+    timing_rules: TimingRules | None = Field(None, description="Timing rules based on overflow/late minutes")
     strategy_rules: CriterionRules | None = Field(None, description="Rules for strategy criterion")
     age_rules: CriterionRules | None = Field(None, description="Rules for age criterion")
     rating_rules: CriterionRules | None = Field(None, description="Rules for rating criterion")

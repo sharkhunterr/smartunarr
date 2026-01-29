@@ -54,6 +54,7 @@ class TimingCriterion(BaseCriterion):
     def _calculate_penalty_score(self, offset_minutes: float) -> float:
         """
         Calculate penalty score based on offset (overflow or late start).
+        Fallback when no timing_rules defined.
 
         More aggressive scoring:
         - 0 min = 100 points
@@ -78,6 +79,72 @@ class TimingCriterion(BaseCriterion):
             return 25.0 - ((offset_minutes - 60) * 0.67)
         else:
             return 5.0
+
+    def _calculate_adaptive_timing_score(
+        self,
+        offset_minutes: float,
+        preferred_max: float | None,
+        mandatory_max: float | None,
+        forbidden_max: float | None,
+    ) -> float:
+        """
+        Calculate adaptive timing score based on P/M/F thresholds.
+
+        Creates a smooth curve between the thresholds:
+        - 0 min → 100 pts (perfect timing)
+        - 0 to P → 100 → 85 pts (within preferred, small decrease)
+        - P to M → 85 → 50 pts (within mandatory, moderate decrease)
+        - M to F → 50 → 5 pts (beyond mandatory, steep decrease)
+        - > F → 0 pts (forbidden zone)
+
+        The M/F/P bonuses/penalties are applied separately in evaluate().
+        """
+        if offset_minutes <= 0:
+            return 100.0
+
+        # Default thresholds if not defined
+        p_max = preferred_max if preferred_max is not None else 5.0
+        m_max = mandatory_max if mandatory_max is not None else 15.0
+        f_max = forbidden_max if forbidden_max is not None else 60.0
+
+        # Ensure logical ordering: P <= M <= F
+        p_max = min(p_max, m_max, f_max)
+        m_max = max(p_max, min(m_max, f_max))
+        f_max = max(m_max, f_max)
+
+        # Anchor points for the curve
+        score_at_0 = 100.0
+        score_at_p = 85.0   # End of preferred zone
+        score_at_m = 50.0   # End of mandatory zone
+        score_at_f = 5.0    # Just before forbidden
+        score_beyond_f = 0.0
+
+        # Zone 1: 0 to P (preferred zone) - small decrease
+        if offset_minutes <= p_max:
+            if p_max > 0:
+                # Linear interpolation from 100 to 85
+                ratio = offset_minutes / p_max
+                return score_at_0 - (score_at_0 - score_at_p) * ratio
+            return score_at_0
+
+        # Zone 2: P to M (mandatory zone) - moderate decrease
+        if offset_minutes <= m_max:
+            if m_max > p_max:
+                # Linear interpolation from 85 to 50
+                ratio = (offset_minutes - p_max) / (m_max - p_max)
+                return score_at_p - (score_at_p - score_at_m) * ratio
+            return score_at_p
+
+        # Zone 3: M to F (post-mandatory zone) - steep decrease
+        if offset_minutes <= f_max:
+            if f_max > m_max:
+                # Linear interpolation from 50 to 5
+                ratio = (offset_minutes - m_max) / (f_max - m_max)
+                return score_at_m - (score_at_m - score_at_f) * ratio
+            return score_at_m
+
+        # Zone 4: Beyond F (forbidden zone)
+        return score_beyond_f
 
     def _time_of_day_score(
         self,
@@ -155,72 +222,106 @@ class TimingCriterion(BaseCriterion):
                 skipped=True,
             )
 
-        score = details.get("final_score", 50.0)
-
-        # Check for per-criterion rules
-        # For timing, rules use time periods: "morning", "afternoon", "evening", "night", "prime", "late"
-        # Logic: block has ONE timing category, mandatory means "must be one of these"
+        # Check for per-criterion rules (minute-based M/F/P with adaptive curve)
+        # timing_rules uses minute thresholds: preferred_max_minutes, mandatory_max_minutes, forbidden_max_minutes
+        # For first-in-block: checks late_start_minutes
+        # For last-in-block: checks overflow_minutes
         rule_violation = None
+        score = details.get("final_score", 50.0)  # Default fallback
+
         if block:
             block_criteria = block.get("criteria", {})
             timing_rules = block_criteria.get("timing_rules")
-            if timing_rules:
-                start_time_str = block.get("start_time", "00:00")
-                try:
-                    parts = start_time_str.split(":")
-                    start_hour = int(parts[0])
-                except (ValueError, IndexError):
-                    start_hour = 12
 
-                # Categorize time of day (only ONE primary category)
-                timing_category = None
-                if 6 <= start_hour < 12:
-                    timing_category = "morning"
-                elif 12 <= start_hour < 18:
-                    timing_category = "afternoon"
-                elif 18 <= start_hour < 22:
-                    timing_category = "evening"
-                elif start_hour >= 22 or start_hour < 2:
-                    timing_category = "late"
+            # Get the relevant offset in minutes based on position in block
+            is_first = details.get("is_first_in_block", False)
+            is_last = details.get("is_last_in_block", False)
+
+            # Determine the offset to check
+            offset_minutes = 0.0
+            offset_type = None
+            if is_first and is_last:
+                # Single program: use the worse of late start or overflow
+                late = details.get("late_start_minutes") or 0.0
+                overflow = details.get("overflow_minutes") or 0.0
+                if late >= overflow:
+                    offset_minutes = late
+                    offset_type = "late_start"
                 else:
-                    timing_category = "night"
+                    offset_minutes = overflow
+                    offset_type = "overflow"
+            elif is_first:
+                offset_minutes = details.get("late_start_minutes") or 0.0
+                offset_type = "late_start"
+            elif is_last:
+                offset_minutes = details.get("overflow_minutes") or 0.0
+                offset_type = "overflow"
 
-                # Also determine if it's prime time (19h-23h)
-                is_prime = 19 <= start_hour <= 22
+            if timing_rules and offset_type:
+                # Get thresholds
+                forbidden_max = timing_rules.get("forbidden_max_minutes")
+                mandatory_max = timing_rules.get("mandatory_max_minutes")
+                preferred_max = timing_rules.get("preferred_max_minutes")
 
-                if timing_category:
-                    # Custom M/F/P logic for timing (single category vs list of allowed/forbidden)
-                    forbidden = [v.lower() for v in (timing_rules.get("forbidden_values") or [])]
-                    mandatory = [v.lower() for v in (timing_rules.get("mandatory_values") or [])]
-                    preferred = [v.lower() for v in (timing_rules.get("preferred_values") or [])]
+                # Calculate base score using adaptive curve (0→100, P→85, M→50, F→5, >F→0)
+                score = self._calculate_adaptive_timing_score(
+                    offset_minutes,
+                    preferred_max,
+                    mandatory_max,
+                    forbidden_max,
+                )
 
-                    # Build list of categories this block matches
-                    timing_matches = [timing_category]
-                    if is_prime:
-                        timing_matches.append("prime")
+                # Apply M/F/P bonuses/penalties on top of the curve score
+                # Zone 1: Within preferred (offset <= P) → +preferred_bonus
+                if preferred_max is not None and offset_minutes <= preferred_max:
+                    bonus = timing_rules.get("preferred_bonus", mfp_policy.preferred_matched_bonus)
+                    rule_violation = RuleViolation(
+                        "preferred",
+                        [f"{offset_type}:{offset_minutes:.0f}min ≤ {preferred_max:.0f}min"],
+                        bonus
+                    )
+                    score += bonus
 
-                    # Check forbidden first (highest priority)
-                    if any(t in forbidden for t in timing_matches):
-                        penalty = timing_rules.get("forbidden_penalty", mfp_policy.forbidden_detected_penalty)
-                        rule_violation = RuleViolation("forbidden", timing_matches, penalty)
-                        score += penalty
-                    # Check mandatory (at least one timing must be IN the mandatory list)
-                    elif mandatory and not any(t in mandatory for t in timing_matches):
-                        penalty = timing_rules.get("mandatory_penalty", mfp_policy.mandatory_missed_penalty)
-                        rule_violation = RuleViolation("mandatory", mandatory, penalty)
-                        score += penalty
-                    # Check preferred (bonus if any timing matches preferred list)
-                    elif any(t in preferred for t in timing_matches):
-                        matched = [t for t in timing_matches if t in preferred]
-                        bonus = timing_rules.get("preferred_bonus", mfp_policy.preferred_matched_bonus)
-                        rule_violation = RuleViolation("preferred", matched, bonus)
-                        score += bonus
-                    # If mandatory is defined and category matches, give bonus
-                    elif mandatory and any(t in mandatory for t in timing_matches):
-                        matched = [t for t in timing_matches if t in mandatory]
-                        bonus = mfp_policy.mandatory_matched_bonus
-                        rule_violation = RuleViolation("mandatory", matched, bonus)
-                        score += bonus
+                # Zone 2: Within mandatory but beyond preferred (P < offset <= M) → small bonus
+                elif mandatory_max is not None and offset_minutes <= mandatory_max:
+                    bonus = mfp_policy.mandatory_matched_bonus
+                    rule_violation = RuleViolation(
+                        "mandatory",
+                        [f"{offset_type}:{offset_minutes:.0f}min ≤ {mandatory_max:.0f}min"],
+                        bonus
+                    )
+                    score += bonus
+
+                # Zone 3: Beyond mandatory but within forbidden (M < offset <= F) → penalty
+                elif forbidden_max is not None and mandatory_max is not None and offset_minutes <= forbidden_max:
+                    penalty = timing_rules.get("mandatory_penalty", mfp_policy.mandatory_missed_penalty)
+                    rule_violation = RuleViolation(
+                        "mandatory",
+                        [f"{offset_type}:{offset_minutes:.0f}min > {mandatory_max:.0f}min"],
+                        penalty
+                    )
+                    score += penalty
+
+                # Zone 4: Beyond forbidden (offset > F) → heavy penalty + exclusion
+                elif forbidden_max is not None and offset_minutes > forbidden_max:
+                    penalty = timing_rules.get("forbidden_penalty", mfp_policy.forbidden_detected_penalty)
+                    rule_violation = RuleViolation(
+                        "forbidden",
+                        [f"{offset_type}:{offset_minutes:.0f}min > {forbidden_max:.0f}min"],
+                        penalty
+                    )
+                    score += penalty
+
+                # Store adaptive score details for frontend
+                details["adaptive_score"] = {
+                    "offset_minutes": offset_minutes,
+                    "offset_type": offset_type,
+                    "base_curve_score": self._calculate_adaptive_timing_score(
+                        offset_minutes, preferred_max, mandatory_max, forbidden_max
+                    ),
+                    "mfp_adjustment": rule_violation.penalty_or_bonus if rule_violation else 0,
+                    "final_score": score,
+                }
 
         score = max(0.0, min(100.0, score))
 
@@ -348,23 +449,51 @@ class TimingCriterion(BaseCriterion):
         # Time-of-day score (only for first/last programs)
         time_of_day_score = self._time_of_day_score(content, block)
 
+        # Get timing rules for adaptive scoring
+        timing_rules = None
+        if block:
+            block_criteria = block.get("criteria", {})
+            timing_rules = block_criteria.get("timing_rules")
+
         # Calculate late start ONLY for first-in-block
+        late_start_offset = 0.0
         late_start_score = 100.0
         if is_first and block_start:
             start_offset_minutes = self._calculate_offset_minutes(current_time, block_start)
             if start_offset_minutes > 2:  # More than 2 min late
+                late_start_offset = start_offset_minutes
                 details["late_start_minutes"] = round(start_offset_minutes, 1)
-                late_start_score = self._calculate_penalty_score(start_offset_minutes)
+                if timing_rules:
+                    # Use adaptive curve
+                    late_start_score = self._calculate_adaptive_timing_score(
+                        start_offset_minutes,
+                        timing_rules.get("preferred_max_minutes"),
+                        timing_rules.get("mandatory_max_minutes"),
+                        timing_rules.get("forbidden_max_minutes"),
+                    )
+                else:
+                    late_start_score = self._calculate_penalty_score(start_offset_minutes)
             elif start_offset_minutes < -2:  # More than 2 min early
                 details["early_start_minutes"] = round(abs(start_offset_minutes), 1)
 
         # Calculate overflow ONLY for last-in-block
+        overflow_offset = 0.0
         overflow_score = 100.0
         if is_last and content_end_time and block_end:
             overflow_minutes = self._calculate_offset_minutes(content_end_time, block_end)
             if overflow_minutes > 2:  # More than 2 min overflow
+                overflow_offset = overflow_minutes
                 details["overflow_minutes"] = round(overflow_minutes, 1)
-                overflow_score = self._calculate_penalty_score(overflow_minutes)
+                if timing_rules:
+                    # Use adaptive curve
+                    overflow_score = self._calculate_adaptive_timing_score(
+                        overflow_minutes,
+                        timing_rules.get("preferred_max_minutes"),
+                        timing_rules.get("mandatory_max_minutes"),
+                        timing_rules.get("forbidden_max_minutes"),
+                    )
+                else:
+                    overflow_score = self._calculate_penalty_score(overflow_minutes)
 
         # Combine scores based on position in block
         if is_first and is_last:
@@ -391,4 +520,16 @@ class TimingCriterion(BaseCriterion):
             )
 
         details["final_score"] = max(0.0, min(100.0, final_score))
+
+        # Add timing rules thresholds to details for frontend display
+        if block:
+            block_criteria = block.get("criteria", {})
+            timing_rules = block_criteria.get("timing_rules")
+            if timing_rules:
+                details["timing_rules"] = {
+                    "preferred_max_minutes": timing_rules.get("preferred_max_minutes"),
+                    "mandatory_max_minutes": timing_rules.get("mandatory_max_minutes"),
+                    "forbidden_max_minutes": timing_rules.get("forbidden_max_minutes"),
+                }
+
         return details

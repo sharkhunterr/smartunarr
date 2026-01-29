@@ -196,6 +196,13 @@ export interface RuleViolation {
   penalty_or_bonus: number
 }
 
+// Timing rules thresholds (minute-based M/F/P)
+export interface TimingRulesThresholds {
+  preferred_max_minutes: number | null  // Bonus if offset <= this
+  mandatory_max_minutes: number | null  // OK if <= this, penalty if >
+  forbidden_max_minutes: number | null  // Violation if offset > this
+}
+
 // Timing criterion details
 export interface TimingDetails {
   is_first_in_block: boolean
@@ -205,6 +212,7 @@ export interface TimingDetails {
   early_start_minutes: number | null  // For first in block: positive = early
   final_score: number | null  // null if skipped (middle programs)
   skipped: boolean  // true for middle programs (not first, not last)
+  timing_rules?: TimingRulesThresholds  // Minute-based M/F/P thresholds
 }
 
 // Criterion score with optional rule violation and details
