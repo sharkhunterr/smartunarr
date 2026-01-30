@@ -475,7 +475,7 @@ export interface JobResponse {
 export interface HistoryEntry {
   id: string
   type: 'programming' | 'scoring' | 'ai_generation'
-  status: 'success' | 'failed' | 'cancelled'
+  status: 'success' | 'failed' | 'cancelled' | 'running'
   channel_id?: string
   channel_name?: string
   profile_id?: string

@@ -15,23 +15,31 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
-  X
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Calendar,
+  Table,
+  LayoutGrid
 } from 'lucide-react'
 import clsx from 'clsx'
-import { historyApi, programmingApi, scoringApi } from '@/services/api'
-import type { HistoryEntry, ProgramResult, ScoringResult } from '@/types'
-import { Timeline } from '@/components/timeline'
+import { historyApi, programmingApi, scoringApi, profilesApi } from '@/services/api'
+import type { HistoryEntry, ProgramResult, ScoringResult, Profile } from '@/types'
+import { DayTimeline } from '@/components/timeline'
+import { ScoresTable, getScoreColor } from '@/components/scoring/ScoringDisplay'
 
 const statusIcons = {
   success: CheckCircle,
   failed: XCircle,
   cancelled: Clock,
+  running: Loader2,
 }
 
 const statusColors = {
   success: 'text-green-500',
   failed: 'text-red-500',
   cancelled: 'text-yellow-500',
+  running: 'text-blue-500 animate-spin',
 }
 
 const typeIcons = {
@@ -41,15 +49,19 @@ const typeIcons = {
 }
 
 type FilterType = 'all' | 'programming' | 'scoring' | 'ai_generation'
+type ResultView = 'timeline' | 'table'
 
 interface ResultModalProps {
   entry: HistoryEntry
   result: ProgramResult | ScoringResult | null
+  profile: Profile | null
   onClose: () => void
 }
 
-function ResultModal({ entry, result, onClose }: ResultModalProps) {
+function ResultModal({ entry, result, profile, onClose }: ResultModalProps) {
   const { t } = useTranslation()
+  const [view, setView] = useState<ResultView>('timeline')
+  const [selectedIterationIdx, setSelectedIterationIdx] = useState(0)
 
   if (!result) return null
 
@@ -57,9 +69,36 @@ function ResultModal({ entry, result, onClose }: ResultModalProps) {
   const programResult = isProgramming ? (result as ProgramResult) : null
   const scoringResult = !isProgramming ? (result as ScoringResult) : null
 
+  // Iteration navigation for programming results
+  const allIterations = programResult?.all_iterations || []
+  const hasMultipleIterations = allIterations.length > 1
+
+  const currentIteration = hasMultipleIterations ? allIterations[selectedIterationIdx] : null
+  const displayPrograms = currentIteration?.programs || programResult?.programs || scoringResult?.programs || []
+  const displayScore = currentIteration?.average_score ?? currentIteration?.total_score ?? programResult?.average_score ?? programResult?.total_score ?? scoringResult?.average_score ?? 0
+  const displayIteration = currentIteration?.iteration ?? programResult?.iteration ?? 1
+  const isOptimized = currentIteration?.is_optimized ?? false
+  const isImproved = currentIteration?.is_improved ?? false
+
+  const totalMinutes = currentIteration?.total_duration_min || programResult?.total_duration_min || 0
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = Math.round(totalMinutes % 60)
+  const durationText = hours > 0 ? `${hours}h${minutes > 0 ? minutes.toString().padStart(2, '0') : ''}` : `${minutes}min`
+
+  const programDates = new Set(displayPrograms.map(p => new Date(p.start_time).toISOString().split('T')[0]))
+  const daysCount = programDates.size
+
+  const timeBlocks = programResult?.time_blocks || profile?.time_blocks || []
+
+  // Count replacements in current iteration
+  const replacedCount = displayPrograms.filter(p => p.is_replacement).length
+  const forbiddenReplacements = displayPrograms.filter(p => p.replacement_reason === 'forbidden').length
+  const improvedReplacements = displayPrograms.filter(p => p.replacement_reason === 'improved').length
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50">
-      <div className="w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+      <div className="w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow-xl flex flex-col">
+        {/* Header */}
         <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
           <div className="min-w-0 flex-1 pr-2">
             <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate">
@@ -77,41 +116,129 @@ function ResultModal({ entry, result, onClose }: ResultModalProps) {
           </button>
         </div>
 
-        <div className="p-3 sm:p-6">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6">
           {programResult && (
             <div className="space-y-4">
+              {/* Compact header with controls */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5 sm:p-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  {/* Title with badges */}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-primary-500" />
+                    <span className="font-medium text-sm text-gray-900 dark:text-white">
+                      {(isOptimized || isImproved) ? 'Optimise' : `#${displayIteration}`}
+                    </span>
+                    {isImproved && (
+                      <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
+                        Ameliore
+                      </span>
+                    )}
+                    {isOptimized && (
+                      <span className="px-1.5 py-0.5 text-[10px] font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
+                        Sans interdits
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Stats */}
+                  <span className="text-xs text-gray-500">
+                    {displayPrograms.length} prog • {durationText} • {daysCount}j
+                  </span>
+
+                  {/* Replacement info */}
+                  {replacedCount > 0 && (
+                    <span className="text-xs text-gray-500">
+                      ({forbiddenReplacements > 0 && `${forbiddenReplacements} rempl.`}
+                      {improvedReplacements > 0 && ` ${improvedReplacements} amel.`})
+                    </span>
+                  )}
+
+                  {/* Spacer */}
+                  <div className="flex-1" />
+
+                  {/* Iteration nav */}
+                  {hasMultipleIterations && (
+                    <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700 rounded p-0.5">
+                      <button
+                        onClick={() => setSelectedIterationIdx(i => Math.max(0, i - 1))}
+                        disabled={selectedIterationIdx === 0}
+                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="px-1.5 text-xs font-medium text-gray-600 dark:text-gray-300">
+                        {selectedIterationIdx + 1}/{allIterations.length}
+                      </span>
+                      <button
+                        onClick={() => setSelectedIterationIdx(i => Math.min(allIterations.length - 1, i + 1))}
+                        disabled={selectedIterationIdx === allIterations.length - 1}
+                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* View toggle */}
+                  <div className="flex gap-0.5 p-0.5 bg-gray-100 dark:bg-gray-700 rounded">
+                    <button
+                      onClick={() => setView('timeline')}
+                      className={clsx('p-1.5 rounded', view === 'timeline' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500')}
+                      title="Timeline"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setView('table')}
+                      className={clsx('p-1.5 rounded', view === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500')}
+                      title="Tableau"
+                    >
+                      <Table className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Score */}
+                  <div className={clsx('text-lg font-bold', getScoreColor(displayScore))}>
+                    {displayScore.toFixed(1)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                 <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Score total</div>
                   <div className="text-xl sm:text-2xl font-bold text-primary-600 dark:text-primary-400">
-                    {programResult.total_score.toFixed(1)}
+                    {(currentIteration?.total_score ?? programResult.total_score).toFixed(1)}
                   </div>
                 </div>
                 <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Score moyen</div>
                   <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                    {programResult.average_score.toFixed(1)}
+                    {displayScore.toFixed(1)}
                   </div>
                 </div>
                 <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Programmes</div>
                   <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                    {programResult.programs?.length || 0}
+                    {displayPrograms.length}
                   </div>
                 </div>
                 <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Durée totale</div>
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Duree totale</div>
                   <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                    {programResult.total_duration_min} min
+                    {durationText}
                   </div>
                 </div>
               </div>
 
-              <Timeline
-                programs={programResult.programs || []}
-                showScores={true}
-                compact={true}
-              />
+              {/* Content view */}
+              {view === 'timeline' && (
+                <DayTimeline programs={displayPrograms} timeBlocks={timeBlocks} showScores={true} />
+              )}
+              {view === 'table' && (
+                <ScoresTable programs={displayPrograms} timeBlocks={timeBlocks} profile={profile} maxHeight="450px" />
+              )}
             </div>
           )}
 
@@ -147,11 +274,32 @@ function ResultModal({ entry, result, onClose }: ResultModalProps) {
                 </div>
               </div>
 
-              <Timeline
-                programs={scoringResult.programs || []}
-                showScores={true}
-                compact={true}
-              />
+              {/* View toggle for scoring */}
+              <div className="flex justify-end">
+                <div className="flex gap-0.5 p-0.5 bg-gray-100 dark:bg-gray-700 rounded">
+                  <button
+                    onClick={() => setView('timeline')}
+                    className={clsx('p-1.5 rounded', view === 'timeline' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500')}
+                    title="Timeline"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setView('table')}
+                    className={clsx('p-1.5 rounded', view === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500')}
+                    title="Tableau"
+                  >
+                    <Table className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {view === 'timeline' && (
+                <DayTimeline programs={scoringResult.programs || []} showScores={true} />
+              )}
+              {view === 'table' && (
+                <ScoresTable programs={scoringResult.programs || []} profile={profile} maxHeight="450px" />
+              )}
             </div>
           )}
         </div>
@@ -172,6 +320,7 @@ export function HistoryPage() {
   // Modal state
   const [viewEntry, setViewEntry] = useState<HistoryEntry | null>(null)
   const [viewResult, setViewResult] = useState<ProgramResult | ScoringResult | null>(null)
+  const [viewProfile, setViewProfile] = useState<Profile | null>(null)
   const [loadingResult, setLoadingResult] = useState(false)
 
   useEffect(() => {
@@ -193,7 +342,7 @@ export function HistoryPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cet élément de l\'historique ?')) return
+    if (!confirm('Supprimer cet element de l\'historique ?')) return
 
     setActionId(id)
     try {
@@ -225,6 +374,7 @@ export function HistoryPage() {
 
     setViewEntry(entry)
     setLoadingResult(true)
+    setViewProfile(null)
 
     try {
       let result: ProgramResult | ScoringResult
@@ -234,6 +384,16 @@ export function HistoryPage() {
         result = await scoringApi.getResult(entry.result_id)
       }
       setViewResult(result)
+
+      // Load profile for time blocks display
+      if (entry.profile_id) {
+        try {
+          const profile = await profilesApi.get(entry.profile_id)
+          setViewProfile(profile)
+        } catch {
+          // Profile may have been deleted
+        }
+      }
     } catch {
       setViewEntry(null)
     } finally {
@@ -556,9 +716,11 @@ export function HistoryPage() {
           <ResultModal
             entry={viewEntry}
             result={viewResult}
+            profile={viewProfile}
             onClose={() => {
               setViewEntry(null)
               setViewResult(null)
+              setViewProfile(null)
             }}
           />
         )

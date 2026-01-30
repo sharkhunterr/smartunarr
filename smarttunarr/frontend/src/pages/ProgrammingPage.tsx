@@ -19,7 +19,8 @@ import {
   Table,
   LayoutGrid,
   CheckCircle,
-  XCircle
+  XCircle,
+  Settings2
 } from 'lucide-react'
 import clsx from 'clsx'
 import { profilesApi, tunarrApi, ollamaApi, programmingApi } from '@/services/api'
@@ -27,11 +28,9 @@ import { DayTimeline } from '@/components/timeline'
 import {
   ScoresTable,
   getScoreColor,
-  type TimeBlockWithCriteria,
-  type OffsetResult
 } from '@/components/scoring/ScoringDisplay'
 import { useJobsStore, Job } from '@/stores/useJobsStore'
-import type { Profile, TunarrChannel, OllamaModel, ProgramResult, ProgrammingRequest, AIProgrammingRequest, ProgramItem } from '@/types'
+import type { Profile, TunarrChannel, OllamaModel, ProgramResult, ProgrammingRequest, AIProgrammingRequest } from '@/types'
 
 type CacheMode = 'none' | 'plex_only' | 'tmdb_only' | 'cache_only' | 'full' | 'enrich_cache'
 type ProgrammingMode = 'profile' | 'ai'
@@ -44,113 +43,7 @@ const cacheModeOptions: { value: CacheMode; labelKey: string; icon: React.Elemen
   { value: 'plex_only', labelKey: 'Plex', icon: Zap, description: 'Récupère depuis Plex sans cache' },
 ]
 
-// Helper to check if a program is the last one in its block
-function isLastInBlock(programs: ProgramItem[], index: number): boolean {
-  if (index >= programs.length - 1) return true
-  return programs[index].block_name !== programs[index + 1].block_name
-}
-
-// Helper to check if a program is the first one in its block
-function isFirstInBlock(programs: ProgramItem[], index: number): boolean {
-  if (index === 0) return true
-  return programs[index].block_name !== programs[index - 1].block_name
-}
-
-// Helper to calculate time offset from block boundaries
-function calculateTimeOffset(
-  programs: ProgramItem[],
-  index: number,
-  timeBlocks: Array<{ name: string; start_time: string; end_time: string }>
-): { offset: number; status: 'early' | 'late' | 'on_time'; type: 'block_start' | 'block_end' | 'gap' } {
-  const currProg = programs[index]
-  const block = timeBlocks.find(b => b.name === currProg.block_name)
-
-  // First program in a block: check offset from block start
-  // Rule: can be early (negative offset OK) but NOT late (positive offset = bad)
-  if (isFirstInBlock(programs, index) && block) {
-    const progDate = new Date(currProg.start_time)
-    const [blockH, blockM] = block.start_time.split(':').map(Number)
-    const blockStart = new Date(progDate)
-    blockStart.setHours(blockH, blockM, 0, 0)
-
-    // Handle blocks that span midnight
-    const progHour = progDate.getHours()
-    if (blockH > 12 && progHour < 12) {
-      // Block starts evening, program is morning = program is next day
-      blockStart.setDate(blockStart.getDate() - 1)
-    } else if (blockH < 12 && progHour > 12) {
-      // Block starts morning, program is evening = block start was same day before
-      blockStart.setDate(blockStart.getDate() + 1)
-    }
-
-    const offset = Math.round((progDate.getTime() - blockStart.getTime()) / 60000)
-
-    // For first program: early is OK (shown as info), late is bad (shown as warning)
-    if (Math.abs(offset) <= 2) return { offset: 0, status: 'on_time', type: 'block_start' }
-    // Late start (after block start) - this is a problem
-    if (offset > 0) return { offset, status: 'late', type: 'block_start' }
-    // Early start (before block start) - this is fine
-    return { offset, status: 'early', type: 'block_start' }
-  }
-
-  // Last program in a block: check if it overflows block end
-  // Rule: can be early (ends before block end = OK) but NOT late (overflow = bad)
-  if (isLastInBlock(programs, index) && block) {
-    const progEndDate = new Date(currProg.end_time)
-    const [blockEndH, blockEndM] = block.end_time.split(':').map(Number)
-    const blockEnd = new Date(progEndDate)
-    blockEnd.setHours(blockEndH, blockEndM, 0, 0)
-
-    // Handle blocks that span midnight (end time < start time)
-    const [blockStartH] = block.start_time.split(':').map(Number)
-    if (blockEndH < blockStartH) {
-      // Block spans midnight, so block end is next day
-      if (progEndDate.getHours() >= blockStartH) {
-        blockEnd.setDate(blockEnd.getDate() + 1)
-      }
-    }
-
-    const offset = Math.round((progEndDate.getTime() - blockEnd.getTime()) / 60000)
-
-    // For last program: ending before block end is OK, overflow is bad
-    if (Math.abs(offset) <= 2) return { offset: 0, status: 'on_time', type: 'block_end' }
-    // Overflow (program ends after block end) - this is a problem
-    if (offset > 0) return { offset, status: 'late', type: 'block_end' }
-    // Early end (before block end) - shown as info
-    return { offset, status: 'early', type: 'block_end' }
-  }
-
-  // Middle programs: check gap from previous program
-  if (index > 0) {
-    const prevProg = programs[index - 1]
-    const expectedStart = new Date(prevProg.end_time).getTime()
-    const actualStart = new Date(currProg.start_time).getTime()
-    const offset = Math.round((actualStart - expectedStart) / 60000)
-
-    if (Math.abs(offset) <= 2) return { offset: 0, status: 'on_time', type: 'gap' }
-    return { offset, status: offset > 0 ? 'late' : 'early', type: 'gap' }
-  }
-
-  return { offset: 0, status: 'on_time', type: 'gap' }
-}
-
-// Types imported from ScoringDisplay: TimeBlockWithCriteria, ScoresTable
-
-// Wrapper to adapt calculateTimeOffset to ScoresTable's OffsetResult interface
-function calculateTimeOffsetWrapper(
-  programs: ProgramItem[],
-  index: number,
-  timeBlocks: TimeBlockWithCriteria[]
-): OffsetResult {
-  return calculateTimeOffset(programs, index, timeBlocks)
-}
-
-// Progress Panel Component
-interface ProgressPanelProps {
-  job: Job | null
-  lastCompletedJob: Job | null
-}
-
+// Progress Step Icon
 function StepIcon({ status }: { status: string }) {
   switch (status) {
     case 'completed':
@@ -164,107 +57,93 @@ function StepIcon({ status }: { status: string }) {
   }
 }
 
-function ProgressPanel({ job, lastCompletedJob }: ProgressPanelProps) {
+// Compact Progress Bar Component
+interface ProgressBarProps {
+  job: Job | null
+  lastCompletedJob: Job | null
+  expanded: boolean
+  onToggle: () => void
+}
+
+function ProgressBar({ job, lastCompletedJob, expanded, onToggle }: ProgressBarProps) {
   const displayJob = job || lastCompletedJob
   const isRunning = job?.status === 'pending' || job?.status === 'running'
   const isCompleted = displayJob?.status === 'completed'
   const isFailed = displayJob?.status === 'failed'
 
-  if (!displayJob) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 h-fit">
-        <div className="flex items-center gap-3 text-gray-400 dark:text-gray-500">
-          <Clock className="w-5 h-5" />
-          <span className="text-sm">Aucune progression en cours</span>
-        </div>
-      </div>
-    )
-  }
+  if (!displayJob) return null
 
   const steps = displayJob.steps || []
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 h-fit sticky top-4">
-      {/* Header */}
-      <div className="flex items-center gap-3">
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      {/* Compact header - always visible */}
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+      >
         <div className={clsx(
-          'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
+          'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
           isRunning ? 'bg-primary-100 dark:bg-primary-900/30' :
           isCompleted ? 'bg-green-100 dark:bg-green-900/30' :
           'bg-red-100 dark:bg-red-900/30'
         )}>
           {isRunning ? (
-            <Loader2 className="w-5 h-5 animate-spin text-primary-500" />
+            <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
           ) : isCompleted ? (
-            <CheckCircle className="w-5 h-5 text-green-500" />
+            <CheckCircle className="w-4 h-4 text-green-500" />
           ) : (
-            <XCircle className="w-5 h-5 text-red-500" />
+            <XCircle className="w-4 h-4 text-red-500" />
           )}
         </div>
+
         <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-gray-900 dark:text-white">
-            {isRunning ? 'Génération en cours' : isCompleted ? 'Génération terminée' : 'Échec'}
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-            {displayJob.currentStep || (isCompleted ? 'Terminé avec succès' : displayJob.errorMessage)}
-          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-base font-medium text-gray-900 dark:text-white">
+              {isRunning ? 'Génération...' : isCompleted ? 'Terminé' : 'Échec'}
+            </span>
+            <span className="text-sm text-gray-500">{Math.round(displayJob.progress || 0)}%</span>
+          </div>
+          <div className="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1">
+            <div
+              className={clsx(
+                'absolute inset-y-0 left-0 transition-all duration-300 rounded-full',
+                isCompleted ? 'bg-green-500' : isFailed ? 'bg-red-500' : 'bg-primary-500'
+              )}
+              style={{ width: `${displayJob.progress || 0}%` }}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Main progress bar */}
-      <div>
-        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-          <span>Progression</span>
-          <span>{Math.round(displayJob.progress || 0)}%</span>
-        </div>
-        <div className="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div
-            className={clsx(
-              'absolute inset-y-0 left-0 transition-all duration-300 rounded-full',
-              isCompleted ? 'bg-green-500' : isFailed ? 'bg-red-500' : 'bg-gradient-to-r from-primary-500 to-primary-600'
-            )}
-            style={{ width: `${displayJob.progress || 0}%` }}
-          />
-        </div>
-      </div>
+        {displayJob.bestScore != null && (
+          <div className={clsx('text-lg font-bold', getScoreColor(displayJob.bestScore))}>
+            {displayJob.bestScore.toFixed(1)}
+          </div>
+        )}
 
-      {/* Steps */}
-      {steps.length > 0 && (
-        <div className="space-y-1.5 pt-2 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Étapes</div>
-          {steps.map((step) => (
-            <div key={step.id} className="flex items-start gap-2">
-              <div className="flex-shrink-0 mt-0.5">
+        {expanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+      </button>
+
+      {/* Expanded details */}
+      {expanded && steps.length > 0 && (
+        <div className="px-3 pb-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+          <div className="space-y-1.5">
+            {steps.map((step) => (
+              <div key={step.id} className="flex items-center gap-2">
                 <StepIcon status={step.status} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className={clsx(
+                <span className={clsx(
                   'text-sm',
-                  step.status === 'completed' ? 'text-gray-600 dark:text-gray-400' :
                   step.status === 'running' ? 'text-gray-900 dark:text-white font-medium' :
+                  step.status === 'completed' ? 'text-gray-500 dark:text-gray-400' :
                   'text-gray-400 dark:text-gray-500'
                 )}>
                   {step.label}
-                </div>
+                </span>
                 {step.detail && (
-                  <div className="text-xs text-gray-500 dark:text-gray-500 truncate">
-                    {step.detail}
-                  </div>
+                  <span className="text-sm text-gray-400 truncate">- {step.detail}</span>
                 )}
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Score */}
-      {displayJob.bestScore != null && (
-        <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500 dark:text-gray-400">Score final</span>
-            <span className={clsx('text-xl font-bold', getScoreColor(displayJob.bestScore))}>
-              {displayJob.bestScore.toFixed(1)}
-            </span>
+            ))}
           </div>
         </div>
       )}
@@ -285,14 +164,10 @@ function ResultsPanel({ result, profile, previewOnly, applying, onApply }: Resul
   const [view, setView] = useState<ResultView>('timeline')
   const [selectedIterationIdx, setSelectedIterationIdx] = useState(0)
 
-  // Get all iterations (sorted best to worst from backend)
   const allIterations = result.all_iterations || []
   const hasMultipleIterations = allIterations.length > 1
 
-  // Get current iteration data
-  const currentIteration = hasMultipleIterations
-    ? allIterations[selectedIterationIdx]
-    : null
+  const currentIteration = hasMultipleIterations ? allIterations[selectedIterationIdx] : null
   const displayPrograms = currentIteration?.programs || result.programs
   const displayScore = currentIteration?.average_score ?? currentIteration?.total_score ?? result.average_score ?? result.total_score ?? 0
   const displayIteration = currentIteration?.iteration ?? result.iteration ?? 1
@@ -302,148 +177,108 @@ function ResultsPanel({ result, profile, previewOnly, applying, onApply }: Resul
   const totalMinutes = currentIteration?.total_duration_min || result.total_duration_min || 0
   const hours = Math.floor(totalMinutes / 60)
   const minutes = Math.round(totalMinutes % 60)
-  const durationText = hours > 0
-    ? `${hours}h${minutes > 0 ? minutes.toString().padStart(2, '0') : ''}`
-    : `${minutes}min`
+  const durationText = hours > 0 ? `${hours}h${minutes > 0 ? minutes.toString().padStart(2, '0') : ''}` : `${minutes}min`
 
-  const programDates = new Set(
-    displayPrograms.map(p => new Date(p.start_time).toISOString().split('T')[0])
-  )
+  const programDates = new Set(displayPrograms.map(p => new Date(p.start_time).toISOString().split('T')[0]))
   const daysCount = programDates.size
 
-  // Get time blocks from result or profile
   const timeBlocks = result.time_blocks || profile?.time_blocks || []
-
-  // Navigation handlers
-  const goToPrevIteration = () => {
-    setSelectedIterationIdx(idx => Math.max(0, idx - 1))
-  }
-  const goToNextIteration = () => {
-    setSelectedIterationIdx(idx => Math.min(allIterations.length - 1, idx + 1))
-  }
 
   return (
     <div className="space-y-3">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-        {/* Mobile: stacked layout, Desktop: flex row */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          {/* Title and info */}
-          <div className="flex items-center gap-3">
-            <Calendar className="w-5 h-5 text-primary-500 hidden sm:block" />
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
-                  {(isOptimized || isImproved) ? 'Optimisé' : `Résultat #${displayIteration}`}
-                </h2>
-                {isImproved && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
-                    <Zap className="w-3 h-3" />
-                    Amélioré
-                  </span>
-                )}
-                {isOptimized && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
-                    <Sparkles className="w-3 h-3" />
-                    Sans interdits
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {displayPrograms.length} prog. • {durationText} • {daysCount}j
-              </p>
-            </div>
-          </div>
-
-          {/* Controls - wrap on mobile */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            {/* Iteration navigation */}
-            {hasMultipleIterations && (
-              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                <button
-                  onClick={goToPrevIteration}
-                  disabled={selectedIterationIdx === 0}
-                  className="p-1 sm:p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title="Itération précédente"
-                >
-                  <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                </button>
-                <span className="px-1.5 sm:px-2 text-xs font-medium text-gray-700 dark:text-gray-300 min-w-[50px] sm:min-w-[60px] text-center">
-                  {selectedIterationIdx + 1} / {allIterations.length}
-                </span>
-                <button
-                  onClick={goToNextIteration}
-                  disabled={selectedIterationIdx === allIterations.length - 1}
-                  className="p-1 sm:p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title="Itération suivante"
-                >
-                  <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                </button>
-              </div>
+      {/* Compact header */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-2.5 sm:p-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Title */}
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-primary-500" />
+            <span className="font-medium text-sm text-gray-900 dark:text-white">
+              {(isOptimized || isImproved) ? 'Optimisé' : `#${displayIteration}`}
+            </span>
+            {isImproved && (
+              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
+                Amélioré
+              </span>
             )}
-
-            {/* View toggle */}
-            <div className="flex gap-0.5 p-0.5 bg-gray-100 dark:bg-gray-700 rounded-md">
-              <button
-                onClick={() => setView('timeline')}
-                className={clsx(
-                  'p-1.5 rounded transition-colors',
-                  view === 'timeline' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                )}
-                title="Timeline visuelle"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setView('table')}
-                className={clsx(
-                  'p-1.5 rounded transition-colors',
-                  view === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                )}
-                title="Tableau des scores"
-              >
-                <Table className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Score */}
-            <div className="text-right">
-              <div className="text-xs text-gray-500 hidden sm:block">Score</div>
-              <div className={clsx('text-base sm:text-lg font-bold', getScoreColor(displayScore))}>
-                {displayScore.toFixed(1)}
-              </div>
-            </div>
-
-            {/* Apply button */}
-            {!previewOnly && (
-              <button
-                onClick={onApply}
-                disabled={applying}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors"
-              >
-                {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                <span className="hidden sm:inline">Appliquer</span>
-              </button>
+            {isOptimized && (
+              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
+                Optimisé
+              </span>
             )}
           </div>
+
+          {/* Stats */}
+          <span className="text-xs text-gray-500">
+            {displayPrograms.length} prog • {durationText} • {daysCount}j
+          </span>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Iteration nav */}
+          {hasMultipleIterations && (
+            <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700 rounded p-0.5">
+              <button
+                onClick={() => setSelectedIterationIdx(i => Math.max(0, i - 1))}
+                disabled={selectedIterationIdx === 0}
+                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <span className="px-1.5 text-xs font-medium text-gray-600 dark:text-gray-300">
+                {selectedIterationIdx + 1}/{allIterations.length}
+              </span>
+              <button
+                onClick={() => setSelectedIterationIdx(i => Math.min(allIterations.length - 1, i + 1))}
+                disabled={selectedIterationIdx === allIterations.length - 1}
+                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* View toggle */}
+          <div className="flex gap-0.5 p-0.5 bg-gray-100 dark:bg-gray-700 rounded">
+            <button
+              onClick={() => setView('timeline')}
+              className={clsx('p-1.5 rounded', view === 'timeline' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500')}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setView('table')}
+              className={clsx('p-1.5 rounded', view === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500')}
+            >
+              <Table className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Score */}
+          <div className={clsx('text-lg font-bold', getScoreColor(displayScore))}>
+            {displayScore.toFixed(1)}
+          </div>
+
+          {/* Apply */}
+          {!previewOnly && (
+            <button
+              onClick={onApply}
+              disabled={applying}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg disabled:opacity-50"
+            >
+              {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              <span className="hidden sm:inline">Appliquer</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* View content */}
+      {/* Content */}
       {view === 'timeline' && (
-        <DayTimeline
-          programs={displayPrograms}
-          timeBlocks={timeBlocks}
-          showScores={true}
-        />
+        <DayTimeline programs={displayPrograms} timeBlocks={timeBlocks} showScores={true} />
       )}
       {view === 'table' && (
-        <ScoresTable
-          programs={displayPrograms}
-          timeBlocks={timeBlocks}
-          profile={profile}
-          maxHeight="450px"
-        />
+        <ScoresTable programs={displayPrograms} timeBlocks={timeBlocks} profile={profile} maxHeight="450px" />
       )}
     </div>
   )
@@ -472,12 +307,8 @@ export function ProgrammingPage() {
   const [previewOnly, setPreviewOnly] = useState(false)
   const [replaceForbidden, setReplaceForbidden] = useState(false)
   const [improveBest, setImproveBest] = useState(false)
-  const [showAdvanced, setShowAdvanced] = useState(false)
   const [durationDays, setDurationDays] = useState(1)
-  const [startDate, setStartDate] = useState(() => {
-    const now = new Date()
-    return now.toISOString().slice(0, 16)
-  })
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 16))
 
   // AI parameters
   const [aiPrompt, setAiPrompt] = useState('')
@@ -486,11 +317,13 @@ export function ProgrammingPage() {
   const [saveGeneratedProfile, _setSaveGeneratedProfile] = useState(false)
   const [generatedProfileName, _setGeneratedProfileName] = useState('')
 
-  // Loading states
+  // UI states
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [formCollapsed, setFormCollapsed] = useState(false)
+  const [progressExpanded, setProgressExpanded] = useState(true)
 
-  // Job tracking - keep last completed job for display
+  // Job tracking
   const [currentJobId, setCurrentJobId] = useState<string | null>(null)
   const [lastCompletedJob, setLastCompletedJob] = useState<Job | null>(null)
   const { getJob } = useJobsStore()
@@ -500,7 +333,6 @@ export function ProgrammingPage() {
   const [result, setResult] = useState<ProgramResult | null>(null)
   const [applying, setApplying] = useState(false)
 
-  // Derived state
   const running = currentJob?.status === 'pending' || currentJob?.status === 'running'
 
   // Load initial data
@@ -525,13 +357,15 @@ export function ProgrammingPage() {
     }
   }, [selectedProfile])
 
-  // Watch for job completion
+  // Watch for job completion - auto-collapse form and progress when results ready
   useEffect(() => {
     if (currentJob) {
       if (currentJob.status === 'completed') {
         setLastCompletedJob(currentJob)
         if (currentJob.result) {
           setResult(currentJob.result as unknown as ProgramResult)
+          setFormCollapsed(true) // Auto-collapse form
+          setProgressExpanded(false) // Auto-collapse progress
         }
         setCurrentJobId(null)
       } else if (currentJob.status === 'failed') {
@@ -541,6 +375,13 @@ export function ProgrammingPage() {
       }
     }
   }, [currentJob])
+
+  // Auto-collapse form when generation starts
+  useEffect(() => {
+    if (running) {
+      setFormCollapsed(true)
+    }
+  }, [running])
 
   const loadData = async () => {
     setLoading(true)
@@ -555,19 +396,13 @@ export function ProgrammingPage() {
       setChannels(channelsData)
       setProfiles(profilesData)
 
-      if (channelsData.length > 0) {
-        setSelectedChannelId(channelsData[0].id)
-      }
-      if (profilesData.length > 0) {
-        setSelectedProfileId(profilesData[0].id)
-      }
+      if (channelsData.length > 0) setSelectedChannelId(channelsData[0].id)
+      if (profilesData.length > 0) setSelectedProfileId(profilesData[0].id)
 
       try {
         const models = await ollamaApi.getModels()
         setOllamaModels(models)
-        if (models.length > 0) {
-          setSelectedModel(models[0].name)
-        }
+        if (models.length > 0) setSelectedModel(models[0].name)
       } catch {
         // Ollama not configured
       }
@@ -596,6 +431,7 @@ export function ProgrammingPage() {
     setError(null)
     setResult(null)
     setLastCompletedJob(null)
+    setProgressExpanded(true)
 
     try {
       let response: { job_id: string; status: string; message: string }
@@ -663,10 +499,21 @@ export function ProgrammingPage() {
   }
 
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-        {t('programming.title')}
-      </h1>
+    <div className="space-y-3">
+      {/* Header with title and form toggle */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+          {t('programming.title')}
+        </h1>
+        <button
+          onClick={() => setFormCollapsed(!formCollapsed)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+        >
+          <Settings2 className="w-4 h-4" />
+          <span className="hidden sm:inline">Configuration</span>
+          {formCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+        </button>
+      </div>
 
       {/* Error display */}
       {error && (
@@ -676,25 +523,30 @@ export function ProgrammingPage() {
         </div>
       )}
 
-      {/* Two-column layout */}
-      <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr,320px]">
-        {/* Left column - Configuration */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 space-y-3 sm:space-y-4">
-          {/* Channel selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              {t('programming.selectChannel')}
-            </label>
-            {channels.length === 0 ? (
-              <div className="text-sm text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                {t('programming.noChannels')}
-              </div>
-            ) : (
+      {/* Progress bar - always visible when there's a job */}
+      {(currentJob || lastCompletedJob) && (
+        <ProgressBar
+          job={currentJob || null}
+          lastCompletedJob={lastCompletedJob}
+          expanded={progressExpanded}
+          onToggle={() => setProgressExpanded(!progressExpanded)}
+        />
+      )}
+
+      {/* Collapsible form */}
+      {!formCollapsed && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 space-y-4">
+          {/* Quick row: Channel + Mode + Profile */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Channel */}
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                {t('programming.selectChannel')}
+              </label>
               <select
                 value={selectedChannelId}
                 onChange={e => setSelectedChannelId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
               >
                 {channels.map(channel => (
                   <option key={channel.id} value={channel.id}>
@@ -702,299 +554,231 @@ export function ProgrammingPage() {
                   </option>
                 ))}
               </select>
-            )}
-          </div>
+            </div>
 
-          {/* Mode tabs */}
-          <div className="flex gap-1 p-0.5 bg-gray-100 dark:bg-gray-700 rounded-lg">
-            <button
-              onClick={() => setMode('profile')}
-              className={clsx(
-                'flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                mode === 'profile'
-                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              )}
-            >
-              <Play className="w-4 h-4" />
-              Via Profil
-            </button>
-            <button
-              onClick={() => setMode('ai')}
-              className={clsx(
-                'flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                mode === 'ai'
-                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              )}
-              disabled={ollamaModels.length === 0}
-            >
-              <Sparkles className="w-4 h-4" />
-              {t('ai.title')}
-            </button>
-          </div>
-
-          {/* Profile mode */}
-          {mode === 'profile' && (
-            <div>
+            {/* Profile/AI mode */}
+            <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                {t('programming.selectProfile')}
+                Mode
               </label>
-              {profiles.length === 0 ? (
-                <div className="text-sm text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  {t('programming.noProfiles')}
-                </div>
-              ) : (
+              <div className="flex gap-1 p-0.5 bg-gray-100 dark:bg-gray-700 rounded-lg h-[42px]">
+                <button
+                  onClick={() => setMode('profile')}
+                  className={clsx(
+                    'flex-1 flex items-center justify-center gap-1.5 px-3 rounded text-sm font-medium transition-colors',
+                    mode === 'profile' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500'
+                  )}
+                >
+                  <Play className="w-4 h-4" />
+                  Profil
+                </button>
+                <button
+                  onClick={() => setMode('ai')}
+                  disabled={ollamaModels.length === 0}
+                  className={clsx(
+                    'flex-1 flex items-center justify-center gap-1.5 px-3 rounded text-sm font-medium transition-colors disabled:opacity-40',
+                    mode === 'ai' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500'
+                  )}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  IA
+                </button>
+              </div>
+            </div>
+
+            {/* Profile selector (profile mode) */}
+            {mode === 'profile' && (
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  {t('programming.selectProfile')}
+                </label>
                 <select
                   value={selectedProfileId}
                   onChange={e => setSelectedProfileId(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                 >
                   {profiles.map(profile => (
-                    <option key={profile.id} value={profile.id}>
-                      {profile.name} (v{profile.version})
-                    </option>
+                    <option key={profile.id} value={profile.id}>{profile.name}</option>
                   ))}
                 </select>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
-          {/* AI mode */}
+          {/* AI prompt (AI mode) */}
           {mode === 'ai' && (
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  {t('ai.prompt')}
-                </label>
-                <textarea
-                  value={aiPrompt}
-                  onChange={e => setAiPrompt(e.target.value)}
-                  placeholder={t('ai.promptPlaceholder')}
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t('ai.model')}
-                  </label>
-                  <select
-                    value={selectedModel}
-                    onChange={e => setSelectedModel(e.target.value)}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="">{t('ai.autoModel')}</option>
-                    {ollamaModels.map(model => (
-                      <option key={model.name} value={model.name}>{model.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t('ai.temperature')}: {temperature.toFixed(1)}
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={temperature}
-                    onChange={e => setTemperature(Number(e.target.value))}
-                    className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-600"
-                  />
-                </div>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Prompt IA
+              </label>
+              <textarea
+                value={aiPrompt}
+                onChange={e => setAiPrompt(e.target.value)}
+                placeholder={t('ai.promptPlaceholder')}
+                rows={3}
+                className="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 resize-none"
+              />
             </div>
           )}
 
-          {/* Schedule parameters */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          {/* Parameters row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Durée: {durationDays}j
+              <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
+                Durée: <span className="font-medium">{durationDays}j</span>
               </label>
               <input
-                type="range"
-                min="1"
-                max="30"
-                value={durationDays}
+                type="range" min="1" max="30" value={durationDays}
                 onChange={e => setDurationDays(Number(e.target.value))}
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-600"
               />
             </div>
-
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Début
+              <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
+                Itérations: <span className="font-medium">{iterations}</span>
               </label>
               <input
-                type="datetime-local"
-                value={startDate}
-                onChange={e => setStartDate(e.target.value)}
-                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-          </div>
-
-          {/* Common parameters */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Itérations: {iterations}
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="100"
-                value={iterations}
+                type="range" min="1" max="100" value={iterations}
                 onChange={e => setIterations(Number(e.target.value))}
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-600"
               />
             </div>
-
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Aléatoire: {(randomness * 100).toFixed(0)}%
+              <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
+                Aléatoire: <span className="font-medium">{(randomness * 100).toFixed(0)}%</span>
               </label>
               <input
-                type="range"
-                min="0"
-                max="100"
-                value={randomness * 100}
+                type="range" min="0" max="100" value={randomness * 100}
                 onChange={e => setRandomness(Number(e.target.value) / 100)}
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-600"
               />
             </div>
+            <div>
+              <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">Début</label>
+              <input
+                type="datetime-local" value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
           </div>
 
-          {/* Advanced options toggle */}
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white"
-          >
-            {showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            Options avancées
-          </button>
+          {/* Cache mode */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Mode de cache
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {cacheModeOptions.map(option => {
+                const Icon = option.icon
+                return (
+                  <button
+                    key={option.value}
+                    onClick={() => setCacheMode(option.value)}
+                    title={option.description}
+                    className={clsx(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors',
+                      cacheMode === option.value
+                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {option.labelKey}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
-          {/* Advanced options */}
-          {showAdvanced && (
-            <div className="space-y-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Mode de cache
-                </label>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {cacheModeOptions.map(option => {
-                    const Icon = option.icon
-                    return (
-                      <button
-                        key={option.value}
-                        onClick={() => setCacheMode(option.value)}
-                        title={option.description}
-                        className={clsx(
-                          'flex items-center gap-1 px-2 py-1.5 rounded border text-xs transition-colors',
-                          cacheMode === option.value
-                            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
-                            : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
-                        )}
-                      >
-                        <Icon className="w-3 h-3" />
-                        <span className="truncate">{option.labelKey}</span>
-                      </button>
-                    )
-                  })}
-                </div>
+          {/* Options (toggle buttons) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Options
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setPreviewOnly(!previewOnly)}
+                title="Ne pas appliquer à Tunarr, juste prévisualiser"
+                className={clsx(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors',
+                  previewOnly
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'
+                )}
+              >
+                <Eye className="w-4 h-4" />
+                Aperçu seul
+              </button>
+              <button
+                onClick={() => setReplaceForbidden(!replaceForbidden)}
+                title="Remplace les contenus marqués comme interdits"
+                className={clsx(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors',
+                  replaceForbidden
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'
+                )}
+              >
+                <RefreshCw className="w-4 h-4" />
+                Remplacer interdits
+              </button>
+              <button
+                onClick={() => setImproveBest(!improveBest)}
+                title="Tente d'améliorer la meilleure itération"
+                className={clsx(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors',
+                  improveBest
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'
+                )}
+              >
+                <Zap className="w-4 h-4" />
+                Améliorer best
+              </button>
+            </div>
+          </div>
+
+          {/* AI specific options */}
+          {mode === 'ai' && (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Modèle IA</label>
+                <select
+                  value={selectedModel}
+                  onChange={e => setSelectedModel(e.target.value)}
+                  className="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="">Auto</option>
+                  {ollamaModels.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                </select>
               </div>
-
-              <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex-1">
+                <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
+                  Température: <span className="font-medium">{temperature.toFixed(1)}</span>
+                </label>
                 <input
-                  type="checkbox"
-                  checked={previewOnly}
-                  onChange={e => setPreviewOnly(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  type="range" min="0" max="1" step="0.1" value={temperature}
+                  onChange={e => setTemperature(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-600"
                 />
-                <Eye className="w-3.5 h-3.5 text-gray-500" />
-                <span className="text-xs text-gray-700 dark:text-gray-300">
-                  Aperçu uniquement
-                </span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={replaceForbidden}
-                  onChange={e => setReplaceForbidden(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                <RefreshCw className="w-3.5 h-3.5 text-gray-500" />
-                <span className="text-xs text-gray-700 dark:text-gray-300">
-                  Remplacer contenus interdits
-                </span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={improveBest}
-                  onChange={e => setImproveBest(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                <Zap className="w-3.5 h-3.5 text-gray-500" />
-                <span className="text-xs text-gray-700 dark:text-gray-300">
-                  Améliorer avec meilleurs programmes
-                </span>
-              </label>
+              </div>
             </div>
           )}
 
-          {/* Action buttons */}
-          <div className="flex gap-2 pt-2">
+          {/* Generate button at bottom */}
+          <div className="pt-2">
             <button
               onClick={handleGenerate}
-              disabled={
-                !selectedChannelId ||
-                (mode === 'profile' && !selectedProfileId) ||
-                (mode === 'ai' && !aiPrompt.trim()) ||
-                running
-              }
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              disabled={!selectedChannelId || (mode === 'profile' && !selectedProfileId) || (mode === 'ai' && !aiPrompt.trim()) || running}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50 text-base font-medium"
             >
-              {running ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Génération...
-                </>
-              ) : mode === 'ai' ? (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Générer (IA)
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  Générer
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={loadData}
-              disabled={running}
-              className="px-3 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
+              {running ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
+              {running ? 'Génération en cours...' : 'Générer la programmation'}
             </button>
           </div>
         </div>
-
-        {/* Right column - Progress */}
-        <ProgressPanel job={currentJob || null} lastCompletedJob={lastCompletedJob} />
-      </div>
+      )}
 
       {/* Results */}
       {result && result.programs && (
@@ -1005,6 +789,14 @@ export function ProgrammingPage() {
           applying={applying}
           onApply={handleApply}
         />
+      )}
+
+      {/* Empty state when no results and form is collapsed */}
+      {formCollapsed && !result && !running && !lastCompletedJob && (
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">Cliquez sur Configuration pour lancer une programmation</p>
+        </div>
       )}
     </div>
   )

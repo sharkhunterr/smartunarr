@@ -8,10 +8,51 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
 from app.services.history_service import HistoryService
+from app.services.tunarr_service import TunarrService
+from app.models.profile import Profile
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/history", tags=["history"])
+
+
+async def enrich_entry_with_names(
+    entry_response: dict[str, Any],
+    session: AsyncSession,
+    channels_cache: dict[str, str],
+) -> dict[str, Any]:
+    """Enrich history entry with channel and profile names."""
+    # Get channel name from Tunarr cache
+    channel_id = entry_response.get("channel_id")
+    if channel_id:
+        if channel_id not in channels_cache:
+            try:
+                tunarr = TunarrService()
+                channels = await tunarr.get_channels()
+                for ch in channels:
+                    channels_cache[ch.get("id", "")] = ch.get("name", "Unknown")
+            except Exception:
+                pass
+        entry_response["channel_name"] = channels_cache.get(channel_id, "Unknown")
+
+    # Get profile name from database
+    profile_id = entry_response.get("profile_id")
+    if profile_id:
+        profile = await session.get(Profile, profile_id)
+        entry_response["profile_name"] = profile.name if profile else "Deleted"
+
+    # Map API fields to frontend expected fields
+    entry_response["created_at"] = entry_response.get("started_at")
+    entry_response["duration_sec"] = entry_response.get("duration_seconds")
+    entry_response["score"] = entry_response.get("best_score")
+    entry_response["error"] = entry_response.get("error_message")
+
+    # Extract result_id from result_summary if present
+    result_summary = entry_response.get("result_summary")
+    if result_summary and isinstance(result_summary, dict):
+        entry_response["result_id"] = result_summary.get("result_id")
+
+    return entry_response
 
 
 @router.get("")
@@ -32,7 +73,7 @@ async def list_history(
         offset: Offset for pagination
 
     Returns:
-        List of history entries
+        List of history entries with resolved names
     """
     service = HistoryService(session)
     entries = await service.list_history(
@@ -41,7 +82,15 @@ async def list_history(
         offset=offset,
     )
 
-    return [service.entry_to_response(entry) for entry in entries]
+    # Build responses with enriched names
+    channels_cache: dict[str, str] = {}
+    results = []
+    for entry in entries:
+        response = service.entry_to_response(entry)
+        enriched = await enrich_entry_with_names(response, session, channels_cache)
+        results.append(enriched)
+
+    return results
 
 
 @router.get("/{entry_id}")
@@ -56,7 +105,7 @@ async def get_history_entry(
         entry_id: Entry ID
 
     Returns:
-        History entry details
+        History entry details with resolved names
     """
     service = HistoryService(session)
     entry = await service.get_history_entry(entry_id)
@@ -64,7 +113,9 @@ async def get_history_entry(
     if not entry:
         raise HTTPException(status_code=404, detail="History entry not found")
 
-    return service.entry_to_response(entry)
+    response = service.entry_to_response(entry)
+    channels_cache: dict[str, str] = {}
+    return await enrich_entry_with_names(response, session, channels_cache)
 
 
 @router.delete("/{entry_id}", status_code=204)

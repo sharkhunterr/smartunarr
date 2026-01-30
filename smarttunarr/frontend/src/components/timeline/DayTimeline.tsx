@@ -294,7 +294,7 @@ export function DayTimeline({
                 <div
                   key={program.id}
                   className={clsx(
-                    'absolute left-2 right-2 rounded border shadow-sm transition-all cursor-pointer overflow-hidden',
+                    'absolute left-2 right-2 rounded border shadow-sm transition-all cursor-pointer overflow-hidden box-border',
                     isHovered
                       ? 'z-20 ring-2 ring-primary-500 shadow-lg scale-[1.02]'
                       : 'z-10',
@@ -303,8 +303,8 @@ export function DayTimeline({
                       : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600'
                   )}
                   style={{
-                    top: startOffset * hourHeight + 2,
-                    height: Math.max(height - 4, 20),
+                    top: startOffset * hourHeight + 1,
+                    height: Math.max(height - 2, 16),
                   }}
                   onMouseEnter={() => setHoveredProgram(program.id)}
                   onMouseLeave={() => setHoveredProgram(null)}

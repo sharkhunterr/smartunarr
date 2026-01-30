@@ -636,13 +636,19 @@ async def _run_programming(
             }
             _results[result_id] = result_data
 
-            # Update history
+            # Create and complete history entry with result reference
             history_service = HistoryService(session)
-            await history_service.create_entry(
+            history_entry = await history_service.create_entry(
                 entry_type="programming",
                 channel_id=request.channel_id,
                 profile_id=request.profile_id,
                 iterations=request.iterations,
+            )
+            # Mark history as successful with result reference
+            await history_service.mark_success(
+                history_entry.id,
+                best_score=result.average_score,
+                result_summary={"result_id": result_id, "program_count": len(programs)},
             )
 
             # Mark finalize step as completed
