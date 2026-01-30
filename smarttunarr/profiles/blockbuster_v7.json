@@ -1,0 +1,219 @@
+{
+  "name": "Blockbuster v7",
+  "version": "6.1",
+  "description": "Films blockbuster - Soirée premium avec films récents, matinée familiale",
+  "labels": ["blockbuster", "popular", "mainstream", "action", "v7"],
+  "libraries": [
+    {"id": "1", "name": "Films", "type": "movie", "weight": 100, "enabled": true},
+    {"id": "3", "name": "Nouveaux/Non Triés", "type": "movie", "weight": 50, "enabled": true}
+  ],
+  "time_blocks": [
+    {
+      "name": "matinee_famille",
+      "description": "Matinée - Blockbusters familiaux",
+      "start_time": "07:00",
+      "end_time": "14:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "preferred_genres": ["Family", "Animation", "Adventure", "Comedy", "Fantasy", "Familial", "Comédie"],
+        "forbidden_genres": ["Horror", "Thriller", "Horreur"],
+        "min_duration_min": 80,
+        "max_duration_min": 150,
+        "max_age_rating": "PG-13",
+        "min_tmdb_rating": 6.0,
+        "genre_rules": {
+          "forbidden_values": ["Horror", "Horreur"],
+          "forbidden_penalty": -100,
+          "preferred_values": ["Family", "Animation", "Adventure", "Familial"],
+          "preferred_bonus": 15
+        },
+        "age_rules": {
+          "forbidden_values": ["R", "NC-17", "+16", "+18", "TV-MA"],
+          "forbidden_penalty": -100,
+          "preferred_values": ["G", "PG", "TP", "Tous publics"],
+          "preferred_bonus": 10
+        },
+        "timing_rules": {
+          "preferred_max_minutes": 15,
+          "mandatory_max_minutes": 45
+        },
+        "mfp_policy": {
+          "mandatory_matched_bonus": 10,
+          "mandatory_missed_penalty": -25,
+          "forbidden_detected_penalty": -100,
+          "preferred_matched_bonus": 15
+        }
+      }
+    },
+    {
+      "name": "apres_midi_action",
+      "description": "Après-midi - Action et aventure",
+      "start_time": "14:00",
+      "end_time": "19:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "preferred_genres": ["Action", "Adventure", "Science Fiction", "Fantasy", "Science-Fiction", "Fantastique"],
+        "forbidden_genres": ["Documentary", "Documentaire"],
+        "min_duration_min": 90,
+        "max_duration_min": 180,
+        "max_age_rating": "R",
+        "min_tmdb_rating": 6.0,
+        "genre_rules": {
+          "forbidden_values": ["Documentary", "Documentaire"],
+          "forbidden_penalty": -80,
+          "preferred_values": ["Action", "Adventure", "Science Fiction", "Science-Fiction"],
+          "preferred_bonus": 15
+        },
+        "timing_rules": {
+          "preferred_max_minutes": 20,
+          "mandatory_max_minutes": 60
+        },
+        "mfp_policy": {
+          "mandatory_matched_bonus": 10,
+          "mandatory_missed_penalty": -20,
+          "forbidden_detected_penalty": -80,
+          "preferred_matched_bonus": 15
+        }
+      }
+    },
+    {
+      "name": "prime_time",
+      "description": "Soirée Prime - Les meilleurs blockbusters récents",
+      "start_time": "19:00",
+      "end_time": "23:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "preferred_genres": ["Action", "Adventure", "Science Fiction", "Drama", "Thriller", "Science-Fiction", "Drame"],
+        "min_duration_min": 100,
+        "max_duration_min": 200,
+        "min_tmdb_rating": 7.0,
+        "genre_rules": {
+          "preferred_values": ["Action", "Adventure", "Science Fiction", "Science-Fiction", "Drama", "Drame"],
+          "preferred_bonus": 20
+        },
+        "rating_rules": {
+          "preferred_values": ["excellent", "good"],
+          "preferred_bonus": 20,
+          "mandatory_values": ["excellent", "good", "average"],
+          "mandatory_penalty": -30
+        },
+        "timing_rules": {
+          "preferred_max_minutes": 10,
+          "mandatory_max_minutes": 30
+        },
+        "mfp_policy": {
+          "mandatory_matched_bonus": 15,
+          "mandatory_missed_penalty": -30,
+          "forbidden_detected_penalty": -150,
+          "preferred_matched_bonus": 25
+        },
+        "criterion_multipliers": {
+          "rating": 1.5,
+          "genre": 1.3,
+          "bonus": 1.2
+        }
+      }
+    },
+    {
+      "name": "nuit_mature",
+      "description": "Nuit - Films pour adultes",
+      "start_time": "23:00",
+      "end_time": "07:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "preferred_genres": ["Thriller", "Crime", "Horror", "Drama", "Action", "Horreur", "Drame"],
+        "forbidden_genres": ["Animation", "Family", "Familial"],
+        "min_duration_min": 90,
+        "max_duration_min": 180,
+        "min_tmdb_rating": 6.0,
+        "genre_rules": {
+          "forbidden_values": ["Animation", "Family", "Familial"],
+          "forbidden_penalty": -80,
+          "preferred_values": ["Thriller", "Crime", "Horror", "Horreur", "Drama", "Drame"],
+          "preferred_bonus": 15
+        },
+        "age_rules": {
+          "preferred_values": ["R", "TV-MA", "+16", "16+"],
+          "preferred_bonus": 10,
+          "forbidden_values": ["G", "TV-G", "TV-Y"],
+          "forbidden_penalty": -50
+        },
+        "timing_rules": {
+          "preferred_max_minutes": 30,
+          "mandatory_max_minutes": 90
+        },
+        "mfp_policy": {
+          "mandatory_matched_bonus": 10,
+          "mandatory_missed_penalty": -20,
+          "forbidden_detected_penalty": -80,
+          "preferred_matched_bonus": 20
+        }
+      }
+    }
+  ],
+  "mandatory_forbidden_criteria": {
+    "mandatory": {
+      "min_tmdb_rating": 5.0,
+      "min_vote_count": 100
+    },
+    "forbidden": {
+      "genres": [],
+      "keywords": ["xxx", "adult only", "porn", "erotic"]
+    }
+  },
+  "enhanced_criteria": {
+    "temporal_intelligence": {
+      "enabled": true,
+      "recency_bonuses": {
+        "enabled": true,
+        "very_recent_days": 90,
+        "very_recent_bonus": 15,
+        "recent_months": 12,
+        "recent_bonus": 10,
+        "this_year_bonus": 5
+      }
+    },
+    "collections_franchises": {
+      "enabled": true,
+      "preferred_collections": [
+        "Marvel Cinematic Universe", "DC Extended Universe", "Fast & Furious Collection",
+        "Mission: Impossible Collection", "James Bond Collection", "Star Wars Collection",
+        "The Lord of the Rings Collection", "Harry Potter Collection", "John Wick Collection"
+      ],
+      "collection_bonus_points": 10
+    },
+    "quality_indicators": {
+      "enabled": true,
+      "vote_reliability": {
+        "enabled": true,
+        "excellent_votes": 5000,
+        "good_votes": 2000,
+        "acceptable_votes": 500,
+        "minimum_votes": 100
+      }
+    }
+  },
+  "strategies": {
+    "maximize_variety": true,
+    "avoid_repeats_days": 7
+  },
+  "scoring_weights": {
+    "type": 8,
+    "duration": 8,
+    "genre": 15,
+    "timing": 12,
+    "strategy": 5,
+    "age": 10,
+    "rating": 15,
+    "filter": 5,
+    "bonus": 10
+  },
+  "mfp_policy": {
+    "mandatory_matched_bonus": 10,
+    "mandatory_missed_penalty": -25,
+    "forbidden_detected_penalty": -100,
+    "preferred_matched_bonus": 15
+  },
+  "default_iterations": 10,
+  "default_randomness": 0.3
+}

@@ -112,12 +112,33 @@ class ProgrammingGenerator:
         if seed is None:
             seed = random.randint(0, 2**31)
 
-        # Filter forbidden content
+        # Filter forbidden content (profile-level)
         filtered_contents = self._filter_forbidden(contents, profile)
         logger.info(
-            f"Filtered {len(contents) - len(filtered_contents)} forbidden items, "
+            f"Filtered {len(contents) - len(filtered_contents)} forbidden items (profile-level), "
             f"{len(filtered_contents)} remaining"
         )
+
+        # Log some stats about content for debugging
+        if filtered_contents:
+            age_ratings: dict[str, int] = {}
+            no_rating_count = 0
+            for content, meta in filtered_contents[:100]:  # Sample first 100
+                rating = (meta or {}).get("age_rating", "") or (meta or {}).get("content_rating", "")
+                if rating:
+                    age_ratings[rating] = age_ratings.get(rating, 0) + 1
+                else:
+                    no_rating_count += 1
+            logger.info(
+                f"Content sample age ratings: {age_ratings}, no_rating: {no_rating_count}"
+            )
+            # Log block max_age_rating if any
+            time_blocks = profile.get("time_blocks", [])
+            for tb in time_blocks:
+                criteria = tb.get("criteria", {})
+                max_age = criteria.get("max_age_rating")
+                if max_age:
+                    logger.info(f"Block '{tb.get('name', 'unnamed')}' has max_age_rating: {max_age}")
 
         # Enforce mandatory content
         mandatory_contents = self._get_mandatory(contents, profile)
@@ -204,8 +225,8 @@ class ProgrammingGenerator:
             if content_id:
                 used_content_ids.add(content_id)
 
-        # Available content pool
-        available = [
+        # Base available content pool (excluding used)
+        base_available = [
             (c, m)
             for c, m in contents
             if c.get("plex_key", c.get("id", "")) not in used_content_ids
@@ -213,8 +234,10 @@ class ProgrammingGenerator:
 
         # Track current block name to detect block changes
         current_block_name: str | None = None
+        # Pre-filtered content for current block (re-computed on block change)
+        block_filtered: list[tuple[dict[str, Any], dict[str, Any] | None]] = []
 
-        while current_time < end_time and available:
+        while current_time < end_time and base_available:
             # Get current block
             block = block_manager.get_block_for_datetime(current_time)
             block_dict = block.to_dict() if block else None
@@ -230,6 +253,14 @@ class ProgrammingGenerator:
                 if block.name != current_block_name:
                     is_first_in_block = True
                     current_block_name = block.name
+                    # Pre-filter content for this new block
+                    block_filtered = self._prefilter_for_block(base_available, block_dict)
+                    if not block_filtered:
+                        logger.warning(
+                            f"No content passes pre-filter for block '{block.name}', "
+                            f"using all available content"
+                        )
+                        block_filtered = base_available.copy()
 
             # Create scoring context with timing information
             scoring_context = ScoringContext(
@@ -239,15 +270,29 @@ class ProgrammingGenerator:
                 is_first_in_block=is_first_in_block,
             )
 
-            # Score all available content for current position
+            # Use pre-filtered content for this block (falls back to base if empty)
+            available = block_filtered if block_filtered else base_available
+
+            # Score available content for current position
+            # Note: We include ALL content, even those with forbidden violations
+            # The UI will highlight forbidden content, but we don't exclude them here
             scored_content = []
+            forbidden_count = 0
             for content, meta in available:
                 score = self.scoring_engine.score(content, meta, profile, block_dict, scoring_context)
-                if not score.forbidden_violations:  # Skip forbidden
-                    scored_content.append((content, meta, score))
+                scored_content.append((content, meta, score))
+                if score.forbidden_violations:
+                    forbidden_count += 1
 
             if not scored_content:
+                logger.warning(f"No content available at position {position}")
                 break
+
+            if forbidden_count > 0:
+                logger.info(
+                    f"Position {position} (block: {block.name if block else 'None'}): "
+                    f"{forbidden_count}/{len(scored_content)} items have forbidden violations"
+                )
 
             # Select content with randomness
             selected = self._select_with_randomness(scored_content, randomness)
@@ -277,9 +322,15 @@ class ProgrammingGenerator:
             current_time = program_end
             position += 1
             used_content_ids.add(content_id)
-            available = [
+            # Remove used content from both pools
+            base_available = [
                 (c, m)
-                for c, m in available
+                for c, m in base_available
+                if c.get("plex_key", c.get("id", "")) != content_id
+            ]
+            block_filtered = [
+                (c, m)
+                for c, m in block_filtered
                 if c.get("plex_key", c.get("id", "")) != content_id
             ]
 
@@ -402,3 +453,85 @@ class ProgrammingGenerator:
             for content, meta in contents
             if content.get("plex_key", "") in mandatory_ids
         ]
+
+    def _prefilter_for_block(
+        self,
+        contents: list[tuple[dict[str, Any], dict[str, Any] | None]],
+        block: dict[str, Any],
+    ) -> list[tuple[dict[str, Any], dict[str, Any] | None]]:
+        """
+        Pre-filter content for a specific block based on hard constraints.
+        This reduces the pool before scoring position-dependent criteria.
+
+        Filters based on:
+        - Age rating (max_age_rating)
+        - Forbidden genres (block-level)
+        - Duration constraints (min/max_duration_min)
+        - Preferred types (if specified, exclude others)
+        """
+        from app.core.scoring.criteria.age_criterion import AgeCriterion
+
+        criteria = block.get("criteria", {})
+        filtered = []
+        rejection_reasons: dict[str, int] = {}
+
+        # Get filter parameters
+        max_age_rating = criteria.get("max_age_rating")
+        max_age_level = AgeCriterion.get_rating_level(max_age_rating) if max_age_rating else None
+
+        forbidden_genres = set(g.lower() for g in criteria.get("forbidden_genres", []))
+        preferred_types = [t.lower() for t in criteria.get("preferred_types", [])]
+
+        min_duration = criteria.get("min_duration_min")
+        max_duration = criteria.get("max_duration_min")
+
+        for content, meta in contents:
+            rejected = False
+            reason = None
+
+            # Check age rating
+            if max_age_level is not None and meta:
+                content_rating = meta.get("age_rating", "") or meta.get("content_rating", "")
+                if content_rating:
+                    content_level = AgeCriterion.get_rating_level(content_rating)
+                    if content_level > max_age_level:
+                        rejected = True
+                        reason = "age_rating"
+
+            # Check forbidden genres
+            if not rejected and forbidden_genres and meta:
+                content_genres = set(g.lower() for g in meta.get("genres", []))
+                if content_genres & forbidden_genres:
+                    rejected = True
+                    reason = "forbidden_genre"
+
+            # Check duration
+            if not rejected:
+                duration_ms = content.get("duration_ms", 0)
+                duration_min = duration_ms / 60000 if duration_ms else 0
+                if min_duration and duration_min < min_duration:
+                    rejected = True
+                    reason = "min_duration"
+                elif max_duration and duration_min > max_duration:
+                    rejected = True
+                    reason = "max_duration"
+
+            # Check type (only if preferred_types is specified and not empty)
+            if not rejected and preferred_types:
+                content_type = content.get("type", "").lower()
+                if content_type not in preferred_types:
+                    rejected = True
+                    reason = "type"
+
+            if rejected and reason:
+                rejection_reasons[reason] = rejection_reasons.get(reason, 0) + 1
+            else:
+                filtered.append((content, meta))
+
+        if rejection_reasons:
+            logger.debug(
+                f"Block '{block.get('name', 'unnamed')}' pre-filter: "
+                f"{len(contents)} → {len(filtered)} (rejected: {rejection_reasons})"
+            )
+
+        return filtered

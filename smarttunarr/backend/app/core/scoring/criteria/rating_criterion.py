@@ -45,17 +45,17 @@ class RatingCriterion(BaseCriterion):
         # Get thresholds from block or profile
         if block:
             block_criteria = block.get("criteria", {})
-            min_rating = block_criteria.get("min_tmdb_rating", 0.0)
-            preferred_rating = block_criteria.get("preferred_tmdb_rating", 7.0)
-            min_votes = block_criteria.get("min_vote_count", 0)
+            min_rating = block_criteria.get("min_tmdb_rating") or 0.0
+            preferred_rating = block_criteria.get("preferred_tmdb_rating") or 7.0
+            min_votes = block_criteria.get("min_vote_count") or 0
         else:
             criteria = profile.get("mandatory_forbidden_criteria", {})
-            min_rating = criteria.get("min_tmdb_rating", 0.0)
-            preferred_rating = criteria.get("preferred_tmdb_rating", 7.0)
-            min_votes = criteria.get("min_vote_count", 0)
+            min_rating = criteria.get("min_tmdb_rating") or 0.0
+            preferred_rating = criteria.get("preferred_tmdb_rating") or 7.0
+            min_votes = criteria.get("min_vote_count") or 0
 
         # Check vote count threshold
-        if min_votes > 0 and vote_count < min_votes:
+        if min_votes and min_votes > 0 and vote_count < min_votes:
             # Reduce confidence in rating
             confidence_penalty = min(30.0, (min_votes - vote_count) / min_votes * 30)
         else:
