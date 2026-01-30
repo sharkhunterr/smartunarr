@@ -40,6 +40,8 @@ class ProgrammingRequest(BaseModel):
     randomness: float = 0.3
     cache_mode: str = "full"  # none, plex_only, tmdb_only, cache_only, full, enrich_cache
     preview_only: bool = False
+    replace_forbidden: bool = False  # Replace forbidden content in best iteration with alternatives
+    improve_best: bool = False  # Upgrade programs with better ones from other iterations
     duration_days: int = 1  # Number of days to program (1-30)
     start_datetime: str | None = None  # ISO format datetime, defaults to now
 
@@ -114,11 +116,16 @@ async def _run_programming(
             if use_cache:
                 steps.append(ProgressStep("cache_write", "Mise à jour cache", "pending"))
 
-            steps.extend([
-                ProgressStep("filter", "Filtrage contenus", "pending"),
-                ProgressStep("generation", "Génération programmation", "pending"),
-                ProgressStep("finalize", "Finalisation", "pending"),
-            ])
+            steps.append(ProgressStep("filter", "Filtrage contenus", "pending"))
+            steps.append(ProgressStep("generation", "Génération programmation", "pending"))
+
+            if request.improve_best:
+                steps.append(ProgressStep("improve", "Amélioration (meilleurs programmes)", "pending"))
+
+            if request.replace_forbidden:
+                steps.append(ProgressStep("optimize", "Optimisation (remplacement interdits)", "pending"))
+
+            steps.append(ProgressStep("finalize", "Finalisation", "pending"))
 
             logger.info(f"[DEBUG] About to set job steps")
             await job_manager.set_job_steps(job_id, steps)
@@ -455,6 +462,8 @@ async def _run_programming(
                     duration_hours=duration_hours,
                     iterations=request.iterations,
                     randomness=request.randomness,
+                    replace_forbidden=request.replace_forbidden,
+                    improve_best=request.improve_best,
                 )
 
             # Run generator with progress updates
@@ -477,9 +486,39 @@ async def _run_programming(
             # Run generator (sync) - we'll update progress after
             result = await loop.run_in_executor(None, run_generator)
 
-            # Update final generation status
-            gen_detail = f"{request.iterations} itérations • Meilleure: #{result.iteration} (score: {result.average_score:.1f})"
+            # Update final generation status - show ORIGINAL best iteration (before improve/optimize)
+            if result.original_best_iteration > 0:
+                original_iter = result.original_best_iteration
+                original_score = result.original_best_score
+            else:
+                original_iter = result.iteration
+                original_score = result.average_score
+            gen_detail = f"{request.iterations} itérations • Meilleure: #{original_iter} (score: {original_score:.1f})"
             await job_manager.update_step_status(job_id, "generation", "completed", gen_detail)
+
+            # Improvement step (if enabled)
+            if request.improve_best:
+                await job_manager.update_step_status(job_id, "improve", "running")
+                await job_manager.update_job_progress(job_id, 85, "Amélioration avec meilleurs programmes...")
+
+                if result.is_improved or (result.is_optimized and result.improved_count > 0):
+                    improve_detail = f"{result.improved_count} programmes améliorés • Score: {result.average_score:.1f}"
+                else:
+                    improve_detail = "Aucune amélioration possible"
+
+                await job_manager.update_step_status(job_id, "improve", "completed", improve_detail)
+
+            # Optimization step (if enabled)
+            if request.replace_forbidden:
+                await job_manager.update_step_status(job_id, "optimize", "running")
+                await job_manager.update_job_progress(job_id, 88, "Remplacement des contenus interdits...")
+
+                if result.is_optimized:
+                    optimize_detail = f"{result.replaced_count} contenus remplacés • Score: {result.average_score:.1f}"
+                else:
+                    optimize_detail = "Aucun contenu interdit à remplacer"
+
+                await job_manager.update_step_status(job_id, "optimize", "completed", optimize_detail)
 
             # Post-generation progress
             await job_manager.update_job_progress(
@@ -544,6 +583,9 @@ async def _run_programming(
                             "keyword_match": prog.score.keyword_match,
                             "criterion_rule_violations": prog.score.criterion_rule_violations,
                         },
+                        "is_replacement": prog.is_replacement,
+                        "replacement_reason": prog.replacement_reason,
+                        "replaced_title": prog.replaced_title,
                     })
                 return converted
 
@@ -565,6 +607,8 @@ async def _run_programming(
                     "average_score": iter_result.average_score,
                     "total_duration_min": iter_total_duration,
                     "program_count": len(iter_programs),
+                    "is_optimized": iter_result.is_optimized,
+                    "is_improved": iter_result.is_improved,
                 })
 
             # Store result
