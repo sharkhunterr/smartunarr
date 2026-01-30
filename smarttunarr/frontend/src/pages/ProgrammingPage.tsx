@@ -442,8 +442,6 @@ function ResultsPanel({ result, profile, previewOnly, applying, onApply }: Resul
           programs={displayPrograms}
           timeBlocks={timeBlocks}
           profile={profile}
-          showOffset={true}
-          calculateOffset={calculateTimeOffsetWrapper}
           maxHeight="450px"
         />
       )}
