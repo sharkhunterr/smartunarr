@@ -43,7 +43,8 @@
         },
         "timing_rules": {
           "preferred_max_minutes": 15,
-          "mandatory_max_minutes": 45
+          "mandatory_max_minutes": 45,
+          "forbidden_max_minutes": 90
         },
         "mfp_policy": {
           "mandatory_matched_bonus": 10,
@@ -86,7 +87,8 @@
         },
         "timing_rules": {
           "preferred_max_minutes": 20,
-          "mandatory_max_minutes": 50
+          "mandatory_max_minutes": 50,
+          "forbidden_max_minutes": 90
         },
         "mfp_policy": {
           "mandatory_matched_bonus": 10,
@@ -134,7 +136,8 @@
         },
         "timing_rules": {
           "preferred_max_minutes": 15,
-          "mandatory_max_minutes": 40
+          "mandatory_max_minutes": 40,
+          "forbidden_max_minutes": 75
         },
         "mfp_policy": {
           "mandatory_matched_bonus": 15,
@@ -186,7 +189,8 @@
         },
         "timing_rules": {
           "preferred_max_minutes": 25,
-          "mandatory_max_minutes": 60
+          "mandatory_max_minutes": 60,
+          "forbidden_max_minutes": 100
         },
         "mfp_policy": {
           "mandatory_matched_bonus": 10,

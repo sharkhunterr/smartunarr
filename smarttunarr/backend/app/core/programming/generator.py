@@ -399,7 +399,12 @@ class ProgrammingGenerator:
                 if c.get("plex_key", c.get("id", "")) != content_id
             ]
 
-        # Post-process: recalculate timing scores for first/last programs in each block
+        # Post-process: First recalculate block names based on actual start times
+        # This is needed because during scheduling, the assigned block may differ
+        # from the actual block if previous programs pushed the start time
+        self._recalculate_block_names(programs, profile)
+
+        # Then recalculate timing scores for first/last programs in each block
         # This is needed because during scheduling we don't know which program will be last
         self._recalculate_timing_scores(programs, profile)
 
@@ -545,7 +550,15 @@ class ProgrammingGenerator:
             block_end_str = block_dict.get("end_time", "23:59")
 
             def build_block_datetime(time_str: str, reference_dt: datetime, is_end: bool = False) -> datetime:
-                """Build a full datetime from block time string (HH:MM) using reference date."""
+                """Build a full datetime from block time string (HH:MM) using reference date.
+
+                Block times are defined in LOCAL time, so we:
+                1. Convert reference_dt to local time
+                2. Replace hour/minute to get the block time in local
+                3. Return as naive datetime (for consistent local time comparisons)
+                """
+                from app.core.blocks.time_block_manager import _get_local_timezone
+
                 try:
                     parts = time_str.split(":")
                     hour = int(parts[0])
@@ -553,7 +566,16 @@ class ProgrammingGenerator:
                 except (ValueError, IndexError):
                     hour, minute = 0, 0
 
-                result = reference_dt.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                # Convert reference to local time first (block times are in local time)
+                if reference_dt.tzinfo is not None:
+                    local_tz = _get_local_timezone()
+                    local_ref = reference_dt.astimezone(local_tz)
+                else:
+                    local_ref = reference_dt
+
+                # Build result as local time (naive - no timezone)
+                result = local_ref.replace(hour=hour, minute=minute, second=0, microsecond=0, tzinfo=None)
+                ref_hour = local_ref.hour
 
                 # Handle overnight blocks (end < start)
                 try:
@@ -565,7 +587,6 @@ class ProgrammingGenerator:
                 is_overnight = end_h < start_h
 
                 if is_overnight:
-                    ref_hour = reference_dt.hour
                     if is_end:
                         # End time is after midnight
                         if ref_hour >= start_h:
@@ -679,6 +700,81 @@ class ProgrammingGenerator:
         # Update totals
         prog.score.weighted_total += score_diff
         prog.score.total_score = max(0.0, min(100.0, prog.score.weighted_total))
+
+    def _recalculate_consecutive_timings(
+        self,
+        programs: list[ScheduledProgram],
+    ) -> None:
+        """
+        Recalculate start/end times for consecutive programs after replacements.
+
+        When a program is replaced with one of a different duration, subsequent
+        programs' start times need to be adjusted to avoid overlaps or gaps.
+
+        This method ensures all programs are consecutive with no overlaps:
+        - First program keeps its original start_time
+        - Each subsequent program starts when the previous one ends
+        - End times are calculated from start_time + duration
+        """
+        if not programs:
+            return
+
+        for idx in range(len(programs)):
+            prog = programs[idx]
+            duration_ms = prog.content.get("duration_ms", 0)
+
+            if idx == 0:
+                # First program: keep original start, recalculate end
+                prog.end_time = prog.start_time + timedelta(milliseconds=duration_ms)
+            else:
+                # Subsequent programs: start when previous ends
+                prev_prog = programs[idx - 1]
+                prog.start_time = prev_prog.end_time
+                prog.end_time = prog.start_time + timedelta(milliseconds=duration_ms)
+
+    def _recalculate_block_names(
+        self,
+        programs: list[ScheduledProgram],
+        profile: dict[str, Any],
+    ) -> None:
+        """
+        Recalculate block_name for all programs based on their current start_time.
+
+        After timing recalculation (due to program replacements with different durations),
+        programs may have shifted to different time blocks. This method updates each
+        program's block_name to reflect the block that contains its actual start_time.
+
+        Args:
+            programs: List of scheduled programs to update
+            profile: Profile containing time_blocks configuration
+        """
+        if not programs:
+            return
+
+        from app.core.blocks.time_block_manager import TimeBlockManager
+        block_manager = TimeBlockManager(profile)
+
+        changes_made = 0
+        for prog in programs:
+            old_block_name = prog.block_name
+            block = block_manager.get_block_for_datetime(prog.start_time)
+            if block:
+                prog.block_name = block.name
+                if old_block_name != block.name:
+                    changes_made += 1
+                    logger.info(
+                        f"Block name change: '{prog.content.get('title')}' at {prog.start_time.strftime('%H:%M')} "
+                        f"changed from '{old_block_name}' to '{block.name}'"
+                    )
+            else:
+                prog.block_name = "Unknown"
+                if old_block_name != "Unknown":
+                    changes_made += 1
+                    logger.warning(
+                        f"No block found for '{prog.content.get('title')}' at {prog.start_time.strftime('%H:%M')}"
+                    )
+
+        logger.info(f"_recalculate_block_names: {changes_made} block name changes made")
 
     def _filter_forbidden(
         self,
@@ -1408,6 +1504,12 @@ class ProgrammingGenerator:
         if replaced_count == 0:
             return best_result
 
+        # Recalculate consecutive timings after replacements (programs may have different durations)
+        self._recalculate_consecutive_timings(new_programs)
+
+        # Recalculate block names based on new start times
+        self._recalculate_block_names(new_programs, profile)
+
         # Recalculate timing scores for the new program list
         self._recalculate_timing_scores(new_programs, profile)
 
@@ -1539,6 +1641,12 @@ class ProgrammingGenerator:
             return best_result
 
         logger.info(f"Improved {improved_count} programs")
+
+        # Recalculate consecutive timings after replacements (programs may have different durations)
+        self._recalculate_consecutive_timings(new_programs)
+
+        # Recalculate block names based on new start times
+        self._recalculate_block_names(new_programs, profile)
 
         # Recalculate timing scores for the new program list
         self._recalculate_timing_scores(new_programs, profile)

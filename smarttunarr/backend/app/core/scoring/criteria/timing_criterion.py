@@ -39,11 +39,19 @@ class TimingCriterion(BaseCriterion):
         return details.get("final_score", 50.0)
 
     def _normalize_tz(self, dt: datetime | None) -> datetime | None:
-        """Normalize datetime to timezone-naive."""
+        """Normalize datetime to local time (timezone-naive).
+
+        Block times are defined in local time, so we need to convert
+        UTC datetimes to local time before comparing.
+        """
         if dt is None:
             return None
         if hasattr(dt, 'tzinfo') and dt.tzinfo is not None:
-            return dt.replace(tzinfo=None)
+            # Convert to local time, then strip timezone
+            from app.core.blocks.time_block_manager import _get_local_timezone
+            local_tz = _get_local_timezone()
+            local_dt = dt.astimezone(local_tz)
+            return local_dt.replace(tzinfo=None)
         return dt
 
     def _calculate_offset_minutes(self, time1: datetime, time2: datetime) -> float:
@@ -105,7 +113,13 @@ class TimingCriterion(BaseCriterion):
         # Default thresholds if not defined
         p_max = preferred_max if preferred_max is not None else 5.0
         m_max = mandatory_max if mandatory_max is not None else 15.0
-        f_max = forbidden_max if forbidden_max is not None else 60.0
+        # Default f_max: use mandatory_max * 1.5 for proportional tolerance
+        if forbidden_max is not None:
+            f_max = forbidden_max
+        elif mandatory_max is not None:
+            f_max = mandatory_max * 1.5
+        else:
+            f_max = 60.0
 
         # Ensure logical ordering: P <= M <= F
         p_max = min(p_max, m_max, f_max)
@@ -263,12 +277,20 @@ class TimingCriterion(BaseCriterion):
                 mandatory_max = timing_rules.get("mandatory_max_minutes")
                 preferred_max = timing_rules.get("preferred_max_minutes")
 
+                # Default forbidden_max if not defined: mandatory_max * 1.5 or 60 min
+                effective_forbidden_max = forbidden_max
+                if effective_forbidden_max is None:
+                    if mandatory_max is not None:
+                        effective_forbidden_max = mandatory_max * 1.5
+                    else:
+                        effective_forbidden_max = 60.0
+
                 # Calculate base score using adaptive curve (0→100, P→85, M→50, F→5, >F→0)
                 score = self._calculate_adaptive_timing_score(
                     offset_minutes,
                     preferred_max,
                     mandatory_max,
-                    forbidden_max,
+                    effective_forbidden_max,
                 )
 
                 # Apply M/F/P bonuses/penalties on top of the curve score
@@ -293,7 +315,7 @@ class TimingCriterion(BaseCriterion):
                     score += bonus
 
                 # Zone 3: Beyond mandatory but within forbidden (M < offset <= F) → penalty
-                elif forbidden_max is not None and mandatory_max is not None and offset_minutes <= forbidden_max:
+                elif mandatory_max is not None and offset_minutes > mandatory_max and offset_minutes <= effective_forbidden_max:
                     penalty = timing_rules.get("mandatory_penalty", mfp_policy.mandatory_missed_penalty)
                     rule_violation = RuleViolation(
                         "mandatory",
@@ -303,11 +325,11 @@ class TimingCriterion(BaseCriterion):
                     score += penalty
 
                 # Zone 4: Beyond forbidden (offset > F) → heavy penalty + exclusion
-                elif forbidden_max is not None and offset_minutes > forbidden_max:
+                elif offset_minutes > effective_forbidden_max:
                     penalty = timing_rules.get("forbidden_penalty", mfp_policy.forbidden_detected_penalty)
                     rule_violation = RuleViolation(
                         "forbidden",
-                        [f"{offset_type}:{offset_minutes:.0f}min > {forbidden_max:.0f}min"],
+                        [f"{offset_type}:{offset_minutes:.0f}min > {effective_forbidden_max:.0f}min"],
                         penalty
                     )
                     score += penalty
@@ -317,10 +339,11 @@ class TimingCriterion(BaseCriterion):
                     "offset_minutes": offset_minutes,
                     "offset_type": offset_type,
                     "base_curve_score": self._calculate_adaptive_timing_score(
-                        offset_minutes, preferred_max, mandatory_max, forbidden_max
+                        offset_minutes, preferred_max, mandatory_max, effective_forbidden_max
                     ),
                     "mfp_adjustment": rule_violation.penalty_or_bonus if rule_violation else 0,
                     "final_score": score,
+                    "effective_forbidden_max": effective_forbidden_max,
                 }
 
         score = max(0.0, min(100.0, score))

@@ -1,8 +1,22 @@
 """TimeBlockManager with midnight spanning support."""
 
 from dataclasses import dataclass, field
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone
 from typing import Any
+
+# Get local timezone offset
+def _get_local_timezone() -> timezone:
+    """Get the local timezone based on current DST status."""
+    import time as time_module
+    # Check if DST is currently in effect (not just if system recognizes DST)
+    is_dst_now = time_module.localtime().tm_isdst > 0
+    if is_dst_now:
+        # Summer time (DST active)
+        utc_offset = -time_module.altzone
+    else:
+        # Winter time (standard time)
+        utc_offset = -time_module.timezone
+    return timezone(timedelta(seconds=utc_offset))
 
 
 @dataclass
@@ -97,8 +111,19 @@ class TimeBlockManager:
         return None
 
     def get_block_for_datetime(self, dt: datetime) -> TimeBlock | None:
-        """Get the block that contains the given datetime."""
-        return self.get_block_for_time(dt.time())
+        """Get the block that contains the given datetime.
+
+        Note: Block times are defined in local time, so we convert
+        the datetime to local time before checking which block it falls in.
+        """
+        # Convert to local time if datetime has timezone info
+        if dt.tzinfo is not None:
+            local_tz = _get_local_timezone()
+            local_dt = dt.astimezone(local_tz)
+            return self.get_block_for_time(local_dt.time())
+        else:
+            # Naive datetime, assume it's already in local time
+            return self.get_block_for_time(dt.time())
 
     def get_blocks_in_range(
         self, start_dt: datetime, end_dt: datetime
