@@ -539,15 +539,51 @@ class ProgrammingGenerator:
             actual_block_name = programs[first_idx].block_name
             block_dict = time_block_map.get(actual_block_name, {})
 
-            # Create TimeBlockManager to get block times
-            block_manager = TimeBlockManager(profile)
+            # Get block times from the block definition (by name, not by datetime!)
+            # This ensures we use the ASSIGNED block, not whatever block happens to contain the time
+            block_start_str = block_dict.get("start_time", "00:00")
+            block_end_str = block_dict.get("end_time", "23:59")
+
+            def build_block_datetime(time_str: str, reference_dt: datetime, is_end: bool = False) -> datetime:
+                """Build a full datetime from block time string (HH:MM) using reference date."""
+                try:
+                    parts = time_str.split(":")
+                    hour = int(parts[0])
+                    minute = int(parts[1]) if len(parts) > 1 else 0
+                except (ValueError, IndexError):
+                    hour, minute = 0, 0
+
+                result = reference_dt.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+                # Handle overnight blocks (end < start)
+                try:
+                    start_h = int(block_start_str.split(":")[0])
+                    end_h = int(block_end_str.split(":")[0])
+                except (ValueError, IndexError):
+                    start_h, end_h = 0, 0
+
+                is_overnight = end_h < start_h
+
+                if is_overnight:
+                    ref_hour = reference_dt.hour
+                    if is_end:
+                        # End time is after midnight
+                        if ref_hour >= start_h:
+                            # Program is before midnight, block ends tomorrow
+                            result = result + timedelta(days=1)
+                    else:
+                        # Start time is before midnight
+                        if ref_hour < start_h:
+                            # Program is after midnight, block started yesterday
+                            result = result - timedelta(days=1)
+
+                return result
 
             # Recalculate timing for first program
             first_prog = programs[first_idx]
-            block_obj = block_manager.get_block_for_datetime(first_prog.start_time)
-            if block_obj:
-                block_start_time = block_manager.get_block_start_datetime(first_prog.start_time, block_obj)
-                block_end_time = block_manager.get_block_end_datetime(first_prog.start_time, block_obj)
+            if block_dict:
+                block_start_time = build_block_datetime(block_start_str, first_prog.start_time, is_end=False)
+                block_end_time = build_block_datetime(block_end_str, first_prog.start_time, is_end=True)
 
                 is_also_last = (first_idx == last_idx)
                 context = ScoringContext(
@@ -573,10 +609,9 @@ class ProgrammingGenerator:
             # Recalculate timing for last program (if different from first)
             if last_idx != first_idx:
                 last_prog = programs[last_idx]
-                block_obj = block_manager.get_block_for_datetime(last_prog.start_time)
-                if block_obj:
-                    block_start_time = block_manager.get_block_start_datetime(last_prog.start_time, block_obj)
-                    block_end_time = block_manager.get_block_end_datetime(last_prog.start_time, block_obj)
+                if block_dict:
+                    block_start_time = build_block_datetime(block_start_str, last_prog.start_time, is_end=False)
+                    block_end_time = build_block_datetime(block_end_str, last_prog.start_time, is_end=True)
 
                     context = ScoringContext(
                         current_time=last_prog.start_time,
