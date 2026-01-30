@@ -4,7 +4,7 @@
  */
 import React, { useState } from 'react'
 import clsx from 'clsx'
-import { Film, Tv, Star, Ban, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Film, Tv, Star, Ban, AlertTriangle, ChevronDown, ChevronUp, RefreshCw, Zap } from 'lucide-react'
 import type {
   ProgramItem,
   BlockCriteria,
@@ -792,6 +792,23 @@ export function ScoresTable({
                         {isExpanded ? <ChevronUp className="w-3 h-3 text-gray-400 flex-shrink-0" /> : <ChevronDown className="w-3 h-3 text-gray-400 flex-shrink-0" />}
                         {prog.type === 'movie' ? <Film className="w-3 h-3 text-gray-400 flex-shrink-0" /> : <Tv className="w-3 h-3 text-gray-400 flex-shrink-0" />}
                         <span className="truncate" title={prog.title}>{prog.title}</span>
+                        {prog.is_replacement && (
+                          <span
+                            className={clsx(
+                              'inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium flex-shrink-0',
+                              prog.replacement_reason === 'forbidden'
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                            )}
+                            title={prog.replaced_title ? `Remplace: ${prog.replaced_title}` : 'Contenu de remplacement'}
+                          >
+                            {prog.replacement_reason === 'forbidden' ? (
+                              <RefreshCw className="w-2.5 h-2.5" />
+                            ) : (
+                              <Zap className="w-2.5 h-2.5" />
+                            )}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-2 py-1.5 text-center">

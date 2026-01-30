@@ -24,6 +24,9 @@ class ScheduledProgram:
     block_name: str
     position: int
     score: ScoreResult
+    is_replacement: bool = False  # True if this program replaced another
+    replacement_reason: str | None = None  # "forbidden" | "improved" | None
+    replaced_title: str | None = None  # Title of the program that was replaced
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -38,6 +41,9 @@ class ScheduledProgram:
             "block_name": self.block_name,
             "position": self.position,
             "score": self.score.to_dict(),
+            "is_replacement": self.is_replacement,
+            "replacement_reason": self.replacement_reason,
+            "replaced_title": self.replaced_title,
         }
 
 
@@ -52,6 +58,12 @@ class ProgrammingResult:
     forbidden_count: int
     seed: int
     all_iterations: list["ProgrammingResult"] = field(default_factory=list)
+    is_optimized: bool = False  # True if this is the forbidden-replacement optimized iteration
+    is_improved: bool = False  # True if this is the improved iteration (better programs from other iterations)
+    original_best_iteration: int = 0  # The original best iteration number (before optimization/improvement)
+    original_best_score: float = 0.0  # The original best score (before optimization/improvement)
+    replaced_count: int = 0  # Number of programs replaced during optimization
+    improved_count: int = 0  # Number of programs improved during improvement
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -63,6 +75,12 @@ class ProgrammingResult:
             "forbidden_count": self.forbidden_count,
             "seed": self.seed,
             "program_count": len(self.programs),
+            "is_optimized": self.is_optimized,
+            "is_improved": self.is_improved,
+            "original_best_iteration": self.original_best_iteration,
+            "original_best_score": self.original_best_score,
+            "replaced_count": self.replaced_count,
+            "improved_count": self.improved_count,
         }
 
 
@@ -93,6 +111,8 @@ class ProgrammingGenerator:
         iterations: int = 10,
         randomness: float = 0.3,
         seed: int | None = None,
+        replace_forbidden: bool = False,
+        improve_best: bool = False,
     ) -> ProgrammingResult:
         """
         Generate optimized programming.
@@ -187,6 +207,51 @@ class ProgrammingGenerator:
         # Store all iterations in best_result for access
         if best_result:
             best_result.all_iterations = all_results
+
+        # Store original best info before any optimization/improvement
+        original_best_iteration = best_result.iteration if best_result else 0
+        original_best_score = best_result.average_score if best_result else 0.0
+
+        # Improve best iteration with better programs from other iterations
+        if improve_best and best_result and len(all_results) > 1:
+            improved_result = self._improve_best_programs(
+                best_result,
+                all_results,
+                randomness,
+                profile,
+                iteration_number=iterations + 1,
+            )
+            if improved_result.is_improved:
+                improved_result.original_best_iteration = original_best_iteration
+                improved_result.original_best_score = original_best_score
+                all_results.insert(0, improved_result)
+                best_result = improved_result
+                best_result.all_iterations = all_results
+
+        # Replace forbidden content if requested
+        if replace_forbidden and best_result and len(all_results) > 0:
+            # Use next iteration number
+            next_iter = iterations + 2 if improve_best and best_result.is_improved else iterations + 1
+            optimized_result = self._replace_forbidden_programs(
+                best_result,
+                all_results,
+                filtered_contents,
+                profile,
+                iteration_number=next_iter,
+            )
+            # If optimization was successful (programs were replaced), add as first iteration
+            if optimized_result.is_optimized:
+                optimized_result.original_best_iteration = original_best_iteration
+                optimized_result.original_best_score = original_best_score
+                # Insert optimized result at the beginning of all_iterations
+                all_results.insert(0, optimized_result)
+                best_result = optimized_result
+                best_result.all_iterations = all_results
+
+        # Set original best info on final result
+        if best_result and (best_result.is_optimized or best_result.is_improved):
+            best_result.original_best_iteration = original_best_iteration
+            best_result.original_best_score = original_best_score
 
         return best_result or ProgrammingResult(
             programs=[],
@@ -334,6 +399,10 @@ class ProgrammingGenerator:
                 if c.get("plex_key", c.get("id", "")) != content_id
             ]
 
+        # Post-process: recalculate timing scores for first/last programs in each block
+        # This is needed because during scheduling we don't know which program will be last
+        self._recalculate_timing_scores(programs, profile)
+
         # Calculate totals (handle potential None scores)
         total_score = sum((p.score.total_score or 0.0) for p in programs)
         avg_score = total_score / len(programs) if programs else 0.0
@@ -395,6 +464,186 @@ class ProgrammingGenerator:
                 return sorted_content[i]
 
         return sorted_content[0]
+
+    def _recalculate_timing_scores(
+        self,
+        programs: list[ScheduledProgram],
+        profile: dict[str, Any],
+    ) -> None:
+        """
+        Recalculate timing scores for first/last programs in each block.
+
+        During scheduling, we don't know which program will be last in a block.
+        This post-processing step identifies first/last programs and recalculates
+        their timing criterion with proper is_first_in_block/is_last_in_block flags.
+
+        Note: For multi-day programming, the same block name appears multiple times
+        (e.g., "morning_" on day 1 and "morning_" on day 2). We need to identify
+        block transitions by looking at the actual start times, not just block names.
+        """
+        if not programs:
+            return
+
+        # Import timing criterion
+        from app.core.scoring.criteria.timing_criterion import TimingCriterion
+        timing_criterion = TimingCriterion()
+
+        # Get time blocks from profile
+        time_blocks = profile.get("time_blocks", [])
+        time_block_map = {tb.get("name", ""): tb for tb in time_blocks}
+
+        # Group programs by block_name AND block instance (for multi-day support)
+        # A new block instance starts when the block_name changes OR when the
+        # program's start time is earlier than the previous program (new day)
+        block_programs: dict[str, list[int]] = {}  # block_key -> list of program indices
+        current_block_key = None
+        block_instance = 0
+
+        for idx, prog in enumerate(programs):
+            block_name = prog.block_name
+
+            # Detect block transition:
+            # 1. Block name changed
+            # 2. Same block name but time went backwards (new day/new block instance)
+            is_new_block = False
+            if current_block_key is None:
+                is_new_block = True
+            else:
+                prev_block_name = current_block_key.rsplit('_', 1)[0] if '_' in current_block_key else current_block_key
+                if block_name != prev_block_name:
+                    is_new_block = True
+                elif idx > 0:
+                    # Check if this is a new instance of the same block (time went backwards)
+                    prev_prog = programs[idx - 1]
+                    if prog.start_time < prev_prog.end_time - timedelta(hours=1):
+                        # Significant time gap backwards = new block instance
+                        is_new_block = True
+
+            if is_new_block:
+                block_instance += 1
+                current_block_key = f"{block_name}_{block_instance}"
+                block_programs[current_block_key] = []
+
+            block_programs[current_block_key].append(idx)
+
+        # Process each program that is first or last in its block
+        for block_key, indices in block_programs.items():
+            if not indices:
+                continue
+
+            first_idx = indices[0]
+            last_idx = indices[-1]
+            # Extract original block name (remove instance suffix)
+            block_name = block_key.rsplit('_', 1)[0] if block_key.count('_') > 0 else block_key
+            # Get the actual block name from the first program in this block instance
+            actual_block_name = programs[first_idx].block_name
+            block_dict = time_block_map.get(actual_block_name, {})
+
+            # Create TimeBlockManager to get block times
+            block_manager = TimeBlockManager(profile)
+
+            # Recalculate timing for first program
+            first_prog = programs[first_idx]
+            block_obj = block_manager.get_block_for_datetime(first_prog.start_time)
+            if block_obj:
+                block_start_time = block_manager.get_block_start_datetime(first_prog.start_time, block_obj)
+                block_end_time = block_manager.get_block_end_datetime(first_prog.start_time, block_obj)
+
+                is_also_last = (first_idx == last_idx)
+                context = ScoringContext(
+                    current_time=first_prog.start_time,
+                    block_start_time=block_start_time,
+                    block_end_time=block_end_time,
+                    is_first_in_block=True,
+                    is_last_in_block=is_also_last,
+                )
+
+                # Recalculate timing criterion
+                timing_result = timing_criterion.evaluate(
+                    first_prog.content,
+                    first_prog.content_meta,
+                    profile,
+                    block_dict,
+                    context,
+                )
+
+                # Update the program's score with new timing result
+                self._update_program_timing_score(first_prog, timing_result)
+
+            # Recalculate timing for last program (if different from first)
+            if last_idx != first_idx:
+                last_prog = programs[last_idx]
+                block_obj = block_manager.get_block_for_datetime(last_prog.start_time)
+                if block_obj:
+                    block_start_time = block_manager.get_block_start_datetime(last_prog.start_time, block_obj)
+                    block_end_time = block_manager.get_block_end_datetime(last_prog.start_time, block_obj)
+
+                    context = ScoringContext(
+                        current_time=last_prog.start_time,
+                        block_start_time=block_start_time,
+                        block_end_time=block_end_time,
+                        is_first_in_block=False,
+                        is_last_in_block=True,
+                    )
+
+                    # Recalculate timing criterion
+                    timing_result = timing_criterion.evaluate(
+                        last_prog.content,
+                        last_prog.content_meta,
+                        profile,
+                        block_dict,
+                        context,
+                    )
+
+                    # Update the program's score with new timing result
+                    self._update_program_timing_score(last_prog, timing_result)
+
+            # Middle programs: mark timing as skipped
+            for idx in indices[1:-1]:  # Skip first and last
+                prog = programs[idx]
+                # Create a skipped timing result
+                from app.core.scoring.base_criterion import CriterionResult
+                timing_result = CriterionResult(
+                    name="timing",
+                    score=0.0,
+                    weight=0.0,
+                    weighted_score=0.0,
+                    multiplier=1.0,
+                    multiplied_weighted_score=0.0,
+                    details={
+                        "is_first_in_block": False,
+                        "is_last_in_block": False,
+                        "skipped": True,
+                        "final_score": None,
+                    },
+                    skipped=True,
+                )
+                self._update_program_timing_score(prog, timing_result)
+
+    def _update_program_timing_score(
+        self,
+        prog: ScheduledProgram,
+        timing_result,
+    ) -> None:
+        """Update program's score with new timing criterion result."""
+        from app.core.scoring.base_criterion import CriterionResult
+
+        # Get the old timing result
+        old_timing = prog.score.criterion_results.get("timing")
+        old_timing_weighted = 0.0
+        if old_timing and not old_timing.skipped:
+            old_timing_weighted = old_timing.multiplied_weighted_score
+
+        # Update criterion results
+        prog.score.criterion_results["timing"] = timing_result
+
+        # Recalculate total score
+        new_timing_weighted = timing_result.multiplied_weighted_score if not timing_result.skipped else 0.0
+        score_diff = new_timing_weighted - old_timing_weighted
+
+        # Update totals
+        prog.score.weighted_total += score_diff
+        prog.score.total_score = max(0.0, min(100.0, prog.score.weighted_total))
 
     def _filter_forbidden(
         self,
@@ -460,78 +709,860 @@ class ProgrammingGenerator:
         block: dict[str, Any],
     ) -> list[tuple[dict[str, Any], dict[str, Any] | None]]:
         """
-        Pre-filter content for a specific block based on hard constraints.
-        This reduces the pool before scoring position-dependent criteria.
+        Smart pre-selection for a specific block based on M/F/P rules.
 
-        Filters based on:
-        - Age rating (max_age_rating)
-        - Forbidden genres (block-level)
-        - Duration constraints (min/max_duration_min)
-        - Preferred types (if specified, exclude others)
+        This method analyzes all *_rules in the block criteria and creates
+        a tiered selection:
+        - Tier 1: Content matching maximum Preferred criteria
+        - Tier 2: Content with Mandatory respected
+        - Tier 3: Content without Forbidden violations
+        - Tier 4: Fallback (all other content)
+
+        Returns a pool sorted by preselection score (best first).
         """
         from app.core.scoring.criteria.age_criterion import AgeCriterion
 
-        criteria = block.get("criteria", {})
-        filtered = []
-        rejection_reasons: dict[str, int] = {}
+        criteria = block.get("criteria", {}) if block else {}
+        if not criteria:
+            return contents
 
-        # Get filter parameters
-        max_age_rating = criteria.get("max_age_rating")
-        max_age_level = AgeCriterion.get_rating_level(max_age_rating) if max_age_rating else None
+        # Extract all rules from criteria
+        rules_config = self._extract_mfp_rules(criteria)
 
-        forbidden_genres = set(g.lower() for g in criteria.get("forbidden_genres", []))
-        preferred_types = [t.lower() for t in criteria.get("preferred_types", [])]
-
-        min_duration = criteria.get("min_duration_min")
-        max_duration = criteria.get("max_duration_min")
+        # Score each content for preselection
+        scored_contents: list[tuple[dict[str, Any], dict[str, Any] | None, dict[str, Any]]] = []
 
         for content, meta in contents:
-            rejected = False
-            reason = None
+            preselect_result = self._evaluate_preselection(content, meta, criteria, rules_config)
+            scored_contents.append((content, meta, preselect_result))
 
-            # Check age rating
-            if max_age_level is not None and meta:
-                content_rating = meta.get("age_rating", "") or meta.get("content_rating", "")
-                if content_rating:
-                    content_level = AgeCriterion.get_rating_level(content_rating)
-                    if content_level > max_age_level:
-                        rejected = True
-                        reason = "age_rating"
+        # Log preselection stats
+        tier_counts = {1: 0, 2: 0, 3: 0, 4: 0}
+        for _, _, result in scored_contents:
+            tier_counts[result["tier"]] += 1
 
-            # Check forbidden genres
-            if not rejected and forbidden_genres and meta:
-                content_genres = set(g.lower() for g in meta.get("genres", []))
-                if content_genres & forbidden_genres:
-                    rejected = True
-                    reason = "forbidden_genre"
+        block_name = block.get("name", "unnamed") if block else "unknown"
+        logger.info(
+            f"Block '{block_name}' preselection: "
+            f"Tier1(preferred)={tier_counts[1]}, Tier2(mandatory)={tier_counts[2]}, "
+            f"Tier3(no_forbidden)={tier_counts[3]}, Tier4(fallback)={tier_counts[4]}"
+        )
 
-            # Check duration
-            if not rejected:
-                duration_ms = content.get("duration_ms", 0)
-                duration_min = duration_ms / 60000 if duration_ms else 0
-                if min_duration and duration_min < min_duration:
-                    rejected = True
-                    reason = "min_duration"
-                elif max_duration and duration_min > max_duration:
-                    rejected = True
-                    reason = "max_duration"
+        # Sort by: tier (ascending), then preselect_score (descending)
+        scored_contents.sort(key=lambda x: (x[2]["tier"], -x[2]["preselect_score"]))
 
-            # Check type (only if preferred_types is specified and not empty)
-            if not rejected and preferred_types:
-                content_type = content.get("type", "").lower()
-                if content_type not in preferred_types:
-                    rejected = True
-                    reason = "type"
+        # Return only content, meta (without the score dict)
+        return [(c, m) for c, m, _ in scored_contents]
 
-            if rejected and reason:
-                rejection_reasons[reason] = rejection_reasons.get(reason, 0) + 1
+    def _extract_mfp_rules(self, criteria: dict[str, Any]) -> dict[str, dict[str, Any]]:
+        """
+        Extract all M/F/P rules from block criteria.
+
+        Returns a dict with rule configurations for each criterion type.
+        """
+        rules = {}
+
+        # Genre rules
+        genre_rules = criteria.get("genre_rules", {})
+        if genre_rules:
+            rules["genre"] = {
+                "preferred": [v.lower() for v in genre_rules.get("preferred_values", []) or []],
+                "mandatory": [v.lower() for v in genre_rules.get("mandatory_values", []) or []],
+                "forbidden": [v.lower() for v in genre_rules.get("forbidden_values", []) or []],
+            }
+        # Also check legacy fields
+        preferred_genres = criteria.get("preferred_genres", [])
+        forbidden_genres = criteria.get("forbidden_genres", [])
+        if preferred_genres or forbidden_genres:
+            if "genre" not in rules:
+                rules["genre"] = {"preferred": [], "mandatory": [], "forbidden": []}
+            rules["genre"]["preferred"].extend([g.lower() for g in preferred_genres])
+            rules["genre"]["forbidden"].extend([g.lower() for g in forbidden_genres])
+
+        # Bonus rules (blockbuster, popular, collection, recent)
+        bonus_rules = criteria.get("bonus_rules", {})
+        if bonus_rules:
+            rules["bonus"] = {
+                "preferred": [v.lower() for v in bonus_rules.get("preferred_values", []) or []],
+                "mandatory": [v.lower() for v in bonus_rules.get("mandatory_values", []) or []],
+                "forbidden": [v.lower() for v in bonus_rules.get("forbidden_values", []) or []],
+            }
+
+        # Rating rules (excellent, good, average, poor)
+        rating_rules = criteria.get("rating_rules", {})
+        if rating_rules:
+            rules["rating"] = {
+                "preferred": [v.lower() for v in rating_rules.get("preferred_values", []) or []],
+                "mandatory": [v.lower() for v in rating_rules.get("mandatory_values", []) or []],
+                "forbidden": [v.lower() for v in rating_rules.get("forbidden_values", []) or []],
+            }
+
+        # Filter rules (keywords, studios like marvel, disney, etc.)
+        filter_rules = criteria.get("filter_rules", {})
+        if filter_rules:
+            rules["filter"] = {
+                "preferred": [v.lower() for v in filter_rules.get("preferred_values", []) or []],
+                "mandatory": [v.lower() for v in filter_rules.get("mandatory_values", []) or []],
+                "forbidden": [v.lower() for v in filter_rules.get("forbidden_values", []) or []],
+            }
+
+        # Age rules
+        age_rules = criteria.get("age_rules", {})
+        if age_rules:
+            rules["age"] = {
+                "preferred": [v.lower() for v in age_rules.get("preferred_values", []) or []],
+                "mandatory": [v.lower() for v in age_rules.get("mandatory_values", []) or []],
+                "forbidden": [v.lower() for v in age_rules.get("forbidden_values", []) or []],
+            }
+
+        # Type rules
+        type_rules = criteria.get("type_rules", {})
+        if type_rules:
+            rules["type"] = {
+                "preferred": [v.lower() for v in type_rules.get("preferred_values", []) or []],
+                "mandatory": [v.lower() for v in type_rules.get("mandatory_values", []) or []],
+                "forbidden": [v.lower() for v in type_rules.get("forbidden_values", []) or []],
+            }
+
+        # Duration rules (short, standard, long, very_long, epic)
+        duration_rules = criteria.get("duration_rules", {})
+        if duration_rules:
+            rules["duration"] = {
+                "preferred": [v.lower() for v in duration_rules.get("preferred_values", []) or []],
+                "mandatory": [v.lower() for v in duration_rules.get("mandatory_values", []) or []],
+                "forbidden": [v.lower() for v in duration_rules.get("forbidden_values", []) or []],
+            }
+
+        return rules
+
+    def _evaluate_preselection(
+        self,
+        content: dict[str, Any],
+        meta: dict[str, Any] | None,
+        criteria: dict[str, Any],
+        rules_config: dict[str, dict[str, Any]],
+    ) -> dict[str, Any]:
+        """
+        Evaluate content against M/F/P rules and return preselection result.
+
+        Returns:
+            dict with keys:
+            - tier: 1 (best) to 4 (fallback)
+            - preselect_score: numeric score within tier
+            - preferred_matches: list of matched preferred criteria
+            - mandatory_matches: list of matched mandatory criteria
+            - forbidden_violations: list of violated forbidden criteria
+        """
+        from app.core.scoring.criteria.age_criterion import AgeCriterion
+
+        preferred_matches: list[str] = []
+        mandatory_matches: list[str] = []
+        mandatory_misses: list[str] = []
+        forbidden_violations: list[str] = []
+
+        meta = meta or {}
+
+        # === GENRE EVALUATION ===
+        if "genre" in rules_config:
+            content_genres = set(g.lower() for g in meta.get("genres", []))
+            genre_rules = rules_config["genre"]
+
+            # Preferred genres
+            for pref in genre_rules["preferred"]:
+                if pref in content_genres:
+                    preferred_matches.append(f"genre:{pref}")
+
+            # Mandatory genres
+            for mand in genre_rules["mandatory"]:
+                if mand in content_genres:
+                    mandatory_matches.append(f"genre:{mand}")
+                else:
+                    mandatory_misses.append(f"genre:{mand}")
+
+            # Forbidden genres
+            for forb in genre_rules["forbidden"]:
+                if forb in content_genres:
+                    forbidden_violations.append(f"genre:{forb}")
+
+        # === BONUS EVALUATION (blockbuster, popular, collection, recent) ===
+        if "bonus" in rules_config:
+            bonus_rules = rules_config["bonus"]
+            content_bonuses = self._get_content_bonus_categories(content, meta)
+
+            for pref in bonus_rules["preferred"]:
+                if pref in content_bonuses:
+                    preferred_matches.append(f"bonus:{pref}")
+
+            for mand in bonus_rules["mandatory"]:
+                if mand in content_bonuses:
+                    mandatory_matches.append(f"bonus:{mand}")
+                else:
+                    mandatory_misses.append(f"bonus:{mand}")
+
+            for forb in bonus_rules["forbidden"]:
+                if forb in content_bonuses:
+                    forbidden_violations.append(f"bonus:{forb}")
+
+        # === RATING EVALUATION (excellent, good, average, poor) ===
+        if "rating" in rules_config:
+            rating_rules = rules_config["rating"]
+            rating_category = self._get_rating_category(meta.get("tmdb_rating"))
+
+            if rating_category:
+                if rating_category in rating_rules["preferred"]:
+                    preferred_matches.append(f"rating:{rating_category}")
+                if rating_category in rating_rules["mandatory"]:
+                    mandatory_matches.append(f"rating:{rating_category}")
+                if rating_category in rating_rules["forbidden"]:
+                    forbidden_violations.append(f"rating:{rating_category}")
+
+            # Check mandatory miss
+            if rating_rules["mandatory"] and rating_category not in rating_rules["mandatory"]:
+                mandatory_misses.append("rating:required")
+
+        # === FILTER EVALUATION (keywords, studios) ===
+        if "filter" in rules_config:
+            filter_rules = rules_config["filter"]
+            content_keywords = self._get_content_keywords(content, meta)
+
+            for pref in filter_rules["preferred"]:
+                if pref in content_keywords:
+                    preferred_matches.append(f"filter:{pref}")
+
+            for mand in filter_rules["mandatory"]:
+                if mand in content_keywords:
+                    mandatory_matches.append(f"filter:{mand}")
+                else:
+                    mandatory_misses.append(f"filter:{mand}")
+
+            for forb in filter_rules["forbidden"]:
+                if forb in content_keywords:
+                    forbidden_violations.append(f"filter:{forb}")
+
+        # === AGE EVALUATION ===
+        if "age" in rules_config:
+            age_rules = rules_config["age"]
+            raw_rating = meta.get("age_rating") or meta.get("content_rating") or ""
+            content_rating = raw_rating.lower() if raw_rating else ""
+
+            if content_rating:
+                if content_rating in age_rules["preferred"]:
+                    preferred_matches.append(f"age:{content_rating}")
+                if content_rating in age_rules["forbidden"]:
+                    forbidden_violations.append(f"age:{content_rating}")
+
+        # Also check max_age_rating constraint
+        max_age_rating = criteria.get("max_age_rating")
+        if max_age_rating:
+            content_rating = meta.get("age_rating") or meta.get("content_rating") or ""
+            if content_rating:
+                max_level = AgeCriterion.get_rating_level(max_age_rating)
+                content_level = AgeCriterion.get_rating_level(content_rating)
+                if content_level > max_level:
+                    forbidden_violations.append(f"age:exceeds_max({content_rating}>{max_age_rating})")
+
+        # === TYPE EVALUATION ===
+        if "type" in rules_config:
+            type_rules = rules_config["type"]
+            content_type = content.get("type", "").lower()
+
+            if content_type:
+                if content_type in type_rules["preferred"]:
+                    preferred_matches.append(f"type:{content_type}")
+                if content_type in type_rules["mandatory"]:
+                    mandatory_matches.append(f"type:{content_type}")
+                if content_type in type_rules["forbidden"]:
+                    forbidden_violations.append(f"type:{content_type}")
+
+            if type_rules["mandatory"] and content_type not in type_rules["mandatory"]:
+                mandatory_misses.append("type:required")
+
+        # === DURATION EVALUATION ===
+        if "duration" in rules_config:
+            duration_rules = rules_config["duration"]
+            duration_category = self._get_duration_category(content.get("duration_ms", 0))
+
+            if duration_category:
+                if duration_category in duration_rules["preferred"]:
+                    preferred_matches.append(f"duration:{duration_category}")
+                if duration_category in duration_rules["mandatory"]:
+                    mandatory_matches.append(f"duration:{duration_category}")
+                if duration_category in duration_rules["forbidden"]:
+                    forbidden_violations.append(f"duration:{duration_category}")
+
+        # Also check min/max duration constraints
+        min_duration = criteria.get("min_duration_min")
+        max_duration = criteria.get("max_duration_min")
+        duration_ms = content.get("duration_ms", 0)
+        duration_min = duration_ms / 60000 if duration_ms else 0
+
+        if min_duration and duration_min < min_duration:
+            forbidden_violations.append(f"duration:below_min({duration_min:.0f}<{min_duration})")
+        if max_duration and duration_min > max_duration:
+            forbidden_violations.append(f"duration:above_max({duration_min:.0f}>{max_duration})")
+
+        # === DETERMINE TIER ===
+        # Tier 1: Has preferred matches AND no forbidden violations
+        # Tier 2: No preferred but mandatory OK AND no forbidden
+        # Tier 3: No forbidden violations
+        # Tier 4: Fallback (has forbidden)
+
+        has_forbidden = len(forbidden_violations) > 0
+        has_preferred = len(preferred_matches) > 0
+        has_mandatory_miss = len(mandatory_misses) > 0
+
+        if has_forbidden:
+            tier = 4
+        elif has_preferred and not has_mandatory_miss:
+            tier = 1
+        elif not has_mandatory_miss:
+            tier = 2
+        else:
+            tier = 3
+
+        # Calculate preselect score within tier
+        # More preferred matches = higher score
+        preselect_score = len(preferred_matches) * 10 + len(mandatory_matches) * 5 - len(mandatory_misses) * 3
+
+        return {
+            "tier": tier,
+            "preselect_score": preselect_score,
+            "preferred_matches": preferred_matches,
+            "mandatory_matches": mandatory_matches,
+            "mandatory_misses": mandatory_misses,
+            "forbidden_violations": forbidden_violations,
+        }
+
+    def _get_content_bonus_categories(
+        self, content: dict[str, Any], meta: dict[str, Any]
+    ) -> set[str]:
+        """
+        Determine which bonus categories a content matches.
+
+        Categories: blockbuster, popular, collection, recent, old, classic, vintage
+        """
+        from datetime import datetime
+
+        categories: set[str] = set()
+
+        # Blockbuster: revenue > budget * 2
+        budget = meta.get("budget", 0) or 0
+        revenue = meta.get("revenue", 0) or 0
+        if budget > 0 and revenue > budget * 2:
+            categories.add("blockbuster")
+        if budget > 0 and revenue > budget * 3:
+            categories.add("blockbuster")  # Already added, but emphasize
+
+        # Popular: high vote count
+        vote_count = meta.get("vote_count", 0) or 0
+        if vote_count >= 5000:
+            categories.add("popular")
+
+        # Collection: part of a collection
+        collection = meta.get("collection") or meta.get("belongs_to_collection")
+        if collection:
+            categories.add("collection")
+
+        # Recent: released in last 2 years
+        release_date = meta.get("release_date", "") or ""
+        if release_date:
+            try:
+                release_year = int(release_date[:4])
+                current_year = datetime.now().year
+                age = current_year - release_year
+
+                if age <= 2:
+                    categories.add("recent")
+                    categories.add("recency")
+                if age <= 5:
+                    categories.add("recent")
+                if age >= 20:
+                    categories.add("old")
+                    categories.add("classic")
+                    categories.add("vintage")
+            except (ValueError, IndexError):
+                pass
+
+        return categories
+
+    def _get_rating_category(self, rating: float | None) -> str | None:
+        """Convert TMDB rating to category."""
+        if rating is None:
+            return None
+
+        if rating >= 8.0:
+            return "excellent"
+        elif rating >= 7.0:
+            return "good"
+        elif rating >= 5.0:
+            return "average"
+        else:
+            return "poor"
+
+    def _get_content_keywords(
+        self, content: dict[str, Any], meta: dict[str, Any]
+    ) -> set[str]:
+        """
+        Extract searchable keywords from content metadata.
+
+        Includes: TMDB keywords, studios, collections, title keywords
+        """
+        keywords: set[str] = set()
+
+        # TMDB keywords
+        tmdb_keywords = meta.get("keywords", []) or []
+        for kw in tmdb_keywords:
+            if isinstance(kw, dict):
+                keywords.add(kw.get("name", "").lower())
             else:
-                filtered.append((content, meta))
+                keywords.add(str(kw).lower())
 
-        if rejection_reasons:
-            logger.debug(
-                f"Block '{block.get('name', 'unnamed')}' pre-filter: "
-                f"{len(contents)} → {len(filtered)} (rejected: {rejection_reasons})"
+        # Studios/production companies
+        studios = meta.get("production_companies", []) or []
+        for studio in studios:
+            if isinstance(studio, dict):
+                studio_name = studio.get("name", "").lower()
+                keywords.add(studio_name)
+                # Add common aliases
+                if "marvel" in studio_name:
+                    keywords.add("marvel")
+                if "disney" in studio_name:
+                    keywords.add("disney")
+                if "pixar" in studio_name:
+                    keywords.add("pixar")
+                if "warner" in studio_name:
+                    keywords.add("dc")
+                if "dreamworks" in studio_name:
+                    keywords.add("dreamworks")
+                if "blumhouse" in studio_name:
+                    keywords.add("blumhouse")
+                if "a24" in studio_name:
+                    keywords.add("a24")
+
+        # Collection name
+        collection = meta.get("collection") or meta.get("belongs_to_collection")
+        if collection:
+            if isinstance(collection, dict):
+                coll_name = collection.get("name", "").lower()
+                keywords.add(coll_name)
+                keywords.add("franchise")
+                keywords.add("sequel")
+                # Extract collection keywords
+                if "marvel" in coll_name:
+                    keywords.add("marvel")
+                    keywords.add("superhero")
+                if "dc" in coll_name or "batman" in coll_name or "superman" in coll_name:
+                    keywords.add("dc")
+                    keywords.add("superhero")
+                if "star wars" in coll_name:
+                    keywords.add("star wars")
+                if "harry potter" in coll_name:
+                    keywords.add("harry potter")
+                if "fast" in coll_name and "furious" in coll_name:
+                    keywords.add("fast & furious")
+                if "john wick" in coll_name:
+                    keywords.add("john wick")
+                if "conjuring" in coll_name or "halloween" in coll_name or "scream" in coll_name:
+                    keywords.add("horror")
+            else:
+                keywords.add(str(collection).lower())
+
+        # Title keywords
+        title = content.get("title", "").lower()
+        # Add individual words from title (for matching like "nolan", "cameron")
+        for word in title.split():
+            if len(word) > 3:
+                keywords.add(word)
+
+        return keywords
+
+    def _get_duration_category(self, duration_ms: int) -> str | None:
+        """Convert duration to category."""
+        if not duration_ms:
+            return None
+
+        duration_min = duration_ms / 60000
+
+        if duration_min < 60:
+            return "short"
+        elif duration_min < 120:
+            return "standard"
+        elif duration_min < 180:
+            return "long"
+        elif duration_min < 240:
+            return "very_long"
+        else:
+            return "epic"
+
+    def _replace_forbidden_programs(
+        self,
+        best_result: ProgrammingResult,
+        all_results: list[ProgrammingResult],
+        filtered_contents: list[tuple[dict[str, Any], dict[str, Any] | None]],
+        profile: dict[str, Any],
+        iteration_number: int = 0,
+    ) -> ProgrammingResult:
+        """
+        Replace forbidden programs in the best iteration with non-forbidden alternatives.
+
+        Strategy:
+        1. For each forbidden program in best iteration:
+           a. First try to find replacement from other iterations (same block, not forbidden, best score)
+           b. If not found, use pre-filtered pool (Tier 1-3 content)
+        2. Recalculate total scores after replacements
+
+        Args:
+            best_result: The best programming result to modify
+            all_results: All iteration results (for finding alternatives)
+            filtered_contents: Pre-filtered content pool
+            profile: Profile configuration
+            iteration_number: Iteration number for the optimized result
+
+        Returns:
+            Modified ProgrammingResult with forbidden content replaced and is_optimized=True
+        """
+        # Find programs with forbidden violations
+        forbidden_programs: list[tuple[int, ScheduledProgram]] = []
+        for idx, prog in enumerate(best_result.programs):
+            if prog.score.forbidden_violations:
+                forbidden_programs.append((idx, prog))
+
+        if not forbidden_programs:
+            logger.info("No forbidden programs to replace")
+            # Return original without is_optimized flag
+            return best_result
+
+        logger.info(f"Found {len(forbidden_programs)} forbidden programs to replace")
+
+        # Track used content IDs to avoid duplicates
+        used_content_ids: set[str] = set()
+        for prog in best_result.programs:
+            content_id = prog.content.get("plex_key", prog.content.get("id", ""))
+            if content_id:
+                used_content_ids.add(content_id)
+
+        # Build a map of block_name -> programs from other iterations
+        # Only include programs that are NOT forbidden
+        other_iterations_map: dict[str, list[tuple[ScheduledProgram, ProgrammingResult]]] = {}
+        for result in all_results:
+            if result.iteration == best_result.iteration:
+                continue  # Skip the best result itself
+            for prog in result.programs:
+                if not prog.score.forbidden_violations:
+                    block_name = prog.block_name
+                    if block_name not in other_iterations_map:
+                        other_iterations_map[block_name] = []
+                    other_iterations_map[block_name].append((prog, result))
+
+        # Sort each block's alternatives by score descending
+        for block_name in other_iterations_map:
+            other_iterations_map[block_name].sort(
+                key=lambda x: x[0].score.total_score or 0.0, reverse=True
             )
 
-        return filtered
+        # Get time blocks for pre-filtering
+        time_blocks = profile.get("time_blocks", [])
+        time_block_map = {tb.get("name", ""): tb for tb in time_blocks}
+
+        # Process each forbidden program
+        replaced_count = 0
+        new_programs = list(best_result.programs)
+
+        for prog_idx, forbidden_prog in forbidden_programs:
+            block_name = forbidden_prog.block_name
+            forbidden_id = forbidden_prog.content.get("plex_key", forbidden_prog.content.get("id", ""))
+
+            replacement: ScheduledProgram | None = None
+
+            # Strategy 1: Find replacement from other iterations
+            if block_name in other_iterations_map:
+                for alt_prog, _ in other_iterations_map[block_name]:
+                    alt_id = alt_prog.content.get("plex_key", alt_prog.content.get("id", ""))
+                    if alt_id and alt_id not in used_content_ids:
+                        # Found a valid replacement from another iteration
+                        # Create a new ScheduledProgram with adjusted times
+                        replacement = ScheduledProgram(
+                            content=alt_prog.content,
+                            content_meta=alt_prog.content_meta,
+                            start_time=forbidden_prog.start_time,
+                            end_time=forbidden_prog.start_time + timedelta(
+                                milliseconds=alt_prog.content.get("duration_ms", 0)
+                            ),
+                            block_name=block_name,
+                            position=forbidden_prog.position,
+                            score=alt_prog.score,  # Keep original score
+                            is_replacement=True,
+                            replacement_reason="forbidden",
+                            replaced_title=forbidden_prog.content.get("title"),
+                        )
+                        used_content_ids.add(alt_id)
+                        logger.info(
+                            f"Replaced forbidden '{forbidden_prog.content.get('title')}' "
+                            f"with '{alt_prog.content.get('title')}' from iteration #{_.iteration}"
+                        )
+                        break
+
+            # Strategy 2: Find replacement from pre-filtered pool
+            if replacement is None:
+                # Get block criteria for pre-filtering
+                block_dict = time_block_map.get(block_name, {})
+                block_filtered = self._prefilter_for_block(filtered_contents, block_dict)
+
+                # Find best non-forbidden content not already used
+                for content, meta in block_filtered:
+                    content_id = content.get("plex_key", content.get("id", ""))
+                    if content_id and content_id not in used_content_ids:
+                        # Score this content for the current position
+                        from app.core.blocks.time_block_manager import TimeBlockManager
+                        block_manager = TimeBlockManager(profile)
+                        block = block_manager.get_block_for_datetime(forbidden_prog.start_time)
+                        block_dict_for_scoring = block.to_dict() if block else None
+
+                        # Create scoring context
+                        scoring_context = ScoringContext(
+                            current_time=forbidden_prog.start_time,
+                            block_start_time=None,
+                            block_end_time=None,
+                            is_first_in_block=(prog_idx == 0 or
+                                new_programs[prog_idx - 1].block_name != block_name),
+                        )
+
+                        score = self.scoring_engine.score(
+                            content, meta, profile, block_dict_for_scoring, scoring_context
+                        )
+
+                        # Only use if not forbidden
+                        if not score.forbidden_violations:
+                            replacement = ScheduledProgram(
+                                content=content,
+                                content_meta=meta,
+                                start_time=forbidden_prog.start_time,
+                                end_time=forbidden_prog.start_time + timedelta(
+                                    milliseconds=content.get("duration_ms", 0)
+                                ),
+                                block_name=block_name,
+                                position=forbidden_prog.position,
+                                score=score,
+                                is_replacement=True,
+                                replacement_reason="forbidden",
+                                replaced_title=forbidden_prog.content.get("title"),
+                            )
+                            used_content_ids.add(content_id)
+                            logger.info(
+                                f"Replaced forbidden '{forbidden_prog.content.get('title')}' "
+                                f"with '{content.get('title')}' from pre-filtered pool"
+                            )
+                            break
+
+            # Apply replacement if found
+            if replacement:
+                new_programs[prog_idx] = replacement
+                # Mark old content as available again (remove from used)
+                if forbidden_id:
+                    used_content_ids.discard(forbidden_id)
+                replaced_count += 1
+            else:
+                logger.warning(
+                    f"Could not find replacement for forbidden '{forbidden_prog.content.get('title')}' "
+                    f"in block '{block_name}'"
+                )
+
+        logger.info(f"Replaced {replaced_count}/{len(forbidden_programs)} forbidden programs")
+
+        # If no replacements were made, return original
+        if replaced_count == 0:
+            return best_result
+
+        # Recalculate timing scores for the new program list
+        self._recalculate_timing_scores(new_programs, profile)
+
+        # Recalculate totals after timing recalculation
+        total_score = sum((p.score.total_score or 0.0) for p in new_programs)
+        avg_score = total_score / len(new_programs) if new_programs else 0.0
+
+        # Create new optimized result with replaced programs
+        return ProgrammingResult(
+            programs=new_programs,
+            total_score=total_score,
+            average_score=avg_score,
+            iteration=iteration_number,
+            forbidden_count=best_result.forbidden_count,
+            seed=best_result.seed,
+            all_iterations=[],  # Will be set by caller
+            is_optimized=True,  # Mark as optimized iteration
+            replaced_count=replaced_count,
+        )
+
+    def _improve_best_programs(
+        self,
+        best_result: ProgrammingResult,
+        all_results: list[ProgrammingResult],
+        randomness: float,
+        profile: dict[str, Any],
+        iteration_number: int = 0,
+    ) -> ProgrammingResult:
+        """
+        Improve programs in the best iteration by replacing with better ones from other iterations.
+
+        For each program in the best iteration, find programs with higher scores in other iterations
+        (same block) and use the randomness factor to select among the best candidates.
+
+        Args:
+            best_result: The best programming result to improve
+            all_results: All iteration results
+            randomness: Randomness factor for selection (0 = always best, 1 = random among candidates)
+            profile: Profile configuration for timing recalculation
+            iteration_number: Iteration number for the improved result
+
+        Returns:
+            Improved ProgrammingResult with is_improved=True if improvements were made
+        """
+        # Build a map of block_name -> programs from other iterations with their scores
+        other_iterations_map: dict[str, list[tuple[ScheduledProgram, ProgrammingResult]]] = {}
+        for result in all_results:
+            if result.iteration == best_result.iteration:
+                continue
+            for prog in result.programs:
+                block_name = prog.block_name
+                if block_name not in other_iterations_map:
+                    other_iterations_map[block_name] = []
+                other_iterations_map[block_name].append((prog, result))
+
+        # Sort each block's alternatives by score descending
+        for block_name in other_iterations_map:
+            other_iterations_map[block_name].sort(
+                key=lambda x: x[0].score.total_score or 0.0, reverse=True
+            )
+
+        # Track used content IDs to avoid duplicates
+        used_content_ids: set[str] = set()
+        for prog in best_result.programs:
+            content_id = prog.content.get("plex_key", prog.content.get("id", ""))
+            if content_id:
+                used_content_ids.add(content_id)
+
+        # Process each program in the best result
+        improved_count = 0
+        new_programs = list(best_result.programs)
+
+        for prog_idx, current_prog in enumerate(best_result.programs):
+            block_name = current_prog.block_name
+            current_score = current_prog.score.total_score or 0.0
+            current_id = current_prog.content.get("plex_key", current_prog.content.get("id", ""))
+
+            if block_name not in other_iterations_map:
+                continue
+
+            # Find candidates with higher scores that aren't already used
+            candidates: list[tuple[ScheduledProgram, ProgrammingResult]] = []
+            for alt_prog, alt_result in other_iterations_map[block_name]:
+                alt_id = alt_prog.content.get("plex_key", alt_prog.content.get("id", ""))
+                alt_score = alt_prog.score.total_score or 0.0
+
+                if alt_id and alt_id not in used_content_ids and alt_score > current_score:
+                    candidates.append((alt_prog, alt_result))
+
+            if not candidates:
+                continue
+
+            # Use randomness to select among candidates
+            selected = self._select_improvement_with_randomness(candidates, randomness)
+            if selected:
+                alt_prog, alt_result = selected
+                alt_id = alt_prog.content.get("plex_key", alt_prog.content.get("id", ""))
+
+                # Create replacement program with adjusted times
+                replacement = ScheduledProgram(
+                    content=alt_prog.content,
+                    content_meta=alt_prog.content_meta,
+                    start_time=current_prog.start_time,
+                    end_time=current_prog.start_time + timedelta(
+                        milliseconds=alt_prog.content.get("duration_ms", 0)
+                    ),
+                    block_name=block_name,
+                    position=current_prog.position,
+                    score=alt_prog.score,
+                    is_replacement=True,
+                    replacement_reason="improved",
+                    replaced_title=current_prog.content.get("title"),
+                )
+
+                new_programs[prog_idx] = replacement
+                used_content_ids.add(alt_id)
+                if current_id:
+                    used_content_ids.discard(current_id)
+                improved_count += 1
+
+                logger.info(
+                    f"Improved '{current_prog.content.get('title')}' (score: {current_score:.1f}) "
+                    f"with '{alt_prog.content.get('title')}' (score: {alt_prog.score.total_score:.1f}) "
+                    f"from iteration #{alt_result.iteration}"
+                )
+
+        if improved_count == 0:
+            logger.info("No improvements possible")
+            return best_result
+
+        logger.info(f"Improved {improved_count} programs")
+
+        # Recalculate timing scores for the new program list
+        self._recalculate_timing_scores(new_programs, profile)
+
+        # Recalculate totals after timing recalculation
+        total_score = sum((p.score.total_score or 0.0) for p in new_programs)
+        avg_score = total_score / len(new_programs) if new_programs else 0.0
+
+        return ProgrammingResult(
+            programs=new_programs,
+            total_score=total_score,
+            average_score=avg_score,
+            iteration=iteration_number,
+            forbidden_count=best_result.forbidden_count,
+            seed=best_result.seed,
+            all_iterations=[],
+            is_improved=True,
+            improved_count=improved_count,
+        )
+
+    def _select_improvement_with_randomness(
+        self,
+        candidates: list[tuple[ScheduledProgram, ProgrammingResult]],
+        randomness: float,
+    ) -> tuple[ScheduledProgram, ProgrammingResult] | None:
+        """
+        Select an improvement candidate using the randomness factor.
+
+        randomness=0: Always pick the best candidate
+        randomness=1: Random selection among all candidates
+        """
+        if not candidates:
+            return None
+
+        if randomness <= 0 or len(candidates) == 1:
+            return candidates[0]
+
+        # Calculate selection weights based on score and randomness
+        max_score = candidates[0][0].score.total_score or 0.0
+        weights = []
+        for prog, _ in candidates:
+            score_val = prog.score.total_score or 0.0
+            base_weight = score_val / max(max_score, 1)
+            adjusted = base_weight * (1 - randomness) + randomness
+            weights.append(adjusted)
+
+        # Normalize weights
+        total_weight = sum(weights)
+        if total_weight <= 0:
+            return candidates[0]
+
+        normalized = [w / total_weight for w in weights]
+
+        # Weighted random selection
+        r = random.random()
+        cumulative = 0.0
+        for i, weight in enumerate(normalized):
+            cumulative += weight
+            if r <= cumulative:
+                return candidates[i]
+
+        return candidates[0]

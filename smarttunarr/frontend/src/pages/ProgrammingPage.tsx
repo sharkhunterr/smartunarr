@@ -296,6 +296,8 @@ function ResultsPanel({ result, profile, previewOnly, applying, onApply }: Resul
   const displayPrograms = currentIteration?.programs || result.programs
   const displayScore = currentIteration?.average_score ?? currentIteration?.total_score ?? result.average_score ?? result.total_score ?? 0
   const displayIteration = currentIteration?.iteration ?? result.iteration ?? 1
+  const isOptimized = currentIteration?.is_optimized ?? false
+  const isImproved = currentIteration?.is_improved ?? false
 
   const totalMinutes = currentIteration?.total_duration_min || result.total_duration_min || 0
   const hours = Math.floor(totalMinutes / 60)
@@ -330,9 +332,23 @@ function ResultsPanel({ result, profile, previewOnly, applying, onApply }: Resul
           <div className="flex items-center gap-3">
             <Calendar className="w-5 h-5 text-primary-500 hidden sm:block" />
             <div>
-              <h2 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
-                Résultat #{displayIteration}
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
+                  {(isOptimized || isImproved) ? 'Optimisé' : `Résultat #${displayIteration}`}
+                </h2>
+                {isImproved && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
+                    <Zap className="w-3 h-3" />
+                    Amélioré
+                  </span>
+                )}
+                {isOptimized && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
+                    <Sparkles className="w-3 h-3" />
+                    Sans interdits
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {displayPrograms.length} prog. • {durationText} • {daysCount}j
               </p>
@@ -456,6 +472,8 @@ export function ProgrammingPage() {
   const [randomness, setRandomness] = useState(0.3)
   const [cacheMode, setCacheMode] = useState<CacheMode>('full')
   const [previewOnly, setPreviewOnly] = useState(false)
+  const [replaceForbidden, setReplaceForbidden] = useState(false)
+  const [improveBest, setImproveBest] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [durationDays, setDurationDays] = useState(1)
   const [startDate, setStartDate] = useState(() => {
@@ -592,6 +610,8 @@ export function ProgrammingPage() {
           randomness,
           cache_mode: cacheMode,
           preview_only: previewOnly,
+          replace_forbidden: replaceForbidden,
+          improve_best: improveBest,
           duration_days: durationDays,
           start_datetime: new Date(startDate).toISOString()
         }
@@ -903,6 +923,32 @@ export function ProgrammingPage() {
                 <Eye className="w-3.5 h-3.5 text-gray-500" />
                 <span className="text-xs text-gray-700 dark:text-gray-300">
                   Aperçu uniquement
+                </span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={replaceForbidden}
+                  onChange={e => setReplaceForbidden(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <RefreshCw className="w-3.5 h-3.5 text-gray-500" />
+                <span className="text-xs text-gray-700 dark:text-gray-300">
+                  Remplacer contenus interdits
+                </span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={improveBest}
+                  onChange={e => setImproveBest(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <Zap className="w-3.5 h-3.5 text-gray-500" />
+                <span className="text-xs text-gray-700 dark:text-gray-300">
+                  Améliorer avec meilleurs programmes
                 </span>
               </label>
             </div>

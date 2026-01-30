@@ -187,6 +187,10 @@ export interface ProgramItem {
   plex_key?: string
   block_name?: string
   score?: ItemScore
+  // Replacement info (for optimized/improved iterations)
+  is_replacement?: boolean
+  replacement_reason?: 'forbidden' | 'improved' | null
+  replaced_title?: string | null
 }
 
 // Rule violation for a criterion
@@ -272,6 +276,8 @@ export interface IterationResult {
   average_score: number
   total_duration_min: number
   program_count: number
+  is_optimized?: boolean  // True if this is the forbidden-replacement optimized iteration
+  is_improved?: boolean  // True if this is the improved iteration (better programs from other iterations)
 }
 
 export interface ProgramResult {
@@ -299,6 +305,8 @@ export interface ProgrammingRequest {
   randomness: number
   cache_mode: 'none' | 'plex_only' | 'tmdb_only' | 'cache_only' | 'full' | 'enrich_cache'
   preview_only: boolean
+  replace_forbidden?: boolean  // Replace forbidden content in best iteration with alternatives
+  improve_best?: boolean  // Upgrade programs with better ones from other iterations
   duration_days: number  // Number of days to program (1-30)
   start_datetime?: string  // ISO format datetime
 }
