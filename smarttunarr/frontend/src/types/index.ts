@@ -13,6 +13,7 @@ export interface LibraryConfig {
   name: string
   type?: string
   weight: number
+  enabled?: boolean
 }
 
 // Per-criterion rules (optional)
@@ -23,6 +24,10 @@ export interface CriterionRules {
   forbidden_penalty?: number
   preferred_values?: string[]
   preferred_bonus?: number
+  // Timing-specific fields
+  preferred_max_minutes?: number
+  mandatory_max_minutes?: number
+  forbidden_max_minutes?: number
 }
 
 export interface BlockCriteria {
@@ -61,6 +66,7 @@ export interface BlockCriteria {
 
 export interface TimeBlock {
   name: string
+  description?: string
   start_time: string
   end_time: string
   criteria: BlockCriteria
@@ -70,7 +76,9 @@ export interface MandatoryRules {
   content_ids?: string[]
   min_duration_min?: number
   min_tmdb_rating?: number
+  min_vote_count?: number
   required_genres?: string[]
+  allowed_age_ratings?: string[]
 }
 
 export interface ForbiddenRules {
@@ -78,6 +86,8 @@ export interface ForbiddenRules {
   types?: string[]
   keywords?: string[]
   genres?: string[]
+  age_ratings?: string[]
+  collections?: string[]
 }
 
 export interface PreferredRules {
@@ -107,16 +117,72 @@ export interface FillerInsertion {
 }
 
 export interface Bonuses {
-  holiday_bonus: boolean
-  recent_release_bonus: boolean
+  holiday_bonus?: boolean
+  recent_release_bonus?: boolean
+  popular_content_bonus?: boolean
 }
 
 export interface Strategies {
-  maintain_sequence: boolean
-  maximize_variety: boolean
-  marathon_mode: boolean
-  filler_insertion: FillerInsertion
-  bonuses: Bonuses
+  maintain_sequence?: boolean
+  maximize_variety?: boolean
+  marathon_mode?: boolean
+  avoid_repeats_days?: number
+  filler_insertion?: FillerInsertion
+  bonuses?: Bonuses
+}
+
+// Enhanced criteria types
+export interface KeywordsSafety {
+  enabled: boolean
+  safe_keywords?: string[]
+  dangerous_keywords?: string[]
+  safe_bonus_points?: number
+  dangerous_penalty_points?: number
+}
+
+export interface CollectionsFranchises {
+  enabled: boolean
+  preferred_collections?: string[]
+  preferred_franchises?: string[]
+  forbidden_collections?: string[]
+  collection_bonus_points?: number
+  franchise_bonus_points?: number
+}
+
+export interface RecencyBonuses {
+  enabled?: boolean
+  very_recent_days?: number
+  very_recent_bonus?: number
+  recent_months?: number
+  recent_bonus?: number
+  this_year_bonus?: number
+  max_age_years?: number
+  old_content_penalty?: number
+}
+
+export interface TemporalIntelligence {
+  enabled: boolean
+  recency_bonuses?: RecencyBonuses
+}
+
+export interface VoteReliability {
+  enabled?: boolean
+  excellent_votes?: number
+  good_votes?: number
+  acceptable_votes?: number
+  minimum_votes?: number
+}
+
+export interface QualityIndicators {
+  enabled: boolean
+  vote_reliability?: VoteReliability
+}
+
+export interface EnhancedCriteria {
+  keywords_safety?: KeywordsSafety
+  collections_franchises?: CollectionsFranchises
+  temporal_intelligence?: TemporalIntelligence
+  quality_indicators?: QualityIndicators
 }
 
 export interface ScoringWeights {
@@ -133,10 +199,10 @@ export interface ScoringWeights {
 
 // M/F/P (Mandatory/Forbidden/Preferred) point policy
 export interface MFPPolicy {
-  mandatory_matched_bonus: number      // Bonus when mandatory requirement is met (default: 10)
-  mandatory_missed_penalty: number     // Penalty when mandatory requirement is not met (default: -40)
-  forbidden_detected_penalty: number   // Penalty when forbidden value is detected (default: -400)
-  preferred_matched_bonus: number      // Bonus when preferred value is matched (default: 20)
+  mandatory_matched_bonus?: number      // Bonus when mandatory requirement is met (default: 10)
+  mandatory_missed_penalty?: number     // Penalty when mandatory requirement is not met (default: -40)
+  forbidden_detected_penalty?: number   // Penalty when forbidden value is detected (default: -400)
+  preferred_matched_bonus?: number      // Bonus when preferred value is matched (default: 20)
 }
 
 // Multipliers for each scoring criterion (default 1.0 = no change)
@@ -156,9 +222,11 @@ export interface Profile {
   id: string
   name: string
   version: string
+  description?: string
   libraries: LibraryConfig[]
   time_blocks: TimeBlock[]
   mandatory_forbidden_criteria: MandatoryForbiddenCriteria
+  enhanced_criteria?: EnhancedCriteria
   strategies?: Strategies
   scoring_weights: ScoringWeights
   mfp_policy?: MFPPolicy                    // Profile-level M/F/P point policy
@@ -436,4 +504,5 @@ export interface PlexLibrary {
   type: string
   agent: string
   scanner: string
+  count?: number
 }

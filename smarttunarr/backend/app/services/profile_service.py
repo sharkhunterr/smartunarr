@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload
 from app.models.profile import Profile, ProfileLabel
 from app.schemas.profile_schema import ProfileCreate, ProfileUpdate, ProfileValidation
 from app.services.profile_migration import ProfileMigration
+from app.core.blocks.time_block_manager import TimeBlockManager
 
 logger = logging.getLogger(__name__)
 
@@ -379,10 +380,13 @@ class ProfileService:
                 if not block.get("end_time"):
                     errors.append(f"Time block {i}: missing 'end_time'")
 
-            # Check for gaps (warning only)
-            # This would require more complex time analysis
-            if len(time_blocks) > 1:
-                warnings.append("Consider verifying time blocks cover 24 hours")
+            # Check for gaps using TimeBlockManager
+            if len(time_blocks) >= 1:
+                manager = TimeBlockManager(profile_data)
+                is_covered, gaps = manager.validate_coverage()
+                if not is_covered:
+                    for gap in gaps:
+                        warnings.append(f"Time coverage: {gap}")
 
         # Validate scoring weights
         weights = profile_data.get("scoring_weights", {})

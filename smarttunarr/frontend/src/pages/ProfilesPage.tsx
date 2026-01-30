@@ -12,17 +12,47 @@ import {
   X,
   AlertCircle,
   CheckCircle,
-  Tag,
   Clock,
-  Settings2,
   FileJson
 } from 'lucide-react'
 import { profilesApi } from '@/services/api'
 import type { Profile, TimeBlock, ScoringWeights } from '@/types'
+import { ProfileEditor } from '@/components/profile'
 
 interface ProfileModalProps {
   profile: Profile | null
   onClose: () => void
+}
+
+// Color palette for labels
+const LABEL_COLORS: Record<string, { bg: string; text: string; darkBg: string; darkText: string }> = {
+  kids: { bg: 'bg-pink-100', text: 'text-pink-700', darkBg: 'dark:bg-pink-900/30', darkText: 'dark:text-pink-400' },
+  family: { bg: 'bg-purple-100', text: 'text-purple-700', darkBg: 'dark:bg-purple-900/30', darkText: 'dark:text-purple-400' },
+  blockbuster: { bg: 'bg-amber-100', text: 'text-amber-700', darkBg: 'dark:bg-amber-900/30', darkText: 'dark:text-amber-400' },
+  popular: { bg: 'bg-orange-100', text: 'text-orange-700', darkBg: 'dark:bg-orange-900/30', darkText: 'dark:text-orange-400' },
+  animation: { bg: 'bg-cyan-100', text: 'text-cyan-700', darkBg: 'dark:bg-cyan-900/30', darkText: 'dark:text-cyan-400' },
+  action: { bg: 'bg-red-100', text: 'text-red-700', darkBg: 'dark:bg-red-900/30', darkText: 'dark:text-red-400' },
+  comedy: { bg: 'bg-yellow-100', text: 'text-yellow-700', darkBg: 'dark:bg-yellow-900/30', darkText: 'dark:text-yellow-400' },
+  drama: { bg: 'bg-blue-100', text: 'text-blue-700', darkBg: 'dark:bg-blue-900/30', darkText: 'dark:text-blue-400' },
+  horror: { bg: 'bg-gray-800', text: 'text-gray-100', darkBg: 'dark:bg-gray-900', darkText: 'dark:text-gray-300' },
+  scifi: { bg: 'bg-indigo-100', text: 'text-indigo-700', darkBg: 'dark:bg-indigo-900/30', darkText: 'dark:text-indigo-400' },
+  night: { bg: 'bg-slate-700', text: 'text-slate-100', darkBg: 'dark:bg-slate-800', darkText: 'dark:text-slate-300' },
+  prime: { bg: 'bg-emerald-100', text: 'text-emerald-700', darkBg: 'dark:bg-emerald-900/30', darkText: 'dark:text-emerald-400' },
+}
+
+function getLabelColor(label: string): string {
+  const lowerLabel = label.toLowerCase()
+  for (const [key, colors] of Object.entries(LABEL_COLORS)) {
+    if (lowerLabel.includes(key)) {
+      return `${colors.bg} ${colors.text} ${colors.darkBg} ${colors.darkText}`
+    }
+  }
+  // Default color based on hash
+  const hash = label.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const colorKeys = Object.keys(LABEL_COLORS)
+  const defaultKey = colorKeys[hash % colorKeys.length]
+  const colors = LABEL_COLORS[defaultKey]
+  return `${colors.bg} ${colors.text} ${colors.darkBg} ${colors.darkText}`
 }
 
 function ProfileViewModal({ profile, onClose }: ProfileModalProps) {
@@ -30,129 +60,181 @@ function ProfileViewModal({ profile, onClose }: ProfileModalProps) {
 
   if (!profile) return null
 
+  const mfp = profile.mandatory_forbidden_criteria
+  const hasMfp = mfp && (
+    Object.keys(mfp.mandatory || {}).length > 0 ||
+    (mfp.forbidden?.genres?.length || 0) > 0 ||
+    (mfp.forbidden?.keywords?.length || 0) > 0 ||
+    (mfp.preferred?.genres?.length || 0) > 0
+  )
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50">
-      <div className="w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl">
-        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate pr-2">
-            {profile.name}
-          </h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden bg-white dark:bg-gray-800 rounded-xl shadow-2xl flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-750">
+          <div className="flex items-center gap-3 min-w-0">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+              {profile.name}
+            </h2>
+            <span className="px-2 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+              v{profile.version}
+            </span>
+          </div>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0"
+            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-          {/* Basic info */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4">
-            <div>
-              <label className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Version</label>
-              <p className="font-medium text-sm sm:text-base text-gray-900 dark:text-white">v{profile.version}</p>
-            </div>
-            <div>
-              <label className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('programming.iterations')}</label>
-              <p className="font-medium text-sm sm:text-base text-gray-900 dark:text-white">{profile.default_iterations}</p>
-            </div>
-            <div>
-              <label className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('programming.randomness')}</label>
-              <p className="font-medium text-sm sm:text-base text-gray-900 dark:text-white">{(profile.default_randomness * 100).toFixed(0)}%</p>
-            </div>
-          </div>
-
-          {/* Labels */}
-          {profile.labels.length > 0 && (
-            <div>
-              <label className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 mb-2">
-                <Tag className="w-4 h-4" />
-                {t('profiles.labels')}
-              </label>
-              <div className="flex flex-wrap gap-2">
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Labels + Quick Stats Row */}
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Labels */}
+            {profile.labels.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
                 {profile.labels.map(label => (
                   <span
                     key={label}
-                    className="px-3 py-1 text-sm bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-full"
+                    className={`px-2.5 py-1 text-xs font-medium rounded-full ${getLabelColor(label)}`}
                   >
                     {label}
+                  </span>
+                ))}
+              </div>
+            )}
+            {/* Quick stats */}
+            <div className="flex items-center gap-3 ml-auto text-xs text-gray-500 dark:text-gray-400">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                {profile.time_blocks.length} blocs
+              </span>
+              <span>{profile.default_iterations} iter.</span>
+              <span>{(profile.default_randomness * 100).toFixed(0)}% rand.</span>
+            </div>
+          </div>
+
+          {/* Time Blocks - Compact */}
+          {profile.time_blocks.length > 0 && (
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                Blocs horaires
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                {profile.time_blocks.map((block: TimeBlock, index: number) => (
+                  <div
+                    key={index}
+                    className="px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                  >
+                    <div className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                      {block.name}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {block.start_time} → {block.end_time}
+                    </div>
+                    {block.criteria.preferred_genres && block.criteria.preferred_genres.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {block.criteria.preferred_genres.slice(0, 2).map(g => (
+                          <span key={g} className="text-[10px] px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
+                            {g}
+                          </span>
+                        ))}
+                        {block.criteria.preferred_genres.length > 2 && (
+                          <span className="text-[10px] text-gray-400">+{block.criteria.preferred_genres.length - 2}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* M/F/P Summary - Compact */}
+          {hasMfp && (
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                Criteres M/F/P
+              </div>
+              <div className="flex flex-wrap gap-4 text-xs">
+                {mfp.mandatory && Object.keys(mfp.mandatory).length > 0 && (
+                  <div>
+                    <span className="text-orange-600 dark:text-orange-400 font-medium">Mandatory: </span>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {Object.entries(mfp.mandatory).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                    </span>
+                  </div>
+                )}
+                {mfp.forbidden?.genres && mfp.forbidden.genres.length > 0 && (
+                  <div>
+                    <span className="text-red-600 dark:text-red-400 font-medium">Forbidden genres: </span>
+                    <span className="text-gray-700 dark:text-gray-300">{mfp.forbidden.genres.join(', ')}</span>
+                  </div>
+                )}
+                {mfp.forbidden?.keywords && mfp.forbidden.keywords.length > 0 && (
+                  <div>
+                    <span className="text-red-600 dark:text-red-400 font-medium">Forbidden keywords: </span>
+                    <span className="text-gray-700 dark:text-gray-300">{mfp.forbidden.keywords.slice(0, 5).join(', ')}{mfp.forbidden.keywords.length > 5 ? ` +${mfp.forbidden.keywords.length - 5}` : ''}</span>
+                  </div>
+                )}
+                {mfp.preferred?.genres && mfp.preferred.genres.length > 0 && (
+                  <div>
+                    <span className="text-green-600 dark:text-green-400 font-medium">Preferred genres: </span>
+                    <span className="text-gray-700 dark:text-gray-300">{mfp.preferred.genres.join(', ')}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Scoring Weights - Inline */}
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+              Poids de scoring
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(profile.scoring_weights as ScoringWeights).map(([key, value]) => (
+                <div
+                  key={key}
+                  className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700"
+                >
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{t(`scoring.criteria.${key}`)}</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Libraries - Compact */}
+          {profile.libraries.length > 0 && (
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                Bibliotheques ({profile.libraries.length})
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {profile.libraries.map((lib, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded border border-gray-200 dark:border-gray-700"
+                  >
+                    {lib.name}
+                    <span className="text-gray-400 dark:text-gray-500">({lib.weight})</span>
                   </span>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Time blocks */}
-          <div>
-            <label className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 mb-2">
-              <Clock className="w-4 h-4" />
-              {t('profiles.timeBlocks')} ({profile.time_blocks.length})
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {profile.time_blocks.map((block: TimeBlock, index: number) => (
-                <div
-                  key={index}
-                  className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                >
-                  <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-white">
-                    {block.name}
-                  </div>
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                    {block.start_time} - {block.end_time}
-                  </div>
-                  {block.criteria.preferred_genres && block.criteria.preferred_genres.length > 0 && (
-                    <div className="mt-1 text-xs text-gray-400 truncate">
-                      Genres: {block.criteria.preferred_genres.join(', ')}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Scoring weights */}
-          <div>
-            <label className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 mb-2">
-              <Settings2 className="w-4 h-4" />
-              {t('profiles.scoringWeights')}
-            </label>
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 sm:gap-2">
-              {Object.entries(profile.scoring_weights as ScoringWeights).map(([key, value]) => (
-                <div key={key} className="p-1.5 sm:p-2 bg-gray-50 dark:bg-gray-700 rounded text-center">
-                  <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
-                    {t(`scoring.criteria.${key}`)}
-                  </div>
-                  <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-white">
-                    {value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Libraries */}
-          <div>
-            <label className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-2 block">
-              Bibliothèques ({profile.libraries.length})
-            </label>
-            <div className="flex flex-wrap gap-1 sm:gap-2">
-              {profile.libraries.map((lib, index) => (
-                <span
-                  key={index}
-                  className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded"
-                >
-                  {lib.name} (poids: {lib.weight})
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Raw JSON */}
+          {/* JSON Toggle */}
           <details className="group">
-            <summary className="cursor-pointer text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+            <summary className="cursor-pointer text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1">
+              <FileJson className="w-3.5 h-3.5" />
               Voir le JSON brut
             </summary>
-            <pre className="mt-2 p-2 sm:p-4 bg-gray-900 text-gray-100 text-[10px] sm:text-xs rounded-lg overflow-x-auto">
+            <pre className="mt-2 p-3 bg-gray-900 text-green-400 text-[10px] font-mono rounded-lg overflow-x-auto max-h-64">
               {JSON.stringify(profile, null, 2)}
             </pre>
           </details>
@@ -182,6 +264,11 @@ export function ProfilesPage() {
   // Import state
   const [importing, setImporting] = useState(false)
   const [importOverwrite, setImportOverwrite] = useState(false)
+
+  // Editor state
+  const [editorProfile, setEditorProfile] = useState<Profile | null>(null)
+  const [editorMode, setEditorMode] = useState<'create' | 'edit' | 'duplicate'>('create')
+  const [showEditor, setShowEditor] = useState(false)
 
   useEffect(() => {
     loadProfiles()
@@ -321,6 +408,41 @@ export function ProfilesPage() {
     }
   }
 
+  const handleCreate = () => {
+    setEditorProfile(null)
+    setEditorMode('create')
+    setShowEditor(true)
+  }
+
+  const handleEdit = async (profile: Profile) => {
+    setActionId(profile.id)
+    try {
+      const fullProfile = await profilesApi.get(profile.id)
+      setEditorProfile(fullProfile)
+      setEditorMode('edit')
+      setShowEditor(true)
+    } catch {
+      setError('Erreur lors du chargement du profil')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const handleEditorSave = (savedProfile: Profile) => {
+    if (editorMode === 'edit') {
+      setProfiles(prev => prev.map(p => p.id === savedProfile.id ? savedProfile : p))
+    } else {
+      setProfiles(prev => [...prev, savedProfile])
+    }
+    setSuccess(editorMode === 'edit' ? 'Profil mis a jour' : 'Profil cree')
+    setShowEditor(false)
+  }
+
+  const handleEditorClose = () => {
+    setShowEditor(false)
+    setEditorProfile(null)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -366,10 +488,13 @@ export function ProfilesPage() {
             <span className="hidden sm:inline">{t('common.import')}</span>
             <span className="sm:hidden">Import</span>
           </button>
-          <button className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm">
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm"
+          >
             <Plus className="w-4 sm:w-5 h-4 sm:h-5" />
             <span className="hidden sm:inline">{t('profiles.create')}</span>
-            <span className="sm:hidden">Créer</span>
+            <span className="sm:hidden">Creer</span>
           </button>
         </div>
       </div>
@@ -424,7 +549,7 @@ export function ProfilesPage() {
                       {profile.labels.map(label => (
                         <span
                           key={label}
-                          className="px-2 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded"
+                          className={`px-2 py-0.5 text-xs font-medium rounded ${getLabelColor(label)}`}
                         >
                           {label}
                         </span>
@@ -475,10 +600,16 @@ export function ProfilesPage() {
                     <Download className="w-4 h-4" />
                   </button>
                   <button
-                    className="p-2 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+                    onClick={() => handleEdit(profile)}
+                    disabled={actionId === profile.id}
+                    className="p-2 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors disabled:opacity-50"
                     title={t('common.edit')}
                   >
-                    <Edit className="w-4 h-4" />
+                    {actionId === profile.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Edit className="w-4 h-4" />
+                    )}
                   </button>
                   <button
                     onClick={() => handleDelete(profile.id)}
@@ -564,6 +695,16 @@ export function ProfilesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Profile Editor */}
+      {showEditor && (
+        <ProfileEditor
+          profile={editorProfile}
+          mode={editorMode}
+          onClose={handleEditorClose}
+          onSaved={handleEditorSave}
+        />
       )}
     </div>
   )

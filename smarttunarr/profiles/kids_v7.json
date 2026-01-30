@@ -1,0 +1,314 @@
+{
+  "name": "Kids v7",
+  "version": "6.1",
+  "description": "Profil enfants avec M/F/P - Animation majeure (Disney, Pixar, DreamWorks) + films familiaux",
+  "labels": ["kids", "family", "animation", "v7", "mfp"],
+  "libraries": [
+    {"id": "2", "name": "Dessins Animes", "type": "movie", "weight": 100, "enabled": true},
+    {"id": "1", "name": "Films", "type": "movie", "weight": 40, "enabled": true}
+  ],
+  "time_blocks": [
+    {
+      "name": "matin_animation",
+      "description": "Matinee - Dessins animes et films legers",
+      "start_time": "07:00",
+      "end_time": "12:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "preferred_genres": ["Animation", "Family", "Comedy", "Musical", "Familial", "Comedie"],
+        "forbidden_genres": ["Horror", "Thriller", "Crime", "War", "Drama", "Horreur", "Guerre", "Drame"],
+        "min_duration_min": 60,
+        "max_duration_min": 120,
+        "max_age_rating": "PG",
+        "min_tmdb_rating": 5.5,
+        "genre_rules": {
+          "forbidden_values": ["Horror", "Thriller", "Crime", "War", "Drama", "Horreur", "Guerre", "Drame"],
+          "forbidden_penalty": -150,
+          "mandatory_values": ["Animation", "Family", "Familial"],
+          "mandatory_penalty": -80,
+          "preferred_values": ["Comedy", "Musical", "Comedie"],
+          "preferred_bonus": 15
+        },
+        "age_rules": {
+          "forbidden_values": ["R", "NC-17", "TV-MA", "PG-13", "+12", "+16", "+18", "12+", "16+", "18+"],
+          "forbidden_penalty": -150,
+          "preferred_values": ["G", "TP", "Tous publics", "U", "TV-G", "TV-Y"],
+          "preferred_bonus": 10
+        },
+        "filter_rules": {
+          "forbidden_values": ["sex", "drugs", "alcohol", "smoking", "violence", "nudity", "erotic", "adult"],
+          "forbidden_penalty": -150,
+          "preferred_values": ["family", "children", "disney", "pixar", "dreamworks"],
+          "preferred_bonus": 10
+        },
+        "timing_rules": {
+          "preferred_max_minutes": 15,
+          "mandatory_max_minutes": 45
+        },
+        "mfp_policy": {
+          "mandatory_matched_bonus": 10,
+          "mandatory_missed_penalty": -30,
+          "forbidden_detected_penalty": -150,
+          "preferred_matched_bonus": 15
+        }
+      }
+    },
+    {
+      "name": "apres_midi_aventure",
+      "description": "Apres-midi - Aventure et films familiaux",
+      "start_time": "12:00",
+      "end_time": "17:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "preferred_genres": ["Animation", "Family", "Adventure", "Comedy", "Fantasy", "Familial", "Comedie", "Fantastique"],
+        "forbidden_genres": ["Horror", "Thriller", "Crime", "War", "Drama", "Horreur", "Guerre", "Drame"],
+        "min_duration_min": 70,
+        "max_duration_min": 140,
+        "max_age_rating": "PG",
+        "min_tmdb_rating": 5.5,
+        "genre_rules": {
+          "forbidden_values": ["Horror", "Thriller", "Crime", "War", "Drama", "Horreur", "Guerre", "Drame"],
+          "forbidden_penalty": -120,
+          "preferred_values": ["Adventure", "Fantasy", "Animation", "Fantastique"],
+          "preferred_bonus": 15
+        },
+        "age_rules": {
+          "forbidden_values": ["R", "NC-17", "TV-MA", "+16", "+18", "16+", "18+"],
+          "forbidden_penalty": -150,
+          "preferred_values": ["G", "PG", "TP", "Tous publics", "U"],
+          "preferred_bonus": 8
+        },
+        "filter_rules": {
+          "forbidden_values": ["sex", "drugs", "alcohol", "smoking", "violence", "nudity", "erotic", "adult"],
+          "forbidden_penalty": -120,
+          "preferred_values": ["family", "children", "disney", "pixar", "dreamworks"],
+          "preferred_bonus": 10
+        },
+        "timing_rules": {
+          "preferred_max_minutes": 20,
+          "mandatory_max_minutes": 50
+        },
+        "mfp_policy": {
+          "mandatory_matched_bonus": 10,
+          "mandatory_missed_penalty": -25,
+          "forbidden_detected_penalty": -120,
+          "preferred_matched_bonus": 15
+        }
+      }
+    },
+    {
+      "name": "soiree_famille",
+      "description": "Soiree - Films familiaux premium",
+      "start_time": "17:00",
+      "end_time": "21:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "preferred_genres": ["Animation", "Family", "Adventure", "Comedy", "Fantasy", "Familial", "Comedie", "Fantastique"],
+        "forbidden_genres": ["Horror", "Thriller", "Crime", "Drama", "Horreur", "Drame"],
+        "min_duration_min": 80,
+        "max_duration_min": 150,
+        "min_tmdb_rating": 6.5,
+        "genre_rules": {
+          "forbidden_values": ["Horror", "Thriller", "Crime", "Drama", "Horreur", "Drame"],
+          "forbidden_penalty": -150,
+          "preferred_values": ["Animation", "Family", "Adventure", "Familial"],
+          "preferred_bonus": 20
+        },
+        "age_rules": {
+          "forbidden_values": ["R", "NC-17", "TV-MA", "+16", "+18", "16+", "18+"],
+          "forbidden_penalty": -150,
+          "preferred_values": ["G", "PG", "TP", "Tous publics"],
+          "preferred_bonus": 10
+        },
+        "filter_rules": {
+          "forbidden_values": ["sex", "drugs", "alcohol", "smoking", "violence", "nudity", "erotic", "adult"],
+          "forbidden_penalty": -150,
+          "preferred_values": ["family", "children", "disney", "pixar", "dreamworks"],
+          "preferred_bonus": 12
+        },
+        "rating_rules": {
+          "preferred_values": ["excellent", "good"],
+          "preferred_bonus": 15,
+          "mandatory_values": ["excellent", "good", "average"],
+          "mandatory_penalty": -20
+        },
+        "timing_rules": {
+          "preferred_max_minutes": 15,
+          "mandatory_max_minutes": 40
+        },
+        "mfp_policy": {
+          "mandatory_matched_bonus": 15,
+          "mandatory_missed_penalty": -30,
+          "forbidden_detected_penalty": -150,
+          "preferred_matched_bonus": 20
+        },
+        "criterion_multipliers": {
+          "rating": 1.3,
+          "genre": 1.2
+        }
+      }
+    },
+    {
+      "name": "nuit_doux",
+      "description": "Nuit - Contenus calmes et rassurants",
+      "start_time": "21:00",
+      "end_time": "07:00",
+      "criteria": {
+        "preferred_types": ["movie"],
+        "preferred_genres": ["Animation", "Family", "Comedy", "Musical", "Familial", "Comedie"],
+        "forbidden_genres": ["Horror", "Thriller", "Crime", "War", "Action", "Mystery", "Drama", "Horreur", "Guerre", "Mystere", "Drame"],
+        "min_duration_min": 70,
+        "max_duration_min": 120,
+        "min_tmdb_rating": 6.0,
+        "genre_rules": {
+          "forbidden_values": ["Horror", "Thriller", "Crime", "War", "Action", "Mystery", "Drama", "Horreur", "Guerre", "Mystere", "Drame"],
+          "forbidden_penalty": -200,
+          "mandatory_values": ["Animation", "Family", "Familial"],
+          "mandatory_penalty": -100,
+          "preferred_values": ["Comedy", "Musical", "Comedie"],
+          "preferred_bonus": 15
+        },
+        "age_rules": {
+          "forbidden_values": ["R", "NC-17", "TV-MA", "PG-13", "+12", "+16", "+18", "12+", "16+", "18+"],
+          "forbidden_penalty": -200,
+          "preferred_values": ["G", "TP", "Tous publics", "U"],
+          "preferred_bonus": 15
+        },
+        "filter_rules": {
+          "forbidden_values": ["sex", "drugs", "alcohol", "smoking", "violence", "nudity", "erotic", "adult"],
+          "forbidden_penalty": -200,
+          "preferred_values": ["family", "children", "disney", "pixar", "dreamworks"],
+          "preferred_bonus": 10
+        },
+        "rating_rules": {
+          "preferred_values": ["excellent", "good"],
+          "preferred_bonus": 20
+        },
+        "timing_rules": {
+          "preferred_max_minutes": 25,
+          "mandatory_max_minutes": 60
+        },
+        "mfp_policy": {
+          "mandatory_matched_bonus": 10,
+          "mandatory_missed_penalty": -35,
+          "forbidden_detected_penalty": -200,
+          "preferred_matched_bonus": 15
+        }
+      }
+    }
+  ],
+  "mandatory_forbidden_criteria": {
+    "mandatory": {
+      "min_tmdb_rating": 4.5,
+      "min_vote_count": 50
+    },
+    "forbidden": {
+      "genres": ["Horror", "Horreur", "Drama", "Drame"],
+      "age_ratings": ["+16", "+18", "16+", "18+", "R", "NC-17", "TV-MA"],
+      "keywords": ["violence", "gore", "blood", "horror", "scary", "adult", "sexual", "nude", "drugs", "sex", "erotic", "alcohol", "smoking", "nudity"]
+    },
+    "preferred": {
+      "genres": ["Animation", "Family", "Comedy", "Musical", "Familial", "Comedie"],
+      "keywords": ["family", "children", "friendship", "adventure", "magic", "disney", "pixar", "dreamworks"],
+      "collections": ["Disney Classics", "Pixar", "DreamWorks Animation", "Studio Ghibli", "Illumination"]
+    }
+  },
+  "enhanced_criteria": {
+    "collections_franchises": {
+      "enabled": true,
+      "preferred_collections": [
+        "Toy Story Collection",
+        "Finding Nemo Collection",
+        "The Incredibles Collection",
+        "Cars Collection",
+        "Monsters, Inc. Collection",
+        "Shrek Collection",
+        "How to Train Your Dragon Collection",
+        "Despicable Me Collection",
+        "Ice Age Collection",
+        "Kung Fu Panda Collection",
+        "Madagascar Collection",
+        "Frozen Collection",
+        "The Lion King Collection",
+        "Aladdin Collection",
+        "The Little Mermaid Collection"
+      ],
+      "preferred_franchises": [
+        "Disney Princess",
+        "Pixar",
+        "DreamWorks",
+        "Illumination",
+        "Studio Ghibli",
+        "Disney Renaissance"
+      ],
+      "forbidden_collections": [
+        "Saw Collection",
+        "The Conjuring Universe",
+        "Scream Collection",
+        "Halloween Collection"
+      ],
+      "collection_bonus_points": 15,
+      "franchise_bonus_points": 10
+    },
+    "keywords_safety": {
+      "enabled": true,
+      "safe_keywords": [
+        "family", "children", "kids", "friendship", "adventure", "magic",
+        "animation", "cartoon", "disney", "pixar", "dreamworks", "educational",
+        "animals", "musical", "princess", "fairy tale", "talking animals"
+      ],
+      "dangerous_keywords": [
+        "violence", "gore", "blood", "death", "murder", "horror", "scary",
+        "nightmare", "ghost", "zombie", "monster", "adult", "mature",
+        "sexual", "nude", "drugs", "alcohol", "gangster", "sex", "erotic",
+        "smoking", "nudity", "drug use", "substance abuse"
+      ],
+      "safe_bonus_points": 8,
+      "dangerous_penalty_points": -150
+    },
+    "temporal_intelligence": {
+      "enabled": true,
+      "recency_bonuses": {
+        "enabled": true,
+        "very_recent_days": 90,
+        "very_recent_bonus": 8,
+        "recent_months": 24,
+        "recent_bonus": 5,
+        "this_year_bonus": 3
+      }
+    },
+    "quality_indicators": {
+      "enabled": true,
+      "vote_reliability": {
+        "enabled": true,
+        "excellent_votes": 5000,
+        "good_votes": 2000,
+        "acceptable_votes": 500,
+        "minimum_votes": 50
+      }
+    }
+  },
+  "strategies": {
+    "maximize_variety": true,
+    "avoid_repeats_days": 10
+  },
+  "scoring_weights": {
+    "type": 8,
+    "duration": 8,
+    "genre": 18,
+    "timing": 10,
+    "strategy": 4,
+    "age": 15,
+    "rating": 12,
+    "filter": 5,
+    "bonus": 8
+  },
+  "mfp_policy": {
+    "mandatory_matched_bonus": 10,
+    "mandatory_missed_penalty": -30,
+    "forbidden_detected_penalty": -150,
+    "preferred_matched_bonus": 15
+  },
+  "default_iterations": 15,
+  "default_randomness": 0.2
+}
