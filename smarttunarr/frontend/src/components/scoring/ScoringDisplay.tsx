@@ -458,10 +458,34 @@ export function ScoringExpandableRow({ prog, score, criteria, profile }: Scoring
     { key: 'genre', label: 'Genre', content: prog.genres?.join(', ') || null, contentValues: prog.genres || [] },
     { key: 'timing', label: 'Timing', content: (() => {
       const td = score?.criteria?.timing?.details as TimingDetails | null
-      if (td?.is_first_in_block && td?.late_start_minutes && td.late_start_minutes > 0) return `Retard +${td.late_start_minutes.toFixed(0)}min`
-      if (td?.is_last_in_block && td?.overflow_minutes && td.overflow_minutes > 0) return `Dépassement +${td.overflow_minutes.toFixed(0)}min`
-      if (td?.is_first_in_block || td?.is_last_in_block) return 'OK'
-      return null
+      if (!td) return null
+      if (td.skipped) return null  // Middle programs
+
+      const isFirst = td.is_first_in_block
+      const isLast = td.is_last_in_block
+      if (!isFirst && !isLast) return null
+
+      const lateStart = td.late_start_minutes || 0
+      const overflow = td.overflow_minutes || 0
+      const early = td.early_start_minutes || 0
+      const parts: string[] = []
+
+      // First in block: check late start or early start
+      if (isFirst) {
+        if (lateStart > 2) {
+          parts.push(`Retard +${lateStart.toFixed(0)}min`)
+        } else if (early > 2) {
+          parts.push(`Avance -${early.toFixed(0)}min`)
+        }
+      }
+
+      // Last in block: check overflow
+      if (isLast && overflow > 2) {
+        parts.push(`Dépassement +${overflow.toFixed(0)}min`)
+      }
+
+      if (parts.length > 0) return parts.join(', ')
+      return 'OK'
     })(), contentValues: [] },
     { key: 'strategy', label: 'Strat.', content: null, contentValues: [] },
     { key: 'age', label: 'Âge', content: prog.content_rating || null, contentValues: prog.content_rating ? [prog.content_rating] : [] },

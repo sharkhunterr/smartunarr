@@ -565,6 +565,11 @@ async def _run_programming(
                                 name: {
                                     "score": res.score,
                                     "weight": res.weight,
+                                    "weighted_score": res.weighted_score,
+                                    "multiplier": res.multiplier,
+                                    "multiplied_weighted_score": res.multiplied_weighted_score,
+                                    "skipped": res.skipped,
+                                    "details": res.details if res.details else None,
                                     "rule_violation": {
                                         "rule_type": res.rule_violation.rule_type,
                                         "values": res.rule_violation.values,

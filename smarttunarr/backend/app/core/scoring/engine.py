@@ -51,6 +51,9 @@ class ScoringResult:
                 "multiplied_weighted_score": result.multiplied_weighted_score,
                 "skipped": result.skipped,
             }
+            # Add details if present (important for timing criterion)
+            if result.details:
+                criterion_data["details"] = result.details
             # Add rule violation if present
             if result.rule_violation:
                 criterion_data["rule_violation"] = {
