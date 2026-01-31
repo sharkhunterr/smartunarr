@@ -439,8 +439,8 @@ async def get_cache_stats(
             if lib["newest_cache"] is None or content.created_at > lib["newest_cache"]:
                 lib["newest_cache"] = content.created_at
 
-        # Track enrichment
-        if content.meta and content.meta.enriched_at:
+        # Track enrichment (only count as enriched if tmdb_id is set)
+        if content.meta and content.meta.tmdb_id:
             lib["enriched_items"] += 1
             if lib["oldest_enrichment"] is None or content.meta.enriched_at < lib["oldest_enrichment"]:
                 lib["oldest_enrichment"] = content.meta.enriched_at
@@ -540,8 +540,13 @@ async def force_tmdb_enrichment(
     result = await session.execute(stmt)
     contents = result.scalars().all()
 
-    # Filter to unenriched content
-    unenriched = [c for c in contents if not c.meta or not c.meta.enriched_at]
+    # Filter to unenriched content (no meta, no enriched_at, or enriched but no tmdb_id)
+    unenriched = [
+        c for c in contents
+        if not c.meta  # No metadata record
+        or not c.meta.enriched_at  # Never attempted
+        or not c.meta.tmdb_id  # Attempted but TMDB didn't find it
+    ]
 
     if not unenriched:
         return {
