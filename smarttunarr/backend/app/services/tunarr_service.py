@@ -113,6 +113,27 @@ class TunarrService:
 
         return None
 
+    async def update_channel_start_time(
+        self,
+        channel_id: str,
+        start_time_ms: int,
+        duration_ms: int | None = None,
+    ) -> bool:
+        """
+        Update a channel's programming start time.
+
+        Args:
+            channel_id: Channel ID
+            start_time_ms: Start time as Unix timestamp in milliseconds
+            duration_ms: Optional total duration in milliseconds
+
+        Returns:
+            True if successful
+        """
+        return await self.adapter.update_channel_start_time(
+            channel_id, start_time_ms, duration_ms
+        )
+
     async def close(self) -> None:
         """Close the adapter connection."""
         await self.adapter.close()

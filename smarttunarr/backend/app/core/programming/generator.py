@@ -694,22 +694,37 @@ class ProgrammingGenerator:
         """Update program's score with new timing criterion result."""
         from app.core.scoring.base_criterion import CriterionResult
 
-        # Get the old timing result
-        old_timing = prog.score.criterion_results.get("timing")
-        old_timing_weighted = 0.0
-        if old_timing and not old_timing.skipped:
-            old_timing_weighted = old_timing.multiplied_weighted_score
-
-        # Update criterion results
+        # Update criterion results with new timing
         prog.score.criterion_results["timing"] = timing_result
 
-        # Recalculate total score
-        new_timing_weighted = timing_result.multiplied_weighted_score if not timing_result.skipped else 0.0
-        score_diff = new_timing_weighted - old_timing_weighted
+        # Recalculate weighted_total properly from all criterion results
+        # This mirrors the logic in ScoringEngine.score():
+        # weighted_total = (multiplied_weighted_sum / total_weight) * 100
+        total_weight = 0.0
+        multiplied_weighted_sum = 0.0
 
-        # Update totals
-        prog.score.weighted_total += score_diff
-        prog.score.total_score = max(0.0, min(100.0, prog.score.weighted_total))
+        for criterion_result in prog.score.criterion_results.values():
+            effective_weight = criterion_result.weight * criterion_result.multiplier
+            total_weight += effective_weight
+            multiplied_weighted_sum += criterion_result.multiplied_weighted_score
+
+        if total_weight > 0:
+            prog.score.weighted_total = (multiplied_weighted_sum / total_weight) * 100
+        else:
+            prog.score.weighted_total = 50.0
+
+        # Calculate total_score from weighted_total, applying mandatory penalties
+        # This mirrors the logic in ScoringEngine.score()
+        if prog.score.forbidden_violations:
+            prog.score.total_score = 0.0
+        else:
+            adjusted_score = prog.score.weighted_total
+            for penalty in prog.score.mandatory_penalties:
+                adjusted_score -= penalty.get("penalty", 10.0)
+            # Apply keyword multiplier if present
+            if prog.score.keyword_multiplier != 1.0:
+                adjusted_score *= prog.score.keyword_multiplier
+            prog.score.total_score = max(0.0, min(100.0, adjusted_score))
 
     def _recalculate_consecutive_timings(
         self,

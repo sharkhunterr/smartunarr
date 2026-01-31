@@ -676,6 +676,7 @@ async def _run_programming(
                 await job_manager.update_step_status(job_id, "tunarr_sync", "running")
                 await job_manager.update_job_progress(job_id, 97, "Envoi de la programmation vers Tunarr...")
 
+                tunarr_service = None
                 try:
                     # Get Tunarr config
                     tunarr_config = await config_service.get_service("tunarr")
@@ -717,9 +718,34 @@ async def _run_programming(
                         plex_server_name=plex_server_name,
                         plex_server_id=plex_server_id,
                     )
-                    await tunarr_service.close()
 
                     if success:
+                        # Update channel start time
+                        # Parse start datetime from request
+                        start_dt = datetime.now()
+                        if request.start_datetime:
+                            try:
+                                start_dt = datetime.fromisoformat(request.start_datetime.replace("Z", "+00:00"))
+                            except ValueError:
+                                pass
+
+                        # Convert to Unix timestamp in milliseconds
+                        start_time_ms = int(start_dt.timestamp() * 1000)
+
+                        # Calculate total duration from programs (in milliseconds)
+                        total_duration_ms = sum(p.get("duration_ms", 0) for p in tunarr_programs)
+
+                        # Update channel start time in Tunarr
+                        start_time_updated = await tunarr_service.update_channel_start_time(
+                            request.channel_id,
+                            start_time_ms,
+                            total_duration_ms,
+                        )
+                        if start_time_updated:
+                            logger.info(f"Channel start time updated to {start_dt.isoformat()}")
+                        else:
+                            logger.warning(f"Failed to update channel start time")
+
                         sync_detail = f"{len(tunarr_programs)} programmes envoyés"
                         await job_manager.update_step_status(job_id, "tunarr_sync", "completed", sync_detail)
                         logger.info(f"Tunarr sync completed: {len(tunarr_programs)} programs sent to channel {request.channel_id}")
@@ -732,6 +758,9 @@ async def _run_programming(
                     await job_manager.update_step_status(job_id, "tunarr_sync", "failed", sync_detail)
                     # Don't fail the whole job, just log the error
                     # The programming was still generated successfully
+                finally:
+                    if tunarr_service:
+                        await tunarr_service.close()
 
             await job_manager.complete_job(
                 job_id,

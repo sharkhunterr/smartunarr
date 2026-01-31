@@ -206,3 +206,66 @@ class TunarrAdapter:
             return []
         response.raise_for_status()
         return response.json()
+
+    async def update_channel(self, channel_id: str, channel_config: dict[str, Any]) -> bool:
+        """
+        Update a channel's configuration.
+
+        Args:
+            channel_id: Channel ID
+            channel_config: Full channel configuration
+
+        Returns:
+            True if successful
+        """
+        client = await self._get_client()
+        response = await client.put(
+            f"/api/channels/{channel_id}",
+            json=channel_config,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/plain, */*",
+            },
+        )
+        if response.status_code == 200:
+            logger.info(f"Channel {channel_id} configuration updated")
+            return True
+        else:
+            logger.error(f"Failed to update channel {channel_id}: {response.status_code}")
+            logger.error(f"Response: {response.text}")
+            return False
+
+    async def update_channel_start_time(
+        self,
+        channel_id: str,
+        start_time_ms: int,
+        duration_ms: int | None = None,
+    ) -> bool:
+        """
+        Update a channel's programming start time.
+
+        Args:
+            channel_id: Channel ID
+            start_time_ms: Start time as Unix timestamp in milliseconds
+            duration_ms: Optional total duration in milliseconds (calculated from programs if not provided)
+
+        Returns:
+            True if successful
+        """
+        # Get current channel configuration
+        channel_config = await self.get_channel(channel_id)
+        if not channel_config:
+            logger.error(f"Channel {channel_id} not found")
+            return False
+
+        # Update startTime
+        channel_config["startTime"] = start_time_ms
+        logger.info(f"Updating channel {channel_id} startTime to {start_time_ms}")
+
+        # Update duration if provided
+        if duration_ms is not None:
+            channel_config["duration"] = duration_ms
+            logger.info(f"Updating channel {channel_id} duration to {duration_ms}")
+
+        # Send update
+        return await self.update_channel(channel_id, channel_config)
