@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from sqlalchemy import delete
+from sqlalchemy import delete, func, select
 
 from app.db.database import get_session
 from app.models.content import Content, ContentMeta
@@ -380,4 +380,130 @@ async def clear_content_cache(
         "deleted_content": content_count,
         "deleted_metadata": meta_count,
         "message": f"Cleared {content_count} contents and {meta_count} metadata entries",
+    }
+
+
+@router.get("/cache/stats")
+async def get_cache_stats(
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """
+    Get cache statistics grouped by library.
+
+    Returns content counts, enrichment stats, and timestamps for each library.
+    """
+    from sqlalchemy.orm import selectinload
+
+    # Get all contents with their metadata, grouped by library
+    stmt = (
+        select(Content)
+        .options(selectinload(Content.meta))
+        .order_by(Content.library_id, Content.title)
+    )
+    result = await session.execute(stmt)
+    contents = result.scalars().all()
+
+    # Group by library
+    libraries: dict[str, dict[str, Any]] = {}
+    for content in contents:
+        lib_id = content.library_id
+        if lib_id not in libraries:
+            libraries[lib_id] = {
+                "library_id": lib_id,
+                "total_items": 0,
+                "enriched_items": 0,
+                "movies": 0,
+                "episodes": 0,
+                "other": 0,
+                "oldest_cache": None,
+                "newest_cache": None,
+                "oldest_enrichment": None,
+                "newest_enrichment": None,
+            }
+
+        lib = libraries[lib_id]
+        lib["total_items"] += 1
+
+        # Count by type
+        if content.type == "movie":
+            lib["movies"] += 1
+        elif content.type == "episode":
+            lib["episodes"] += 1
+        else:
+            lib["other"] += 1
+
+        # Track cache timestamps
+        if content.created_at:
+            if lib["oldest_cache"] is None or content.created_at < lib["oldest_cache"]:
+                lib["oldest_cache"] = content.created_at
+            if lib["newest_cache"] is None or content.created_at > lib["newest_cache"]:
+                lib["newest_cache"] = content.created_at
+
+        # Track enrichment
+        if content.meta and content.meta.enriched_at:
+            lib["enriched_items"] += 1
+            if lib["oldest_enrichment"] is None or content.meta.enriched_at < lib["oldest_enrichment"]:
+                lib["oldest_enrichment"] = content.meta.enriched_at
+            if lib["newest_enrichment"] is None or content.meta.enriched_at > lib["newest_enrichment"]:
+                lib["newest_enrichment"] = content.meta.enriched_at
+
+    # Convert datetimes to ISO strings
+    for lib in libraries.values():
+        for key in ["oldest_cache", "newest_cache", "oldest_enrichment", "newest_enrichment"]:
+            if lib[key]:
+                lib[key] = lib[key].isoformat()
+
+    # Get total stats
+    total_content = len(contents)
+    total_enriched = sum(lib["enriched_items"] for lib in libraries.values())
+
+    return {
+        "total_content": total_content,
+        "total_enriched": total_enriched,
+        "libraries": list(libraries.values()),
+    }
+
+
+@router.delete("/cache/library/{library_id}")
+async def clear_library_cache(
+    library_id: str,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """
+    Clear cached content for a specific library.
+
+    This forces a fresh fetch from Plex for this library on next use.
+    """
+    # First get the content IDs for this library
+    content_stmt = select(Content.id).where(Content.library_id == library_id)
+    content_result = await session.execute(content_stmt)
+    content_ids = [row[0] for row in content_result.fetchall()]
+
+    if not content_ids:
+        return {
+            "success": True,
+            "deleted_content": 0,
+            "deleted_metadata": 0,
+            "message": f"No cached content found for library {library_id}",
+        }
+
+    # Delete metadata for these contents
+    meta_stmt = delete(ContentMeta).where(ContentMeta.content_id.in_(content_ids))
+    meta_result = await session.execute(meta_stmt)
+    meta_count = meta_result.rowcount
+
+    # Delete the contents
+    content_del_stmt = delete(Content).where(Content.library_id == library_id)
+    content_result = await session.execute(content_del_stmt)
+    content_count = content_result.rowcount
+
+    await session.commit()
+
+    logger.info(f"Cleared cache for library {library_id}: {content_count} contents, {meta_count} metadata")
+
+    return {
+        "success": True,
+        "deleted_content": content_count,
+        "deleted_metadata": meta_count,
+        "message": f"Cleared {content_count} contents and {meta_count} metadata for library {library_id}",
     }

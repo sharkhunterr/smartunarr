@@ -324,14 +324,44 @@
         "cacheTmdb": "Cache + TMDB",
         "tmdbOnly": "TMDB",
         "plexOnly": "Plex"
+      },
+      "logRetention": "Log Retention",
+      "logRetentionHelp": "Automatically delete logs older than the selected period",
+      "logRetentionOptions": {
+        "7days": "7 days",
+        "14days": "14 days",
+        "30days": "30 days",
+        "60days": "60 days",
+        "90days": "90 days",
+        "forever": "Forever"
       }
     },
     "cache": {
       "section": "Cache Management",
-      "title": "Local Cache",
-      "description": "Local cache stores data to speed up operations. Clearing the cache can resolve some issues.",
+      "title": "TMDB Cache",
+      "description": "Cache stores enriched metadata from TMDB for each library. Clearing the cache will force a new enrichment.",
       "clear": "Clear Cache",
-      "cleared": "Cache cleared"
+      "cleared": "Cache cleared",
+      "loadError": "Error loading statistics",
+      "clearError": "Error clearing cache",
+      "confirmClearAll": "Are you sure you want to clear all cache? This will force a new TMDB enrichment.",
+      "confirmClearLibrary": "Are you sure you want to clear the cache for this library?",
+      "clearedAll": "All cache cleared",
+      "clearedLibrary": "Library cache cleared",
+      "totalContent": "Cached content",
+      "enrichedTmdb": "TMDB enriched",
+      "libraries": "Libraries",
+      "enrichmentRate": "Enrichment rate",
+      "library": "Library",
+      "items": "Items",
+      "enriched": "Enriched",
+      "lastUpdate": "Last update",
+      "actions": "Actions",
+      "movies": "movies",
+      "episodes": "episodes",
+      "clearLibrary": "Clear cache",
+      "clearAll": "Clear all cache",
+      "empty": "No cached content"
     },
     "about": {
       "section": "About",
@@ -455,6 +485,33 @@
       "familyWeekend": "Family weekend schedule",
       "classicMovies": "Classic movies 80-90s",
       "lateNight": "Late night programming"
+    }
+  },
+  "logs": {
+    "title": "Logs",
+    "date": "Date",
+    "level": "Level",
+    "source": "Source",
+    "message": "Message",
+    "copy": "Copy",
+    "viewRawJson": "View raw JSON",
+    "autoRefresh": "Auto-refresh",
+    "autoRefresh5s": "Auto-refresh 5s",
+    "search": "Search",
+    "searchPlaceholder": "Search in messages...",
+    "noLogs": "No logs",
+    "totalLogs": "{{count}} logs total",
+    "fetchError": "Error fetching logs",
+    "clearError": "Error clearing logs",
+    "confirmClear": "Are you sure you want to clear all logs?",
+    "showing": "{{start}}-{{end}} of {{total}}",
+    "perPage": "Per page",
+    "levels": {
+      "all": "All",
+      "error": "Errors",
+      "warning": "Warnings",
+      "info": "Info",
+      "debug": "Debug"
     }
   }
 }

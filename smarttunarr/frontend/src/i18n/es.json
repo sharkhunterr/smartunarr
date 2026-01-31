@@ -324,14 +324,44 @@
         "cacheTmdb": "Cache + TMDB",
         "tmdbOnly": "TMDB",
         "plexOnly": "Plex"
+      },
+      "logRetention": "Retencion de logs",
+      "logRetentionHelp": "Elimina automaticamente los logs mas antiguos que el periodo seleccionado",
+      "logRetentionOptions": {
+        "7days": "7 dias",
+        "14days": "14 dias",
+        "30days": "30 dias",
+        "60days": "60 dias",
+        "90days": "90 dias",
+        "forever": "Para siempre"
       }
     },
     "cache": {
       "section": "Gestion de cache",
-      "title": "Cache local",
-      "description": "La cache local almacena datos para acelerar las operaciones. Limpiar la cache puede resolver algunos problemas.",
+      "title": "Cache TMDB",
+      "description": "La cache almacena metadatos enriquecidos desde TMDB para cada biblioteca. Limpiar la cache forzara un nuevo enriquecimiento.",
       "clear": "Limpiar cache",
-      "cleared": "Cache limpiada"
+      "cleared": "Cache limpiada",
+      "loadError": "Error al cargar las estadisticas",
+      "clearError": "Error al limpiar la cache",
+      "confirmClearAll": "¿Estas seguro de que quieres limpiar toda la cache? Esto forzara un nuevo enriquecimiento TMDB.",
+      "confirmClearLibrary": "¿Estas seguro de que quieres limpiar la cache de esta biblioteca?",
+      "clearedAll": "Toda la cache ha sido limpiada",
+      "clearedLibrary": "La cache de la biblioteca ha sido limpiada",
+      "totalContent": "Contenido en cache",
+      "enrichedTmdb": "Enriquecidos TMDB",
+      "libraries": "Bibliotecas",
+      "enrichmentRate": "Tasa de enriquecimiento",
+      "library": "Biblioteca",
+      "items": "Elementos",
+      "enriched": "Enriquecidos",
+      "lastUpdate": "Ultima actualizacion",
+      "actions": "Acciones",
+      "movies": "peliculas",
+      "episodes": "episodios",
+      "clearLibrary": "Limpiar cache",
+      "clearAll": "Limpiar toda la cache",
+      "empty": "No hay contenido en cache"
     },
     "about": {
       "section": "Acerca de",
@@ -455,6 +485,33 @@
       "familyWeekend": "Programa familiar de fin de semana",
       "classicMovies": "Peliculas clasicas 80-90",
       "lateNight": "Programacion nocturna"
+    }
+  },
+  "logs": {
+    "title": "Registros",
+    "date": "Fecha",
+    "level": "Nivel",
+    "source": "Fuente",
+    "message": "Mensaje",
+    "copy": "Copiar",
+    "viewRawJson": "Ver JSON bruto",
+    "autoRefresh": "Auto-actualizar",
+    "autoRefresh5s": "Auto-actualizar 5s",
+    "search": "Buscar",
+    "searchPlaceholder": "Buscar en mensajes...",
+    "noLogs": "Sin registros",
+    "totalLogs": "{{count}} registros en total",
+    "fetchError": "Error al obtener los registros",
+    "clearError": "Error al borrar los registros",
+    "confirmClear": "¿Estas seguro de que quieres borrar todos los registros?",
+    "showing": "{{start}}-{{end}} de {{total}}",
+    "perPage": "Por pagina",
+    "levels": {
+      "all": "Todos",
+      "error": "Errores",
+      "warning": "Advertencias",
+      "info": "Info",
+      "debug": "Debug"
     }
   }
 }

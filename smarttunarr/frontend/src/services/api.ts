@@ -109,6 +109,43 @@ export const servicesApi = {
   }
 }
 
+// Cache API
+export interface LibraryCacheStats {
+  library_id: string
+  total_items: number
+  enriched_items: number
+  movies: number
+  episodes: number
+  other: number
+  oldest_cache: string | null
+  newest_cache: string | null
+  oldest_enrichment: string | null
+  newest_enrichment: string | null
+}
+
+export interface CacheStats {
+  total_content: number
+  total_enriched: number
+  libraries: LibraryCacheStats[]
+}
+
+export const cacheApi = {
+  getStats: async (): Promise<CacheStats> => {
+    const response = await client.get('/services/cache/stats')
+    return response.data
+  },
+
+  clearAll: async (): Promise<{ success: boolean; deleted_content: number; deleted_metadata: number }> => {
+    const response = await client.delete('/services/cache/content')
+    return response.data
+  },
+
+  clearLibrary: async (libraryId: string): Promise<{ success: boolean; deleted_content: number; deleted_metadata: number }> => {
+    const response = await client.delete(`/services/cache/library/${libraryId}`)
+    return response.data
+  }
+}
+
 // Tunarr API
 export const tunarrApi = {
   getChannels: async (): Promise<TunarrChannel[]> => {
@@ -282,7 +319,7 @@ export interface LogsResponse {
 }
 
 export const logsApi = {
-  list: async (params?: { level?: string; limit?: number; offset?: number }): Promise<LogsResponse> => {
+  list: async (params?: { level?: string; limit?: number; offset?: number; search?: string }): Promise<LogsResponse> => {
     const response = await client.get('/logs', { params })
     return response.data
   },
@@ -294,6 +331,11 @@ export const logsApi = {
   export: async (level?: string): Promise<{ logs: LogEntry[]; exported_at: string }> => {
     const params = level ? { level } : {}
     const response = await client.get('/logs/export', { params })
+    return response.data
+  },
+
+  cleanup: async (retentionDays: number): Promise<{ deleted: number; remaining: number }> => {
+    const response = await client.delete('/logs/cleanup', { params: { retention_days: retentionDays } })
     return response.data
   }
 }

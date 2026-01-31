@@ -71,6 +71,7 @@ setup_log_handler()
 async def get_logs(
     level: str | None = Query(None, description="Filter by level"),
     source: str | None = Query(None, description="Filter by source"),
+    search: str | None = Query(None, description="Search in message"),
     limit: int = Query(100, ge=1, le=1000, description="Max entries"),
     offset: int = Query(0, ge=0, description="Skip entries"),
 ) -> dict[str, Any]:
@@ -88,6 +89,10 @@ async def get_logs(
 
     if source:
         logs = [log for log in logs if source.lower() in (log.get("source") or "").lower()]
+
+    if search:
+        search_lower = search.lower()
+        logs = [log for log in logs if search_lower in log["message"].lower()]
 
     # Sort by timestamp descending (newest first)
     logs.sort(key=lambda x: x["timestamp"], reverse=True)
@@ -109,6 +114,37 @@ async def clear_logs() -> dict[str, str]:
     """Clear all logs from memory."""
     _log_entries.clear()
     return {"status": "ok", "message": "Logs cleared"}
+
+
+@router.delete("/cleanup")
+async def cleanup_logs(
+    retention_days: int = Query(30, ge=1, le=365, description="Delete logs older than this many days"),
+) -> dict[str, Any]:
+    """Clean up logs older than the specified retention period."""
+    from datetime import timedelta
+
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+    cutoff_iso = cutoff.isoformat()
+
+    # Count logs before cleanup
+    total_before = len(_log_entries)
+
+    # Keep only logs newer than cutoff
+    global _log_entries
+    new_entries = deque(
+        (entry for entry in _log_entries if entry["timestamp"] >= cutoff_iso),
+        maxlen=MAX_LOGS
+    )
+
+    deleted_count = total_before - len(new_entries)
+    _log_entries = new_entries
+
+    return {
+        "status": "ok",
+        "deleted": deleted_count,
+        "remaining": len(_log_entries),
+        "retention_days": retention_days,
+    }
 
 
 @router.get("/export")

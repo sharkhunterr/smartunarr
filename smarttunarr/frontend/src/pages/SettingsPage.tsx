@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Server, CheckCircle, XCircle, Loader2, Settings, Trash2, Database, Info, Eye, EyeOff } from 'lucide-react'
-import { servicesApi } from '@/services/api'
+import { Server, CheckCircle, XCircle, Loader2, Settings, Trash2, Database, Info, Eye, EyeOff, RefreshCw, Film, Tv } from 'lucide-react'
+import { servicesApi, cacheApi, plexApi, logsApi, type CacheStats } from '@/services/api'
+import type { PlexLibrary } from '@/types'
 import { useThemeStore } from '@/stores/useThemeStore'
 import type { ServiceConfig } from '@/types'
 import clsx from 'clsx'
@@ -247,6 +248,7 @@ function DefaultsSection() {
     iterations: 10,
     randomness: 0.3,
     cacheMode: 'cache_tmdb',
+    logRetentionDays: 30,
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -263,14 +265,22 @@ function DefaultsSection() {
     }
   }, [])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true)
     localStorage.setItem('smarttunarr_defaults', JSON.stringify(defaults))
-    setTimeout(() => {
-      setSaving(false)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-    }, 300)
+
+    // Apply log retention cleanup if not set to forever
+    if (defaults.logRetentionDays > 0) {
+      try {
+        await logsApi.cleanup(defaults.logRetentionDays)
+      } catch {
+        // Ignore cleanup errors - setting is still saved
+      }
+    }
+
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
   }
 
   return (
@@ -343,6 +353,27 @@ function DefaultsSection() {
           </p>
         </div>
 
+        <div>
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t('settings.defaults.logRetention')}
+          </label>
+          <select
+            value={defaults.logRetentionDays}
+            onChange={e => setDefaults(prev => ({ ...prev, logRetentionDays: parseInt(e.target.value) }))}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm sm:text-base"
+          >
+            <option value={7}>{t('settings.defaults.logRetentionOptions.7days')}</option>
+            <option value={14}>{t('settings.defaults.logRetentionOptions.14days')}</option>
+            <option value={30}>{t('settings.defaults.logRetentionOptions.30days')}</option>
+            <option value={60}>{t('settings.defaults.logRetentionOptions.60days')}</option>
+            <option value={90}>{t('settings.defaults.logRetentionOptions.90days')}</option>
+            <option value={0}>{t('settings.defaults.logRetentionOptions.forever')}</option>
+          </select>
+          <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+            {t('settings.defaults.logRetentionHelp')}
+          </p>
+        </div>
+
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2">
           <button
             onClick={handleSave}
@@ -365,57 +396,239 @@ function DefaultsSection() {
 
 function CacheSection() {
   const { t } = useTranslation()
-  const [clearing, setClearing] = useState(false)
-  const [cleared, setCleared] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<CacheStats | null>(null)
+  const [libraries, setLibraries] = useState<PlexLibrary[]>([])
+  const [clearingAll, setClearingAll] = useState(false)
+  const [clearingLibrary, setClearingLibrary] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleClearCache = async () => {
-    setClearing(true)
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    setLoading(true)
     try {
-      // Clear local storage cache
-      const keysToRemove: string[] = []
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        if (key && key.startsWith('smarttunarr_cache_')) {
-          keysToRemove.push(key)
-        }
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key))
-
-      setCleared(true)
-      setTimeout(() => setCleared(false), 2000)
+      const [cacheStats, plexLibs] = await Promise.all([
+        cacheApi.getStats(),
+        plexApi.getLibraries().catch(() => [] as PlexLibrary[])
+      ])
+      setStats(cacheStats)
+      setLibraries(plexLibs)
+    } catch (err) {
+      setError(t('settings.cache.loadError'))
     } finally {
-      setClearing(false)
+      setLoading(false)
     }
+  }
+
+  const handleClearAll = async () => {
+    if (!confirm(t('settings.cache.confirmClearAll'))) return
+    setClearingAll(true)
+    setError(null)
+    try {
+      await cacheApi.clearAll()
+      setSuccess(t('settings.cache.clearedAll'))
+      setTimeout(() => setSuccess(null), 3000)
+      await loadData()
+    } catch {
+      setError(t('settings.cache.clearError'))
+    } finally {
+      setClearingAll(false)
+    }
+  }
+
+  const handleClearLibrary = async (libraryId: string) => {
+    if (!confirm(t('settings.cache.confirmClearLibrary'))) return
+    setClearingLibrary(libraryId)
+    setError(null)
+    try {
+      await cacheApi.clearLibrary(libraryId)
+      setSuccess(t('settings.cache.clearedLibrary'))
+      setTimeout(() => setSuccess(null), 3000)
+      await loadData()
+    } catch {
+      setError(t('settings.cache.clearError'))
+    } finally {
+      setClearingLibrary(null)
+    }
+  }
+
+  const getLibraryName = (libraryId: string): string => {
+    const lib = libraries.find(l => l.key === libraryId)
+    return lib?.title || libraryId
+  }
+
+  const formatDate = (dateStr: string | null): string => {
+    if (!dateStr) return '-'
+    return new Date(dateStr).toLocaleDateString()
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+          <span className="text-gray-500">{t('common.loading')}</span>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-      <div className="flex items-center gap-2 sm:gap-3 mb-4">
-        <Database className="w-4 sm:w-5 h-4 sm:h-5 text-primary-500" />
-        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
-          {t('settings.cache.title')}
-        </h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Database className="w-4 sm:w-5 h-4 sm:h-5 text-primary-500" />
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
+            {t('settings.cache.title')}
+          </h3>
+        </div>
+        <button
+          onClick={loadData}
+          disabled={loading}
+          className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          title={t('common.refresh')}
+        >
+          <RefreshCw className={clsx('w-4 h-4', loading && 'animate-spin')} />
+        </button>
       </div>
 
       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">
         {t('settings.cache.description')}
       </p>
 
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+      {/* Messages */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
+          <CheckCircle className="w-4 h-4" />
+          {success}
+        </div>
+      )}
+
+      {/* Global Stats */}
+      {stats && (
+        <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_content}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{t('settings.cache.totalContent')}</div>
+          </div>
+          <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.total_enriched}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{t('settings.cache.enrichedTmdb')}</div>
+          </div>
+          <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.libraries.length}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{t('settings.cache.libraries')}</div>
+          </div>
+          <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+              {stats.total_content > 0 ? Math.round((stats.total_enriched / stats.total_content) * 100) : 0}%
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{t('settings.cache.enrichmentRate')}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Libraries Table */}
+      {stats && stats.libraries.length > 0 && (
+        <div className="mb-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400">{t('settings.cache.library')}</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-500 dark:text-gray-400">{t('settings.cache.items')}</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-500 dark:text-gray-400 hidden sm:table-cell">{t('settings.cache.enriched')}</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-500 dark:text-gray-400 hidden md:table-cell">{t('settings.cache.lastUpdate')}</th>
+                <th className="text-right px-3 py-2 font-medium text-gray-500 dark:text-gray-400">{t('settings.cache.actions')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {stats.libraries.map(lib => (
+                <tr key={lib.library_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      {lib.movies > 0 ? (
+                        <Film className="w-4 h-4 text-purple-500" />
+                      ) : (
+                        <Tv className="w-4 h-4 text-blue-500" />
+                      )}
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {getLibraryName(lib.library_id)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {lib.movies > 0 && `${lib.movies} ${t('settings.cache.movies')}`}
+                      {lib.movies > 0 && lib.episodes > 0 && ' • '}
+                      {lib.episodes > 0 && `${lib.episodes} ${t('settings.cache.episodes')}`}
+                    </div>
+                  </td>
+                  <td className="text-center px-3 py-2 text-gray-900 dark:text-white">{lib.total_items}</td>
+                  <td className="text-center px-3 py-2 hidden sm:table-cell">
+                    <span className={clsx(
+                      'px-2 py-0.5 rounded text-xs font-medium',
+                      lib.enriched_items === lib.total_items
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        : lib.enriched_items > 0
+                          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                    )}>
+                      {lib.enriched_items}/{lib.total_items}
+                    </span>
+                  </td>
+                  <td className="text-center px-3 py-2 text-gray-500 dark:text-gray-400 hidden md:table-cell text-xs">
+                    {formatDate(lib.newest_cache)}
+                  </td>
+                  <td className="text-right px-3 py-2">
+                    <button
+                      onClick={() => handleClearLibrary(lib.library_id)}
+                      disabled={clearingLibrary === lib.library_id}
+                      className="p-1.5 text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-50"
+                      title={t('settings.cache.clearLibrary')}
+                    >
+                      {clearingLibrary === lib.library_id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {stats && stats.libraries.length === 0 && (
+        <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+          <Database className="w-10 h-10 mx-auto mb-2 opacity-30" />
+          <p className="text-sm">{t('settings.cache.empty')}</p>
+        </div>
+      )}
+
+      {/* Clear All Button */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
         <button
-          onClick={handleClearCache}
-          disabled={clearing}
+          onClick={handleClearAll}
+          disabled={clearingAll || (stats?.total_content ?? 0) === 0}
           className="px-3 sm:px-4 py-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm sm:text-base"
         >
-          <Trash2 className="w-4 h-4" />
-          {clearing ? t('common.loading') : t('settings.cache.clear')}
+          {clearingAll ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Trash2 className="w-4 h-4" />
+          )}
+          {t('settings.cache.clearAll')}
         </button>
-        {cleared && (
-          <span className="text-xs sm:text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
-            <CheckCircle className="w-4 h-4" />
-            {t('settings.cache.cleared')}
-          </span>
-        )}
       </div>
     </div>
   )

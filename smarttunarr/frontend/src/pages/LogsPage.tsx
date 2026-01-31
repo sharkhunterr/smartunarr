@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Trash2, Download, RefreshCw, AlertCircle, X, Copy, Check } from 'lucide-react'
+import { Trash2, Download, RefreshCw, AlertCircle, X, Copy, Check, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 import { logsApi, type LogEntry } from '@/services/api'
 
@@ -11,12 +11,15 @@ const levelBadgeColors = {
   debug: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400',
 }
 
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 200]
+
 interface LogDetailModalProps {
   log: LogEntry | null
   onClose: () => void
 }
 
 function LogDetailModal({ log, onClose }: LogDetailModalProps) {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
 
   if (!log) return null
@@ -48,7 +51,7 @@ function LogDetailModal({ log, onClose }: LogDetailModalProps) {
             <button
               onClick={handleCopy}
               className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              title="Copier"
+              title={t('logs.copy')}
             >
               {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
             </button>
@@ -67,7 +70,7 @@ function LogDetailModal({ log, onClose }: LogDetailModalProps) {
           {log.source && (
             <div>
               <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
-                Source
+                {t('logs.source')}
               </div>
               <div className="text-sm text-gray-900 dark:text-white font-mono bg-gray-50 dark:bg-gray-900/50 px-3 py-2 rounded">
                 {log.source}
@@ -78,7 +81,7 @@ function LogDetailModal({ log, onClose }: LogDetailModalProps) {
           {/* Message */}
           <div>
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
-              Message
+              {t('logs.message')}
             </div>
             <pre className="text-sm text-gray-900 dark:text-white font-mono bg-gray-50 dark:bg-gray-900/50 px-3 py-2 rounded whitespace-pre-wrap break-all overflow-x-auto">
               {log.message}
@@ -88,7 +91,7 @@ function LogDetailModal({ log, onClose }: LogDetailModalProps) {
           {/* Raw */}
           <details className="group">
             <summary className="cursor-pointer text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
-              Voir le JSON brut
+              {t('logs.viewRawJson')}
             </summary>
             <pre className="mt-2 p-3 bg-gray-900 text-green-400 text-[10px] font-mono rounded-lg overflow-x-auto">
               {JSON.stringify(log, null, 2)}
@@ -100,30 +103,107 @@ function LogDetailModal({ log, onClose }: LogDetailModalProps) {
   )
 }
 
+interface PaginationProps {
+  currentPage: number
+  totalPages: number
+  totalItems: number
+  pageSize: number
+  onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
+}
+
+function Pagination({ currentPage, totalPages, totalItems, pageSize, onPageChange, onPageSizeChange }: PaginationProps) {
+  const { t } = useTranslation()
+  const startItem = totalItems > 0 ? (currentPage - 1) * pageSize + 1 : 0
+  const endItem = Math.min(currentPage * pageSize, totalItems)
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700">
+      {/* Info */}
+      <div className="text-sm text-gray-600 dark:text-gray-400">
+        {t('logs.showing', { start: startItem, end: endItem, total: totalItems })}
+      </div>
+
+      <div className="flex items-center gap-4">
+        {/* Page size selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:inline">{t('logs.perPage')}</span>
+          <select
+            value={pageSize}
+            onChange={e => onPageSizeChange(Number(e.target.value))}
+            className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+          >
+            {PAGE_SIZE_OPTIONS.map(size => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Page navigation */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage <= 1}
+            className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300">
+            {currentPage} / {totalPages || 1}
+          </span>
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage >= totalPages}
+            className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function LogsPage() {
   const { t } = useTranslation()
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [filter, setFilter] = useState<string>('all')
+  const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null)
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
+  const [total, setTotal] = useState(0)
+
+  const totalPages = Math.ceil(total / pageSize)
+
   const fetchLogs = useCallback(async () => {
     try {
       setError(null)
-      const params: { limit: number; level?: string } = { limit: 200 }
+      const params: { limit: number; offset: number; level?: string; search?: string } = {
+        limit: pageSize,
+        offset: (currentPage - 1) * pageSize,
+      }
       if (filter !== 'all') {
         params.level = filter
       }
+      if (search) {
+        params.search = search
+      }
       const response = await logsApi.list(params)
       setLogs(response.logs)
+      setTotal(response.total)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch logs')
+      setError(err instanceof Error ? err.message : t('logs.fetchError'))
     } finally {
       setLoading(false)
     }
-  }, [filter])
+  }, [filter, search, currentPage, pageSize, t])
 
   useEffect(() => {
     fetchLogs()
@@ -136,12 +216,24 @@ export function LogsPage() {
     return () => clearInterval(interval)
   }, [autoRefresh, fetchLogs])
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filter, search, pageSize])
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    setSearch(searchInput)
+  }
+
   const handleClear = async () => {
+    if (!confirm(t('logs.confirmClear'))) return
     try {
       await logsApi.clear()
       setLogs([])
+      setTotal(0)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to clear logs')
+      setError(err instanceof Error ? err.message : t('logs.clearError'))
     }
   }
 
@@ -164,6 +256,14 @@ export function LogsPage() {
     URL.revokeObjectURL(url)
   }
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size)
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -182,7 +282,7 @@ export function LogsPage() {
               onChange={e => setAutoRefresh(e.target.checked)}
               className="rounded border-gray-300 dark:border-gray-600 w-4 h-4"
             />
-            <span className="hidden sm:inline">Auto-refresh</span>
+            <span className="hidden sm:inline">{t('logs.autoRefresh')}</span>
             <span className="sm:hidden">Auto</span>
           </label>
 
@@ -192,11 +292,11 @@ export function LogsPage() {
             onChange={e => setFilter(e.target.value)}
             className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
-            <option value="all">Tous</option>
-            <option value="error">Erreurs</option>
-            <option value="warning">Warnings</option>
-            <option value="info">Info</option>
-            <option value="debug">Debug</option>
+            <option value="all">{t('logs.levels.all')}</option>
+            <option value="error">{t('logs.levels.error')}</option>
+            <option value="warning">{t('logs.levels.warning')}</option>
+            <option value="info">{t('logs.levels.info')}</option>
+            <option value="debug">{t('logs.levels.debug')}</option>
           </select>
 
           {/* Refresh */}
@@ -224,7 +324,7 @@ export function LogsPage() {
           {/* Clear */}
           <button
             onClick={handleClear}
-            disabled={logs.length === 0}
+            disabled={total === 0}
             className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
             title={t('common.delete')}
           >
@@ -233,6 +333,38 @@ export function LogsPage() {
           </button>
         </div>
       </div>
+
+      {/* Search bar */}
+      <form onSubmit={handleSearch} className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            placeholder={t('logs.searchPlaceholder')}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+        >
+          {t('logs.search')}
+        </button>
+        {search && (
+          <button
+            type="button"
+            onClick={() => {
+              setSearch('')
+              setSearchInput('')
+            }}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </form>
 
       {/* Error banner */}
       {error && (
@@ -249,16 +381,16 @@ export function LogsPage() {
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="text-left px-3 sm:px-4 py-2 sm:py-3 text-xs font-medium text-gray-500 dark:text-gray-400 w-32 sm:w-44">
-                  Date
+                  {t('logs.date')}
                 </th>
                 <th className="text-left px-3 sm:px-4 py-2 sm:py-3 text-xs font-medium text-gray-500 dark:text-gray-400 w-20 sm:w-24">
-                  Level
+                  {t('logs.level')}
                 </th>
                 <th className="text-left px-3 sm:px-4 py-2 sm:py-3 text-xs font-medium text-gray-500 dark:text-gray-400 hidden sm:table-cell w-28">
-                  Source
+                  {t('logs.source')}
                 </th>
                 <th className="text-left px-3 sm:px-4 py-2 sm:py-3 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Message
+                  {t('logs.message')}
                 </th>
               </tr>
             </thead>
@@ -267,13 +399,13 @@ export function LogsPage() {
                 <tr>
                   <td colSpan={4} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
-                    Chargement...
+                    {t('common.loading')}
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
-                    Aucun log
+                    {t('logs.noLogs')}
                   </td>
                 </tr>
               ) : (
@@ -316,11 +448,23 @@ export function LogsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {total > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={total}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        )}
       </div>
 
       {/* Stats footer */}
       <div className="text-xs text-gray-500 dark:text-gray-400 text-center sm:text-left">
-        {logs.length} logs{autoRefresh && ' • Auto-refresh 5s'}
+        {t('logs.totalLogs', { count: total })}{autoRefresh && ` • ${t('logs.autoRefresh5s')}`}
       </div>
 
       {/* Log detail modal */}

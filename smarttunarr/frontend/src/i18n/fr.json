@@ -324,14 +324,44 @@
         "cacheTmdb": "Cache + TMDB",
         "tmdbOnly": "TMDB",
         "plexOnly": "Plex"
+      },
+      "logRetention": "Retention des logs",
+      "logRetentionHelp": "Supprime automatiquement les logs plus anciens que la periode selectionnee",
+      "logRetentionOptions": {
+        "7days": "7 jours",
+        "14days": "14 jours",
+        "30days": "30 jours",
+        "60days": "60 jours",
+        "90days": "90 jours",
+        "forever": "Indefiniment"
       }
     },
     "cache": {
       "section": "Gestion du cache",
-      "title": "Cache local",
-      "description": "Le cache local stocke les donnees pour accelerer les operations. Vider le cache peut resoudre certains problemes.",
+      "title": "Cache TMDB",
+      "description": "Le cache stocke les metadonnees enrichies depuis TMDB pour chaque bibliotheque. Vider le cache forcera un nouvel enrichissement.",
       "clear": "Vider le cache",
-      "cleared": "Cache vide"
+      "cleared": "Cache vide",
+      "loadError": "Erreur lors du chargement des statistiques",
+      "clearError": "Erreur lors de la suppression du cache",
+      "confirmClearAll": "Etes-vous sur de vouloir vider tout le cache ? Cela forcera un nouvel enrichissement TMDB.",
+      "confirmClearLibrary": "Etes-vous sur de vouloir vider le cache de cette bibliotheque ?",
+      "clearedAll": "Tout le cache a ete vide",
+      "clearedLibrary": "Le cache de la bibliotheque a ete vide",
+      "totalContent": "Contenus en cache",
+      "enrichedTmdb": "Enrichis TMDB",
+      "libraries": "Bibliotheques",
+      "enrichmentRate": "Taux d'enrichissement",
+      "library": "Bibliotheque",
+      "items": "Elements",
+      "enriched": "Enrichis",
+      "lastUpdate": "Derniere MAJ",
+      "actions": "Actions",
+      "movies": "films",
+      "episodes": "episodes",
+      "clearLibrary": "Vider le cache",
+      "clearAll": "Vider tout le cache",
+      "empty": "Aucun contenu en cache"
     },
     "about": {
       "section": "A propos",
@@ -455,6 +485,33 @@
       "familyWeekend": "Programme familial weekend",
       "classicMovies": "Films classiques 80-90",
       "lateNight": "Programme de nuit"
+    }
+  },
+  "logs": {
+    "title": "Logs",
+    "date": "Date",
+    "level": "Niveau",
+    "source": "Source",
+    "message": "Message",
+    "copy": "Copier",
+    "viewRawJson": "Voir le JSON brut",
+    "autoRefresh": "Auto-refresh",
+    "autoRefresh5s": "Auto-refresh 5s",
+    "search": "Rechercher",
+    "searchPlaceholder": "Rechercher dans les messages...",
+    "noLogs": "Aucun log",
+    "totalLogs": "{{count}} logs au total",
+    "fetchError": "Erreur lors de la recuperation des logs",
+    "clearError": "Erreur lors de la suppression des logs",
+    "confirmClear": "Etes-vous sur de vouloir supprimer tous les logs ?",
+    "showing": "{{start}}-{{end}} sur {{total}}",
+    "perPage": "Par page",
+    "levels": {
+      "all": "Tous",
+      "error": "Erreurs",
+      "warning": "Warnings",
+      "info": "Info",
+      "debug": "Debug"
     }
   }
 }
