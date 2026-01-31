@@ -362,6 +362,9 @@
       "clearLibrary": "Clear cache",
       "clearAll": "Clear all cache",
       "syncTmdb": "Sync TMDB",
+      "syncing": "Syncing...",
+      "syncInProgress": "TMDB enrichment in progress",
+      "syncHint": "This operation may take several minutes depending on the number of items",
       "enrichedResult": "{{count}} items enriched, {{failed}} failed",
       "enrichError": "TMDB enrichment error",
       "empty": "No cached content"

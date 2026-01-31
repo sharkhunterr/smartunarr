@@ -362,6 +362,9 @@
       "clearLibrary": "Cache leeren",
       "clearAll": "Gesamten Cache leeren",
       "syncTmdb": "TMDB synchronisieren",
+      "syncing": "Synchronisierung...",
+      "syncInProgress": "TMDB-Anreicherung läuft",
+      "syncHint": "Dieser Vorgang kann je nach Anzahl der Elemente mehrere Minuten dauern",
       "enrichedResult": "{{count}} Elemente angereichert, {{failed}} fehlgeschlagen",
       "enrichError": "Fehler bei der TMDB-Anreicherung",
       "empty": "Kein zwischengespeicherter Inhalt"

@@ -402,12 +402,31 @@ function CacheSection() {
   const [clearingAll, setClearingAll] = useState(false)
   const [clearingLibrary, setClearingLibrary] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
+  const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; startEnriched: number } | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
   }, [])
+
+  // Poll cache stats during sync to show progress
+  useEffect(() => {
+    if (!syncing || !syncProgress) return
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const newStats = await cacheApi.getStats()
+        setStats(newStats)
+        // Update progress based on new enriched count
+        setSyncProgress(prev => prev ? { ...prev, current: newStats.total_enriched - prev.startEnriched } : null)
+      } catch {
+        // Ignore polling errors
+      }
+    }, 2000)
+
+    return () => clearInterval(pollInterval)
+  }, [syncing, syncProgress])
 
   const loadData = async () => {
     setLoading(true)
@@ -460,6 +479,9 @@ function CacheSection() {
   const handleForceEnrich = async () => {
     setSyncing(true)
     setError(null)
+    // Initialize progress tracking
+    const itemsToEnrich = (stats?.total_content ?? 0) - (stats?.total_enriched ?? 0)
+    setSyncProgress({ current: 0, total: itemsToEnrich, startEnriched: stats?.total_enriched ?? 0 })
     try {
       const result = await cacheApi.forceEnrich()
       setSuccess(t('settings.cache.enrichedResult', { count: result.enriched, failed: result.failed }))
@@ -469,6 +491,7 @@ function CacheSection() {
       setError(t('settings.cache.enrichError'))
     } finally {
       setSyncing(false)
+      setSyncProgress(null)
     }
   }
 
@@ -631,6 +654,32 @@ function CacheSection() {
         </div>
       )}
 
+      {/* Sync Progress */}
+      {syncing && syncProgress && (
+        <div className="mb-4 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-primary-600" />
+              <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
+                {t('settings.cache.syncInProgress')}
+              </span>
+            </div>
+            <span className="text-sm text-primary-600 dark:text-primary-400">
+              {syncProgress.current} / {syncProgress.total}
+            </span>
+          </div>
+          <div className="w-full bg-primary-200 dark:bg-primary-800 rounded-full h-2">
+            <div
+              className="bg-primary-600 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${syncProgress.total > 0 ? (syncProgress.current / syncProgress.total) * 100 : 0}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-primary-600 dark:text-primary-400">
+            {t('settings.cache.syncHint')}
+          </p>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
         <button
@@ -643,7 +692,7 @@ function CacheSection() {
           ) : (
             <RefreshCw className="w-4 h-4" />
           )}
-          {t('settings.cache.syncTmdb')}
+          {syncing ? t('settings.cache.syncing') : t('settings.cache.syncTmdb')}
         </button>
         <button
           onClick={handleClearAll}

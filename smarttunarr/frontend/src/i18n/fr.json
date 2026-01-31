@@ -362,6 +362,9 @@
       "clearLibrary": "Vider le cache",
       "clearAll": "Vider tout le cache",
       "syncTmdb": "Synchroniser TMDB",
+      "syncing": "Synchronisation...",
+      "syncInProgress": "Enrichissement TMDB en cours",
+      "syncHint": "Cette operation peut prendre plusieurs minutes selon le nombre d'elements",
       "enrichedResult": "{{count}} elements enrichis, {{failed}} echecs",
       "enrichError": "Erreur lors de l'enrichissement TMDB",
       "empty": "Aucun contenu en cache"
