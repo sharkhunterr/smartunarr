@@ -6,6 +6,7 @@ from typing import AsyncGenerator
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import StaticPool
 
 from app.config import get_settings
 
@@ -19,23 +20,31 @@ class Base(DeclarativeBase):
     pass
 
 
-# Create async engine
+# Create async engine with SQLite-specific settings
 engine = create_async_engine(
     settings.async_database_url,
     echo=settings.debug,
     future=True,
+    # Use StaticPool for SQLite to avoid connection issues
+    poolclass=StaticPool,
+    # SQLite connection arguments
+    connect_args={
+        "timeout": 30,  # Wait up to 30 seconds for locks
+        "check_same_thread": False,
+    },
 )
 
 
 # Enable WAL mode for SQLite
 @event.listens_for(engine.sync_engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
-    """Set SQLite pragmas for performance."""
+    """Set SQLite pragmas for performance and concurrency."""
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA journal_mode=WAL")
     cursor.execute("PRAGMA synchronous=NORMAL")
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.execute("PRAGMA cache_size=-64000")  # 64MB cache
+    cursor.execute("PRAGMA busy_timeout=30000")  # 30 second timeout for locks
     cursor.close()
 
 
