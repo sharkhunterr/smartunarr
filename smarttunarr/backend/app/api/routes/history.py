@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_session
 from app.services.history_service import HistoryService
 from app.services.tunarr_service import TunarrService
+from app.services.service_config_service import ServiceConfigService
 from app.models.profile import Profile
 
 logger = logging.getLogger(__name__)
@@ -27,12 +28,22 @@ async def enrich_entry_with_names(
     if channel_id:
         if channel_id not in channels_cache:
             try:
-                tunarr = TunarrService()
-                channels = await tunarr.get_channels()
-                for ch in channels:
-                    channels_cache[ch.get("id", "")] = ch.get("name", "Unknown")
-            except Exception:
-                pass
+                # Get Tunarr config from database
+                config_service = ServiceConfigService(session)
+                config = await config_service.get_service("tunarr")
+                if config and config.url:
+                    creds = config_service.get_decrypted_credentials(config)
+                    tunarr = TunarrService(
+                        config.url,
+                        config.username,
+                        creds.get("password") if creds else None,
+                    )
+                    channels = await tunarr.get_channels()
+                    await tunarr.close()
+                    for ch in channels:
+                        channels_cache[ch.get("id", "")] = ch.get("name", "Unknown")
+            except Exception as e:
+                logger.debug(f"Failed to fetch channels for history: {e}")
         entry_response["channel_name"] = channels_cache.get(channel_id, "Unknown")
 
     # Get profile name from database

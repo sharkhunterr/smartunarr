@@ -20,13 +20,18 @@ import {
   X,
   Calendar,
   Table,
-  LayoutGrid
+  LayoutGrid,
+  GitCompare,
+  Square,
+  CheckSquare
 } from 'lucide-react'
 import clsx from 'clsx'
 import { historyApi, programmingApi, scoringApi, profilesApi } from '@/services/api'
-import type { HistoryEntry, ProgramResult, ScoringResult, Profile } from '@/types'
+import type { HistoryEntry, ProgramResult, ScoringResult, Profile, ComparisonSummary } from '@/types'
 import { DayTimeline } from '@/components/timeline'
 import { ScoresTable, getScoreColor } from '@/components/scoring/ScoringDisplay'
+import { CompareModal } from '@/components/history'
+import { compareResults } from '@/utils/comparison'
 
 const statusIcons = {
   success: CheckCircle,
@@ -323,6 +328,12 @@ export function HistoryPage() {
   const [viewProfile, setViewProfile] = useState<Profile | null>(null)
   const [loadingResult, setLoadingResult] = useState(false)
 
+  // Comparison mode state
+  const [compareMode, setCompareMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [comparisonSummary, setComparisonSummary] = useState<ComparisonSummary | null>(null)
+  const [loadingComparison, setLoadingComparison] = useState(false)
+
   useEffect(() => {
     loadHistory()
   }, [filter])
@@ -409,6 +420,60 @@ export function HistoryPage() {
     return `${minutes}m ${secs}s`
   }
 
+  // Selection handlers for comparison
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else if (next.size < 2) {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const exitCompareMode = () => {
+    setCompareMode(false)
+    setSelectedIds(new Set())
+  }
+
+  const handleCompare = async () => {
+    if (selectedIds.size !== 2) return
+
+    const [idA, idB] = Array.from(selectedIds)
+    const entryA = history.find(h => h.id === idA)
+    const entryB = history.find(h => h.id === idB)
+
+    if (!entryA?.result_id || !entryB?.result_id) return
+
+    setLoadingComparison(true)
+    try {
+      // Load both results
+      const [resultA, resultB] = await Promise.all([
+        entryA.type === 'programming' || entryA.type === 'ai_generation'
+          ? programmingApi.getResult(entryA.result_id)
+          : scoringApi.getResult(entryA.result_id),
+        entryB.type === 'programming' || entryB.type === 'ai_generation'
+          ? programmingApi.getResult(entryB.result_id)
+          : scoringApi.getResult(entryB.result_id),
+      ])
+
+      // Generate comparison
+      const summary = compareResults(entryA, entryB, resultA, resultB)
+      setComparisonSummary(summary)
+    } catch (err) {
+      console.error('Failed to load comparison:', err)
+    } finally {
+      setLoadingComparison(false)
+    }
+  }
+
+  const canCompare = selectedIds.size === 2 && Array.from(selectedIds).every(id => {
+    const entry = history.find(h => h.id === id)
+    return entry?.result_id
+  })
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -424,21 +489,61 @@ export function HistoryPage() {
           {t('history.title')}
         </h1>
         <div className="flex items-center gap-2">
-          <button
-            onClick={loadHistory}
-            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-          >
-            <RefreshCw className="w-4 sm:w-5 h-4 sm:h-5" />
-          </button>
-          {history.length > 0 && (
-            <button
-              onClick={handleClearAll}
-              className="flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Tout supprimer</span>
-              <span className="sm:hidden">Supprimer</span>
-            </button>
+          {/* Compare mode controls */}
+          {compareMode ? (
+            <>
+              <button
+                onClick={handleCompare}
+                disabled={!canCompare || loadingComparison}
+                className={clsx(
+                  'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors',
+                  canCompare
+                    ? 'bg-primary-600 text-white hover:bg-primary-700'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
+                )}
+              >
+                {loadingComparison ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <GitCompare className="w-4 h-4" />
+                )}
+                Comparer ({selectedIds.size}/2)
+              </button>
+              <button
+                onClick={exitCompareMode}
+                className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                Annuler
+              </button>
+            </>
+          ) : (
+            <>
+              {history.length >= 2 && (
+                <button
+                  onClick={() => setCompareMode(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                >
+                  <GitCompare className="w-4 h-4" />
+                  <span className="hidden sm:inline">Comparer</span>
+                </button>
+              )}
+              <button
+                onClick={loadHistory}
+                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              >
+                <RefreshCw className="w-4 sm:w-5 h-4 sm:h-5" />
+              </button>
+              {history.length > 0 && (
+                <button
+                  onClick={handleClearAll}
+                  className="flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Tout supprimer</span>
+                  <span className="sm:hidden">Supprimer</span>
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -477,6 +582,11 @@ export function HistoryPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
+                    {compareMode && (
+                      <th className="w-10 px-3 py-3">
+                        <span className="sr-only">Selection</span>
+                      </th>
+                    )}
                     <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
                       {t('history.status')}
                     </th>
@@ -511,7 +621,25 @@ export function HistoryPage() {
 
                     return (
                       <Fragment key={entry.id}>
-                        <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <tr className={clsx(
+                          'hover:bg-gray-50 dark:hover:bg-gray-700/50',
+                          compareMode && selectedIds.has(entry.id) && 'bg-primary-50 dark:bg-primary-900/20'
+                        )}>
+                          {compareMode && (
+                            <td className="px-3 py-3">
+                              <button
+                                onClick={() => toggleSelection(entry.id)}
+                                disabled={!entry.result_id || (selectedIds.size >= 2 && !selectedIds.has(entry.id))}
+                                className="p-1 disabled:opacity-30"
+                              >
+                                {selectedIds.has(entry.id) ? (
+                                  <CheckSquare className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                                ) : (
+                                  <Square className="w-5 h-5 text-gray-400" />
+                                )}
+                              </button>
+                            </td>
+                          )}
                           <td className="px-4 py-3">
                             <StatusIcon
                               className={clsx('w-5 h-5', statusColors[entry.status])}
@@ -583,7 +711,7 @@ export function HistoryPage() {
                         </tr>
                         {isExpanded && (
                           <tr>
-                            <td colSpan={8} className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50">
+                            <td colSpan={compareMode ? 9 : 8} className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50">
                               <div className="grid md:grid-cols-3 gap-4 text-sm">
                                 {entry.iterations && (
                                   <div>
@@ -619,11 +747,27 @@ export function HistoryPage() {
               return (
                 <div
                   key={entry.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+                  className={clsx(
+                    'bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3',
+                    compareMode && selectedIds.has(entry.id) && 'ring-2 ring-primary-500'
+                  )}
                 >
                   {/* Header row */}
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
+                      {compareMode && (
+                        <button
+                          onClick={() => toggleSelection(entry.id)}
+                          disabled={!entry.result_id || (selectedIds.size >= 2 && !selectedIds.has(entry.id))}
+                          className="p-0.5 disabled:opacity-30"
+                        >
+                          {selectedIds.has(entry.id) ? (
+                            <CheckSquare className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                          ) : (
+                            <Square className="w-5 h-5 text-gray-400" />
+                          )}
+                        </button>
+                      )}
                       <StatusIcon className={clsx('w-4 h-4', statusColors[entry.status])} />
                       <TypeIcon className="w-4 h-4 text-gray-400" />
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
@@ -724,6 +868,17 @@ export function HistoryPage() {
             }}
           />
         )
+      )}
+
+      {/* Comparison modal */}
+      {comparisonSummary && (
+        <CompareModal
+          summary={comparisonSummary}
+          onClose={() => {
+            setComparisonSummary(null)
+            exitCompareMode()
+          }}
+        />
       )}
     </div>
   )

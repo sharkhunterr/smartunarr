@@ -185,7 +185,7 @@ function BlockSettingsLegend({ timeBlocks, profile }: BlockSettingsLegendProps) 
     const label = isDefault ? '(défaut)' : ''
     return (
       <span className="text-[9px]">
-        <span className="text-orange-500">M:{policy.mandatory_matched_bonus > 0 ? '+' : ''}{policy.mandatory_matched_bonus}/{policy.mandatory_missed_penalty}</span>
+        <span className="text-orange-500">M:{(policy.mandatory_matched_bonus ?? 0) > 0 ? '+' : ''}{policy.mandatory_matched_bonus ?? 0}/{policy.mandatory_missed_penalty ?? 0}</span>
         {' '}
         <span className="text-red-500">F:{policy.forbidden_detected_penalty}</span>
         {' '}

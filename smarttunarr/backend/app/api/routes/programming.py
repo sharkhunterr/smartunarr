@@ -176,6 +176,15 @@ async def _run_programming(
             profile_detail = f"{profile.name} • {num_blocks} blocs • {total_libraries} bibliothèques"
             await job_manager.update_step_status(job_id, "profile", "completed", profile_detail)
 
+            # Create history entry at the START of processing
+            history_service = HistoryService(session)
+            history_entry = await history_service.create_entry(
+                entry_type="programming",
+                channel_id=request.channel_id,
+                profile_id=request.profile_id,
+                iterations=request.iterations,
+            )
+
             # Initialize TMDB service if needed
             tmdb_service = None
             if use_tmdb:
@@ -652,15 +661,7 @@ async def _run_programming(
             # Also keep in memory for quick access during session
             _results[result_id] = result_data
 
-            # Create and complete history entry with result reference
-            history_service = HistoryService(session)
-            history_entry = await history_service.create_entry(
-                entry_type="programming",
-                channel_id=request.channel_id,
-                profile_id=request.profile_id,
-                iterations=request.iterations,
-            )
-            # Mark history as successful with result reference
+            # Mark history as successful with result reference (entry was created at start)
             await history_service.mark_success(
                 history_entry.id,
                 best_score=result.average_score,
@@ -774,6 +775,12 @@ async def _run_programming(
         logger.error(f"Programming failed: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         await job_manager.fail_job(job_id, str(e))
+        # Try to mark history entry as failed if it was created
+        try:
+            if 'history_entry' in dir() and 'history_service' in dir():
+                await history_service.mark_failed(history_entry.id, str(e))
+        except Exception:
+            pass  # Best effort
 
 
 def _run_programming_in_thread(job_id: str, request: ProgrammingRequest) -> None:

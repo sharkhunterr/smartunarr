@@ -215,6 +215,17 @@ export const historyApi = {
   clear: async (type?: string): Promise<void> => {
     const params = type ? { type } : {}
     await client.delete('/history', { params })
+  },
+
+  /**
+   * Get result for a history entry (works for both programming and scoring)
+   */
+  getResult: async (entry: HistoryEntry): Promise<ProgramResult | ScoringResult | null> => {
+    if (!entry.result_id) return null
+    if (entry.type === 'programming' || entry.type === 'ai_generation') {
+      return programmingApi.getResult(entry.result_id)
+    }
+    return scoringApi.getResult(entry.result_id)
   }
 }
 

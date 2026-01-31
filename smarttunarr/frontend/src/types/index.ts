@@ -507,3 +507,50 @@ export interface PlexLibrary {
   scanner: string
   count?: number
 }
+
+// Comparison types
+export type ComparisonStatus = 'unchanged' | 'improved' | 'degraded' | 'added' | 'removed'
+
+export interface ProgramComparison {
+  title: string
+  status: ComparisonStatus
+  scoreA: number | null
+  scoreB: number | null
+  delta: number | null
+  // Criterion deltas for expanded view
+  criteriaDeltas?: Record<string, {
+    scoreA: number | null
+    scoreB: number | null
+    delta: number | null
+  }>
+}
+
+export interface ComparisonSummary {
+  entryA: {
+    id: string
+    type: 'programming' | 'scoring' | 'ai_generation'
+    date: string
+    channelName?: string
+    profileName?: string
+  }
+  entryB: {
+    id: string
+    type: 'programming' | 'scoring' | 'ai_generation'
+    date: string
+    channelName?: string
+    profileName?: string
+  }
+  totalScoreA: number
+  totalScoreB: number
+  totalScoreDelta: number
+  averageScoreA: number
+  averageScoreB: number
+  averageScoreDelta: number
+  programCountA: number
+  programCountB: number
+  programCountDelta: number
+  durationMinA: number
+  durationMinB: number
+  durationDelta: number
+  programComparisons: ProgramComparison[]
+}

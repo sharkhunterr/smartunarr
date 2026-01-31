@@ -118,6 +118,14 @@ async def _run_scoring(
 
             await job_manager.update_step_status(job_id, "profile", "completed", profile.name)
 
+            # Create history entry at the START of processing
+            history_service = HistoryService(session)
+            history_entry = await history_service.create_entry(
+                entry_type="scoring",
+                channel_id=request.channel_id,
+                profile_id=request.profile_id,
+            )
+
             # Get channel programs from Tunarr
             await job_manager.update_step_status(job_id, "channel", "running")
             await job_manager.update_job_progress(job_id, 15, "Récupération des programmes Tunarr...")
@@ -704,15 +712,7 @@ async def _run_scoring(
             # Also keep in memory for quick access during session
             _scoring_results[result_id] = result_data
 
-            # Save to history
-            history_service = HistoryService(session)
-            history_entry = await history_service.create_entry(
-                entry_type="scoring",
-                channel_id=request.channel_id,
-                profile_id=request.profile_id,
-            )
-
-            # Mark history entry as success with result reference
+            # Mark history entry as success with result reference (entry was created at start)
             await history_service.mark_success(
                 entry_id=history_entry.id,
                 best_score=average_score,
@@ -740,6 +740,12 @@ async def _run_scoring(
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         await job_manager.fail_job(job_id, str(e))
+        # Try to mark history entry as failed if it was created
+        try:
+            if 'history_entry' in dir() and 'history_service' in dir():
+                await history_service.mark_failed(history_entry.id, str(e))
+        except Exception:
+            pass  # Best effort
 
 
 def _get_block_for_time(
