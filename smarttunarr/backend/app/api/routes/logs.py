@@ -122,6 +122,7 @@ async def cleanup_logs(
 ) -> dict[str, Any]:
     """Clean up logs older than the specified retention period."""
     from datetime import timedelta
+    global _log_entries
 
     cutoff = datetime.utcnow() - timedelta(days=retention_days)
     cutoff_iso = cutoff.isoformat()
@@ -130,7 +131,6 @@ async def cleanup_logs(
     total_before = len(_log_entries)
 
     # Keep only logs newer than cutoff
-    global _log_entries
     new_entries = deque(
         (entry for entry in _log_entries if entry["timestamp"] >= cutoff_iso),
         maxlen=MAX_LOGS
