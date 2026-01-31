@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   History,
@@ -13,8 +13,6 @@ import {
   Play,
   BarChart3,
   Sparkles,
-  ChevronDown,
-  ChevronUp,
   ChevronLeft,
   ChevronRight,
   X,
@@ -319,7 +317,6 @@ export function HistoryPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<FilterType>('all')
-  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [actionId, setActionId] = useState<string | null>(null)
 
   // Modal state
@@ -617,14 +614,15 @@ export function HistoryPage() {
                   {history.map(entry => {
                     const StatusIcon = statusIcons[entry.status] || Clock
                     const TypeIcon = typeIcons[entry.type] || Play
-                    const isExpanded = expandedId === entry.id
 
                     return (
-                      <Fragment key={entry.id}>
-                        <tr className={clsx(
+                      <tr
+                        key={entry.id}
+                        className={clsx(
                           'hover:bg-gray-50 dark:hover:bg-gray-700/50',
                           compareMode && selectedIds.has(entry.id) && 'bg-primary-50 dark:bg-primary-900/20'
-                        )}>
+                        )}
+                      >
                           {compareMode && (
                             <td className="px-3 py-3">
                               <button
@@ -684,17 +682,6 @@ export function HistoryPage() {
                                 </button>
                               )}
                               <button
-                                onClick={() => setExpandedId(isExpanded ? null : entry.id)}
-                                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                                title={t('history.details')}
-                              >
-                                {isExpanded ? (
-                                  <ChevronUp className="w-4 h-4" />
-                                ) : (
-                                  <ChevronDown className="w-4 h-4" />
-                                )}
-                              </button>
-                              <button
                                 onClick={() => handleDelete(entry.id)}
                                 disabled={actionId === entry.id}
                                 className="p-2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors disabled:opacity-50"
@@ -709,27 +696,6 @@ export function HistoryPage() {
                             </div>
                           </td>
                         </tr>
-                        {isExpanded && (
-                          <tr>
-                            <td colSpan={compareMode ? 9 : 8} className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50">
-                              <div className="grid md:grid-cols-3 gap-4 text-sm">
-                                {entry.iterations && (
-                                  <div>
-                                    <span className="text-gray-500 dark:text-gray-400">{t('history.iterations')}:</span>
-                                    <span className="ml-2 text-gray-900 dark:text-white">{entry.iterations}</span>
-                                  </div>
-                                )}
-                                {entry.error && (
-                                  <div className="md:col-span-3">
-                                    <span className="text-gray-500 dark:text-gray-400">{t('history.error')}:</span>
-                                    <span className="ml-2 text-red-600 dark:text-red-400">{entry.error}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
                     )
                   })}
                 </tbody>
@@ -742,7 +708,6 @@ export function HistoryPage() {
             {history.map(entry => {
               const StatusIcon = statusIcons[entry.status] || Clock
               const TypeIcon = typeIcons[entry.type] || Play
-              const isExpanded = expandedId === entry.id
 
               return (
                 <div
@@ -793,24 +758,6 @@ export function HistoryPage() {
                     </div>
                   </div>
 
-                  {/* Expanded details */}
-                  {isExpanded && (entry.iterations || entry.error) && (
-                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs">
-                      {entry.iterations && (
-                        <div>
-                          <span className="text-gray-500 dark:text-gray-400">{t('history.iterations')}:</span>
-                          <span className="ml-1 text-gray-900 dark:text-white">{entry.iterations}</span>
-                        </div>
-                      )}
-                      {entry.error && (
-                        <div className="mt-1">
-                          <span className="text-gray-500 dark:text-gray-400">{t('history.error')}:</span>
-                          <span className="ml-1 text-red-600 dark:text-red-400">{entry.error}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   {/* Actions */}
                   <div className="flex justify-end gap-1 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                     {entry.result_id && (
@@ -821,16 +768,6 @@ export function HistoryPage() {
                         <Eye className="w-4 h-4" />
                       </button>
                     )}
-                    <button
-                      onClick={() => setExpandedId(isExpanded ? null : entry.id)}
-                      className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                    >
-                      {isExpanded ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      )}
-                    </button>
                     <button
                       onClick={() => handleDelete(entry.id)}
                       disabled={actionId === entry.id}

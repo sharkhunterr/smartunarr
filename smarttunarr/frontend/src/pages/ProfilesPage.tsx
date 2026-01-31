@@ -525,59 +525,34 @@ export function ProfilesPage() {
           </button>
         </div>
       ) : (
-        <div className="grid gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           {profiles.map(profile => (
             <div
               key={profile.id}
-              className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4"
+              className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 flex flex-col"
             >
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white truncate">
-                      {profile.name}
-                    </h3>
-                    <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
-                      v{profile.version}
-                    </span>
-                  </div>
-
-                  {/* Labels */}
-                  {profile.labels && profile.labels.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {profile.labels.map(label => (
-                        <span
-                          key={label}
-                          className={`px-2 py-0.5 text-xs font-medium rounded ${getLabelColor(label)}`}
-                        >
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Metadata */}
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                    {profile.created_at && (
-                      <span>
-                        {t('profiles.createdAt')} {new Date(profile.created_at).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
+              {/* Header: Name + Version + Actions */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {profile.name}
+                  </h3>
+                  <span className="px-1.5 py-0.5 text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded flex-shrink-0">
+                    v{profile.version}
+                  </span>
                 </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-1 sm:ml-4 border-t sm:border-t-0 pt-2 sm:pt-0 -mx-3 px-3 sm:mx-0 sm:px-0">
+                {/* Actions - Compact */}
+                <div className="flex items-center gap-0.5 flex-shrink-0">
                   <button
                     onClick={() => handleView(profile)}
                     disabled={actionId === profile.id}
-                    className="p-2 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors disabled:opacity-50"
+                    className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors disabled:opacity-50"
                     title={t('profiles.viewDetails')}
                   >
                     {actionId === profile.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-3.5 h-3.5" />
                     )}
                   </button>
                   <button
@@ -585,45 +560,66 @@ export function ProfilesPage() {
                       setDuplicateProfile(profile)
                       setDuplicateName(`${profile.name} ${t('profiles.copy')}`)
                     }}
-                    className="p-2 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+                    className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                     title={t('profiles.duplicate')}
                   >
-                    <Copy className="w-4 h-4" />
+                    <Copy className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleExport(profile)}
                     disabled={actionId === profile.id}
-                    className="p-2 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors disabled:opacity-50"
+                    className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors disabled:opacity-50"
                     title={t('common.export')}
                   >
-                    <Download className="w-4 h-4" />
+                    <Download className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleEdit(profile)}
                     disabled={actionId === profile.id}
-                    className="p-2 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors disabled:opacity-50"
+                    className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors disabled:opacity-50"
                     title={t('common.edit')}
                   >
                     {actionId === profile.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-3.5 h-3.5" />
                     )}
                   </button>
                   <button
                     onClick={() => handleDelete(profile.id)}
                     disabled={actionId === profile.id}
-                    className="p-2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors disabled:opacity-50"
+                    className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors disabled:opacity-50"
                     title={t('common.delete')}
                   >
                     {actionId === profile.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     )}
                   </button>
                 </div>
               </div>
+
+              {/* Labels */}
+              {profile.labels && profile.labels.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {profile.labels.map(label => (
+                    <span
+                      key={label}
+                      className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${getLabelColor(label)}`}
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Metadata */}
+              {profile.created_at && (
+                <div className="mt-auto pt-2 text-[10px] text-gray-400 dark:text-gray-500">
+                  {new Date(profile.created_at).toLocaleDateString()}
+                </div>
+              )}
             </div>
           ))}
         </div>
