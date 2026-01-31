@@ -1,0 +1,324 @@
+{
+  "nav": {
+    "programming": "Programacion",
+    "scoring": "Puntuacion",
+    "profiles": "Perfiles",
+    "history": "Historial",
+    "logs": "Logs",
+    "settings": "Ajustes"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "export": "Exportar",
+    "import": "Importar",
+    "test": "Probar",
+    "apply": "Aplicar",
+    "start": "Iniciar",
+    "stop": "Detener",
+    "refresh": "Actualizar",
+    "success": "Exito",
+    "error": "Error",
+    "warning": "Advertencia",
+    "confirm": "Confirmar",
+    "close": "Cerrar"
+  },
+  "programming": {
+    "title": "Programacion de canal",
+    "selectChannel": "Seleccionar un canal",
+    "selectProfile": "Seleccionar un perfil",
+    "iterations": "Iteraciones",
+    "randomness": "Aleatoriedad",
+    "durationDays": "Duracion",
+    "startDateTime": "Fecha y hora de inicio",
+    "startProgramming": "Iniciar programacion",
+    "progress": "Progreso",
+    "iteration": "Iteracion {{current}} de {{total}}",
+    "bestScore": "Mejor puntuacion",
+    "applyResult": "Aplicar resultado",
+    "noChannels": "No hay canales disponibles",
+    "noProfiles": "No hay perfiles disponibles"
+  },
+  "scoring": {
+    "title": "Puntuacion de programa",
+    "analyze": "Analizar",
+    "exportCSV": "Exportar CSV",
+    "exportJSON": "Exportar JSON",
+    "totalScore": "Puntuacion total",
+    "averageScore": "Puntuacion media",
+    "violations": "Violaciones",
+    "penalties": "Penalizaciones",
+    "breakdown": "Desglose de puntuaciones",
+    "criteria": {
+      "type": "Tipo",
+      "duration": "Duracion",
+      "genre": "Genero",
+      "timing": "Horario",
+      "strategy": "Estrategia",
+      "age": "Edad",
+      "rating": "Calificacion",
+      "filter": "Filtro",
+      "bonus": "Bonus"
+    },
+    "notEvaluated": "No evaluado",
+    "expanded": {
+      "contentInfo": "Informacion del contenido",
+      "expectedGenres": "Generos esperados",
+      "block": "Bloque horario",
+      "ageRating": "Clasificacion por edad",
+      "mandatoryStatus": "Obligatorio",
+      "forbiddenStatus": "Prohibido",
+      "allMandatoryMet": "Todos los criterios obligatorios se cumplen",
+      "noViolations": "Sin violaciones de reglas prohibidas",
+      "noDetails": "Sin detalles disponibles"
+    }
+  },
+  "profiles": {
+    "title": "Perfiles de programacion",
+    "create": "Nuevo perfil",
+    "edit": "Editar perfil",
+    "delete": "Eliminar perfil",
+    "name": "Nombre",
+    "version": "Version",
+    "labels": "Etiquetas",
+    "timeBlocks": "Bloques horarios",
+    "scoringWeights": "Pesos de puntuacion",
+    "confirmDelete": "¿Estas seguro de que quieres eliminar este perfil?"
+  },
+  "history": {
+    "title": "Historial de operaciones",
+    "type": "Tipo",
+    "channel": "Canal",
+    "profile": "Perfil",
+    "status": "Estado",
+    "date": "Fecha",
+    "score": "Puntuacion",
+    "details": "Detalles",
+    "startedAt": "Iniciado",
+    "completedAt": "Completado",
+    "duration": "Duracion",
+    "iterations": "iteraciones",
+    "bestScore": "Mejor puntuacion",
+    "error": "Error",
+    "resultSummary": "Resumen del resultado",
+    "programsGenerated": "Programas generados",
+    "totalDuration": "Duracion total",
+    "contentDistribution": "Distribucion de contenido",
+    "scoreDistribution": "Distribucion de puntuaciones",
+    "rawData": "Datos sin procesar",
+    "viewResult": "Ver resultado",
+    "viewFullResult": "Ver resultado completo",
+    "rerun": "Reejecutar",
+    "types": {
+      "programming": "Programacion",
+      "scoring": "Puntuacion",
+      "sync": "Sincronizacion",
+      "aiGeneration": "Generacion IA"
+    },
+    "statuses": {
+      "pending": "Pendiente",
+      "running": "En curso",
+      "success": "Exito",
+      "failed": "Fallido",
+      "cancelled": "Cancelado"
+    }
+  },
+  "settings": {
+    "title": "Ajustes",
+    "services": "Servicios",
+    "appearance": "Apariencia",
+    "theme": "Tema",
+    "themes": {
+      "light": "Claro",
+      "dark": "Oscuro",
+      "system": "Sistema"
+    },
+    "language": "Idioma",
+    "username": "Nombre de usuario",
+    "password": "Contrasena",
+    "token": "Token",
+    "apiKey": "Clave API",
+    "apiKeyPlaceholder": "Introduce tu clave API",
+    "optional": "Opcional",
+    "notConfigured": "No configurado",
+    "connected": "Conectado",
+    "connectionError": "Error de conexion",
+    "notTested": "No probado",
+    "testing": "Probando...",
+    "saveFailed": "Error al guardar",
+    "connectionFailed": "Conexion fallida",
+    "plex": {
+      "title": "Plex",
+      "url": "URL del servidor",
+      "token": "Token de autenticacion"
+    },
+    "tunarr": {
+      "title": "Tunarr",
+      "url": "URL del servidor",
+      "username": "Nombre de usuario",
+      "password": "Contrasena"
+    },
+    "tmdb": {
+      "title": "TMDB",
+      "apiKey": "Clave API"
+    },
+    "ollama": {
+      "title": "Ollama",
+      "url": "URL del servidor",
+      "model": "Modelo predeterminado"
+    },
+    "testConnection": "Probar conexion",
+    "connectionSuccess": "Conexion exitosa",
+    "defaults": {
+      "section": "Parametros predeterminados",
+      "title": "Valores predeterminados",
+      "iterations": "Iteraciones",
+      "iterationsHelp": "Numero de iteraciones para la generacion de programacion (1-100)",
+      "randomness": "Aleatoriedad",
+      "randomnessHelp": "Nivel de aleatoriedad en la seleccion de contenido (0-100%)",
+      "cacheMode": "Modo de cache",
+      "cacheModeHelp": "Define que fuentes de datos usar para la generacion",
+      "cacheModes": {
+        "cacheOnly": "Cache",
+        "cacheTmdb": "Cache + TMDB",
+        "tmdbOnly": "TMDB",
+        "plexOnly": "Plex"
+      }
+    },
+    "cache": {
+      "section": "Gestion de cache",
+      "title": "Cache local",
+      "description": "La cache local almacena datos para acelerar las operaciones. Limpiar la cache puede resolver algunos problemas.",
+      "clear": "Limpiar cache",
+      "cleared": "Cache limpiada"
+    },
+    "about": {
+      "section": "Acerca de",
+      "title": "SmartTunarr",
+      "version": "Version",
+      "build": "Build",
+      "description": "SmartTunarr es una herramienta de programacion inteligente para Tunarr, que utiliza perfiles JSON e IA para generar programas optimizados."
+    }
+  },
+  "timeline": {
+    "reset": "Restablecer",
+    "duration": "Duracion",
+    "startTime": "Hora de inicio",
+    "metadata": "Metadatos"
+  },
+  "content": {
+    "types": {
+      "movie": "Pelicula",
+      "episode": "Episodio",
+      "filler": "Relleno"
+    },
+    "genres": "Generos",
+    "year": "Ano",
+    "rating": "Calificacion"
+  },
+  "jobs": {
+    "activeJobs": "{{count}} tarea(s) en curso",
+    "recentJobs": "Tareas recientes",
+    "finalScore": "Puntuacion final",
+    "clearCompleted": "Limpiar completadas",
+    "programming": "Programacion",
+    "scoring": "Puntuacion",
+    "sync": "Sincronizacion",
+    "aiGeneration": "Generacion IA"
+  },
+  "comparison": {
+    "title": "Comparacion",
+    "compare": "Comparar",
+    "compareSelection": "Comparar ({{selected}}/2)",
+    "cancel": "Cancelar",
+    "vs": "vs",
+    "scoreA": "Puntuacion A",
+    "scoreB": "Puntuacion B",
+    "delta": "Delta",
+    "status": "Estado",
+    "program": "Programa",
+    "averageScore": "Puntuacion media",
+    "totalScore": "Puntuacion total",
+    "programs": "Programas",
+    "totalDuration": "Duracion total",
+    "statusLabels": {
+      "improved": "Mejorado",
+      "degraded": "Degradado",
+      "added": "Anadido",
+      "removed": "Eliminado",
+      "unchanged": "Sin cambios"
+    },
+    "stats": {
+      "removed": "eliminado(s)",
+      "added": "anadido(s)",
+      "improved": "mejorado(s)",
+      "degraded": "degradado(s)",
+      "unchanged": "sin cambios"
+    },
+    "criteria": {
+      "type": "Tipo",
+      "duration": "Duracion",
+      "genre": "Genero",
+      "timing": "Horario",
+      "strategy": "Estrategia",
+      "age": "Edad",
+      "rating": "Calificacion",
+      "filter": "Filtro",
+      "bonus": "Bonus"
+    }
+  },
+  "historyPage": {
+    "confirmDelete": "¿Eliminar este elemento del historial?",
+    "confirmClearAll": "¿Eliminar todo el historial?",
+    "deleteAll": "Eliminar todo",
+    "delete": "Eliminar",
+    "all": "Todo",
+    "noHistory": "Sin historial",
+    "actions": "Acciones",
+    "optimized": "Optimizado",
+    "improved": "Mejorado",
+    "noForbidden": "Sin prohibidos",
+    "stats": "{{count}} prog",
+    "days": "{{count}}d",
+    "replacements": "reempl.",
+    "improvements": "mejoras",
+    "viewTimeline": "Timeline",
+    "viewTable": "Tabla"
+  },
+  "ai": {
+    "title": "Generacion IA",
+    "description": "Describe el tipo de programacion deseada y la IA generara un perfil JSON para ti.",
+    "prompt": "Descripcion",
+    "promptPlaceholder": "Ej: Una noche de cine de accion con peliculas recientes bien valoradas, sin peliculas de terror...",
+    "model": "Modelo IA",
+    "autoModel": "Automatico (recomendado)",
+    "temperature": "Creatividad",
+    "saveProfile": "Guardar perfil generado",
+    "profileNamePlaceholder": "Nombre del perfil",
+    "generate": "Generar perfil",
+    "generating": "Generando...",
+    "generationSuccess": "Perfil generado con exito",
+    "generationFailed": "Generacion fallida",
+    "attempts": "{{count}} intento(s)",
+    "attempt": "Intento",
+    "attemptDetails": "Detalles de intentos",
+    "generatedProfile": "Perfil generado",
+    "forbiddenRules": "Reglas prohibidas",
+    "mandatoryRules": "Reglas obligatorias",
+    "toggleDetails": "Mostrar/ocultar detalles",
+    "profileSaved": "Perfil guardado",
+    "viewProfile": "Ver perfil",
+    "examplePrompts": "Ejemplos de descripciones",
+    "examples": {
+      "actionNight": "Noche de cine de accion",
+      "familyWeekend": "Programa familiar de fin de semana",
+      "classicMovies": "Peliculas clasicas 80-90",
+      "lateNight": "Programacion nocturna"
+    }
+  }
+}

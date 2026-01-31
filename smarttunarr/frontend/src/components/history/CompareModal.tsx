@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { X, Play, BarChart3, Sparkles } from 'lucide-react'
 import clsx from 'clsx'
 import type { ComparisonSummary } from '@/types'
@@ -8,12 +9,6 @@ const typeIcons = {
   programming: Play,
   scoring: BarChart3,
   ai_generation: Sparkles,
-}
-
-const typeLabels = {
-  programming: 'Programming',
-  scoring: 'Scoring',
-  ai_generation: 'AI',
 }
 
 const typeBadgeColors = {
@@ -28,8 +23,10 @@ interface CompareModalProps {
 }
 
 export function CompareModal({ summary, onClose }: CompareModalProps) {
+  const { t } = useTranslation()
+
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
+    return new Date(dateStr).toLocaleDateString(undefined, {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -48,27 +45,27 @@ export function CompareModal({ summary, onClose }: CompareModalProps) {
         <div className="flex items-start justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Comparaison
+              {t('comparison.title')}
             </h2>
             <div className="flex flex-wrap items-center gap-2 text-sm">
               {/* Entry A */}
               <div className="flex items-center gap-1.5">
                 <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium', typeBadgeColors[summary.entryA.type])}>
                   <TypeIconA className="w-3 h-3" />
-                  {typeLabels[summary.entryA.type]}
+                  {t(`history.types.${summary.entryA.type}`)}
                 </span>
                 <span className="text-gray-600 dark:text-gray-400">
                   {formatDate(summary.entryA.date)}
                 </span>
               </div>
 
-              <span className="text-gray-400 font-medium">vs</span>
+              <span className="text-gray-400 font-medium">{t('comparison.vs')}</span>
 
               {/* Entry B */}
               <div className="flex items-center gap-1.5">
                 <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium', typeBadgeColors[summary.entryB.type])}>
                   <TypeIconB className="w-3 h-3" />
-                  {typeLabels[summary.entryB.type]}
+                  {t(`history.types.${summary.entryB.type}`)}
                 </span>
                 <span className="text-gray-600 dark:text-gray-400">
                   {formatDate(summary.entryB.date)}
@@ -92,19 +89,19 @@ export function CompareModal({ summary, onClose }: CompareModalProps) {
           {/* Stats */}
           <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
             <span>
-              {summary.programComparisons.filter(p => p.status === 'removed').length} retire(s)
+              {summary.programComparisons.filter(p => p.status === 'removed').length} {t('comparison.stats.removed')}
             </span>
             <span>
-              {summary.programComparisons.filter(p => p.status === 'added').length} ajoute(s)
+              {summary.programComparisons.filter(p => p.status === 'added').length} {t('comparison.stats.added')}
             </span>
             <span>
-              {summary.programComparisons.filter(p => p.status === 'improved').length} ameliore(s)
+              {summary.programComparisons.filter(p => p.status === 'improved').length} {t('comparison.stats.improved')}
             </span>
             <span>
-              {summary.programComparisons.filter(p => p.status === 'degraded').length} degrade(s)
+              {summary.programComparisons.filter(p => p.status === 'degraded').length} {t('comparison.stats.degraded')}
             </span>
             <span>
-              {summary.programComparisons.filter(p => p.status === 'unchanged').length} identique(s)
+              {summary.programComparisons.filter(p => p.status === 'unchanged').length} {t('comparison.stats.unchanged')}
             </span>
           </div>
 

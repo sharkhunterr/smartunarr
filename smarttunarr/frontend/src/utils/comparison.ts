@@ -198,20 +198,20 @@ export function formatDelta(value: number | null, decimals = 1): string {
 }
 
 /**
- * Get status icon/label for comparison status
+ * Get status icon/label key for comparison status
  */
-export function getStatusInfo(status: ComparisonStatus): { icon: string; label: string; color: string } {
+export function getStatusInfo(status: ComparisonStatus): { icon: string; labelKey: string; color: string } {
   switch (status) {
     case 'improved':
-      return { icon: '↑', label: 'Ameliore', color: 'text-green-600 dark:text-green-400' }
+      return { icon: '↑', labelKey: 'comparison.statusLabels.improved', color: 'text-green-600 dark:text-green-400' }
     case 'degraded':
-      return { icon: '↓', label: 'Degrade', color: 'text-red-600 dark:text-red-400' }
+      return { icon: '↓', labelKey: 'comparison.statusLabels.degraded', color: 'text-red-600 dark:text-red-400' }
     case 'added':
-      return { icon: '+', label: 'Ajoute', color: 'text-blue-600 dark:text-blue-400' }
+      return { icon: '+', labelKey: 'comparison.statusLabels.added', color: 'text-blue-600 dark:text-blue-400' }
     case 'removed':
-      return { icon: '×', label: 'Retire', color: 'text-orange-600 dark:text-orange-400' }
+      return { icon: '×', labelKey: 'comparison.statusLabels.removed', color: 'text-orange-600 dark:text-orange-400' }
     default:
-      return { icon: '=', label: 'Identique', color: 'text-gray-500' }
+      return { icon: '=', labelKey: 'comparison.statusLabels.unchanged', color: 'text-gray-500' }
   }
 }
 

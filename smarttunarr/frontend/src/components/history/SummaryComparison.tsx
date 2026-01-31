@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { ArrowRight } from 'lucide-react'
 import clsx from 'clsx'
 import type { ComparisonSummary } from '@/types'
@@ -43,10 +44,11 @@ interface SummaryComparisonProps {
 }
 
 export function SummaryComparison({ summary }: SummaryComparisonProps) {
+  const { t } = useTranslation()
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <SummaryCard
-        label="Score moyen"
+        label={t('comparison.averageScore')}
         valueA={summary.averageScoreA}
         valueB={summary.averageScoreB}
         delta={summary.averageScoreDelta}
@@ -54,7 +56,7 @@ export function SummaryComparison({ summary }: SummaryComparisonProps) {
         higherIsBetter={true}
       />
       <SummaryCard
-        label="Score total"
+        label={t('comparison.totalScore')}
         valueA={summary.totalScoreA}
         valueB={summary.totalScoreB}
         delta={summary.totalScoreDelta}
@@ -62,7 +64,7 @@ export function SummaryComparison({ summary }: SummaryComparisonProps) {
         higherIsBetter={true}
       />
       <SummaryCard
-        label="Programmes"
+        label={t('comparison.programs')}
         valueA={summary.programCountA}
         valueB={summary.programCountB}
         delta={summary.programCountDelta}
@@ -70,7 +72,7 @@ export function SummaryComparison({ summary }: SummaryComparisonProps) {
         higherIsBetter={true}
       />
       <SummaryCard
-        label="Duree totale"
+        label={t('comparison.totalDuration')}
         valueA={summary.durationMinA}
         valueB={summary.durationMinB}
         delta={summary.durationDelta}

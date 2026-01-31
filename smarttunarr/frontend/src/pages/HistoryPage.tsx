@@ -131,30 +131,30 @@ function ResultModal({ entry, result, profile, onClose }: ResultModalProps) {
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-primary-500" />
                     <span className="font-medium text-sm text-gray-900 dark:text-white">
-                      {(isOptimized || isImproved) ? 'Optimise' : `#${displayIteration}`}
+                      {(isOptimized || isImproved) ? t('historyPage.optimized') : `#${displayIteration}`}
                     </span>
                     {isImproved && (
                       <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
-                        Ameliore
+                        {t('historyPage.improved')}
                       </span>
                     )}
                     {isOptimized && (
                       <span className="px-1.5 py-0.5 text-[10px] font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
-                        Sans interdits
+                        {t('historyPage.noForbidden')}
                       </span>
                     )}
                   </div>
 
                   {/* Stats */}
                   <span className="text-xs text-gray-500">
-                    {displayPrograms.length} prog • {durationText} • {daysCount}j
+                    {t('historyPage.stats', { count: displayPrograms.length })} • {durationText} • {t('historyPage.days', { count: daysCount })}
                   </span>
 
                   {/* Replacement info */}
                   {replacedCount > 0 && (
                     <span className="text-xs text-gray-500">
-                      ({forbiddenReplacements > 0 && `${forbiddenReplacements} rempl.`}
-                      {improvedReplacements > 0 && ` ${improvedReplacements} amel.`})
+                      ({forbiddenReplacements > 0 && `${forbiddenReplacements} ${t('historyPage.replacements')}`}
+                      {improvedReplacements > 0 && ` ${improvedReplacements} ${t('historyPage.improvements')}`})
                     </span>
                   )}
 
@@ -189,14 +189,14 @@ function ResultModal({ entry, result, profile, onClose }: ResultModalProps) {
                     <button
                       onClick={() => setView('timeline')}
                       className={clsx('p-1.5 rounded', view === 'timeline' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500')}
-                      title="Timeline"
+                      title={t('historyPage.viewTimeline')}
                     >
                       <LayoutGrid className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => setView('table')}
                       className={clsx('p-1.5 rounded', view === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500')}
-                      title="Tableau"
+                      title={t('historyPage.viewTable')}
                     >
                       <Table className="w-3.5 h-3.5" />
                     </button>
@@ -212,25 +212,25 @@ function ResultModal({ entry, result, profile, onClose }: ResultModalProps) {
               {/* Summary cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                 <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Score total</div>
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('scoring.totalScore')}</div>
                   <div className="text-xl sm:text-2xl font-bold text-primary-600 dark:text-primary-400">
                     {(currentIteration?.total_score ?? programResult.total_score).toFixed(1)}
                   </div>
                 </div>
                 <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Score moyen</div>
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('scoring.averageScore')}</div>
                   <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                     {displayScore.toFixed(1)}
                   </div>
                 </div>
                 <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Programmes</div>
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('comparison.programs')}</div>
                   <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                     {displayPrograms.length}
                   </div>
                 </div>
                 <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Duree totale</div>
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('history.totalDuration')}</div>
                   <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                     {durationText}
                   </div>
@@ -251,25 +251,25 @@ function ResultModal({ entry, result, profile, onClose }: ResultModalProps) {
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                 <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Score total</div>
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('scoring.totalScore')}</div>
                   <div className="text-xl sm:text-2xl font-bold text-primary-600 dark:text-primary-400">
                     {scoringResult.total_score.toFixed(1)}
                   </div>
                 </div>
                 <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Score moyen</div>
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('scoring.averageScore')}</div>
                   <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                     {scoringResult.average_score.toFixed(1)}
                   </div>
                 </div>
                 <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Programmes</div>
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('comparison.programs')}</div>
                   <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                     {scoringResult.total_items}
                   </div>
                 </div>
                 <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Violations</div>
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('scoring.violations')}</div>
                   <div className={clsx(
                     'text-xl sm:text-2xl font-bold',
                     scoringResult.violations_count > 0 ? 'text-red-500' : 'text-green-500'
@@ -285,14 +285,14 @@ function ResultModal({ entry, result, profile, onClose }: ResultModalProps) {
                   <button
                     onClick={() => setView('timeline')}
                     className={clsx('p-1.5 rounded', view === 'timeline' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500')}
-                    title="Timeline"
+                    title={t('historyPage.viewTimeline')}
                   >
                     <LayoutGrid className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => setView('table')}
                     className={clsx('p-1.5 rounded', view === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500')}
-                    title="Tableau"
+                    title={t('historyPage.viewTable')}
                   >
                     <Table className="w-3.5 h-3.5" />
                   </button>
@@ -353,7 +353,7 @@ export function HistoryPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cet element de l\'historique ?')) return
+    if (!confirm(t('historyPage.confirmDelete'))) return
 
     setActionId(id)
     try {
@@ -367,7 +367,7 @@ export function HistoryPage() {
   }
 
   const handleClearAll = async () => {
-    if (!confirm('Supprimer tout l\'historique ?')) return
+    if (!confirm(t('historyPage.confirmClearAll'))) return
 
     setLoading(true)
     try {
@@ -507,13 +507,13 @@ export function HistoryPage() {
                 ) : (
                   <GitCompare className="w-4 h-4" />
                 )}
-                Comparer ({selectedIds.size}/2)
+                {t('comparison.compareSelection', { selected: selectedIds.size })}
               </button>
               <button
                 onClick={exitCompareMode}
                 className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
               >
-                Annuler
+                {t('comparison.cancel')}
               </button>
             </>
           ) : (
@@ -524,7 +524,7 @@ export function HistoryPage() {
                   className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   <GitCompare className="w-4 h-4" />
-                  <span className="hidden sm:inline">Comparer</span>
+                  <span className="hidden sm:inline">{t('comparison.compare')}</span>
                 </button>
               )}
               <button
@@ -539,8 +539,8 @@ export function HistoryPage() {
                   className="flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Tout supprimer</span>
-                  <span className="sm:hidden">Supprimer</span>
+                  <span className="hidden sm:inline">{t('historyPage.deleteAll')}</span>
+                  <span className="sm:hidden">{t('historyPage.delete')}</span>
                 </button>
               )}
             </>
@@ -563,7 +563,7 @@ export function HistoryPage() {
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               )}
             >
-              {type === 'all' ? 'Tout' : t(`history.types.${type}`)}
+              {type === 'all' ? t('historyPage.all') : t(`history.types.${type}`)}
             </button>
           ))}
         </div>
@@ -572,7 +572,7 @@ export function HistoryPage() {
       {history.length === 0 ? (
         <div className="text-center py-8 sm:py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <History className="w-10 sm:w-12 h-10 sm:h-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">Aucun historique</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">{t('historyPage.noHistory')}</p>
         </div>
       ) : (
         <>
@@ -609,7 +609,7 @@ export function HistoryPage() {
                       {t('history.score')}
                     </th>
                     <th className="text-right px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Actions
+                      {t('historyPage.actions')}
                     </th>
                   </tr>
                 </thead>

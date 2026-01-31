@@ -1,0 +1,324 @@
+{
+  "nav": {
+    "programming": "Programmierung",
+    "scoring": "Bewertung",
+    "profiles": "Profile",
+    "history": "Verlauf",
+    "logs": "Logs",
+    "settings": "Einstellungen"
+  },
+  "common": {
+    "loading": "Laden...",
+    "save": "Speichern",
+    "saving": "Speichern...",
+    "cancel": "Abbrechen",
+    "delete": "Loschen",
+    "edit": "Bearbeiten",
+    "create": "Erstellen",
+    "export": "Exportieren",
+    "import": "Importieren",
+    "test": "Testen",
+    "apply": "Anwenden",
+    "start": "Starten",
+    "stop": "Stoppen",
+    "refresh": "Aktualisieren",
+    "success": "Erfolg",
+    "error": "Fehler",
+    "warning": "Warnung",
+    "confirm": "Bestatigen",
+    "close": "Schliessen"
+  },
+  "programming": {
+    "title": "Kanal-Programmierung",
+    "selectChannel": "Kanal auswahlen",
+    "selectProfile": "Profil auswahlen",
+    "iterations": "Iterationen",
+    "randomness": "Zufalligkeit",
+    "durationDays": "Dauer",
+    "startDateTime": "Startdatum und -zeit",
+    "startProgramming": "Programmierung starten",
+    "progress": "Fortschritt",
+    "iteration": "Iteration {{current}} von {{total}}",
+    "bestScore": "Beste Punktzahl",
+    "applyResult": "Ergebnis anwenden",
+    "noChannels": "Keine Kanale verfugbar",
+    "noProfiles": "Keine Profile verfugbar"
+  },
+  "scoring": {
+    "title": "Programmbewertung",
+    "analyze": "Analysieren",
+    "exportCSV": "CSV exportieren",
+    "exportJSON": "JSON exportieren",
+    "totalScore": "Gesamtpunktzahl",
+    "averageScore": "Durchschnittspunktzahl",
+    "violations": "Verstobe",
+    "penalties": "Strafen",
+    "breakdown": "Punkteaufschlusselung",
+    "criteria": {
+      "type": "Typ",
+      "duration": "Dauer",
+      "genre": "Genre",
+      "timing": "Zeit",
+      "strategy": "Strategie",
+      "age": "Alter",
+      "rating": "Bewertung",
+      "filter": "Filter",
+      "bonus": "Bonus"
+    },
+    "notEvaluated": "Nicht bewertet",
+    "expanded": {
+      "contentInfo": "Inhaltsinformationen",
+      "expectedGenres": "Erwartete Genres",
+      "block": "Zeitblock",
+      "ageRating": "Altersfreigabe",
+      "mandatoryStatus": "Pflicht",
+      "forbiddenStatus": "Verboten",
+      "allMandatoryMet": "Alle Pflichtkriterien erfullt",
+      "noViolations": "Keine Verstobe gegen verbotene Regeln",
+      "noDetails": "Keine Details verfugbar"
+    }
+  },
+  "profiles": {
+    "title": "Programmierungsprofile",
+    "create": "Neues Profil",
+    "edit": "Profil bearbeiten",
+    "delete": "Profil loschen",
+    "name": "Name",
+    "version": "Version",
+    "labels": "Labels",
+    "timeBlocks": "Zeitblocke",
+    "scoringWeights": "Bewertungsgewichte",
+    "confirmDelete": "Mochten Sie dieses Profil wirklich loschen?"
+  },
+  "history": {
+    "title": "Operationsverlauf",
+    "type": "Typ",
+    "channel": "Kanal",
+    "profile": "Profil",
+    "status": "Status",
+    "date": "Datum",
+    "score": "Punktzahl",
+    "details": "Details",
+    "startedAt": "Gestartet",
+    "completedAt": "Abgeschlossen",
+    "duration": "Dauer",
+    "iterations": "Iterationen",
+    "bestScore": "Beste Punktzahl",
+    "error": "Fehler",
+    "resultSummary": "Ergebniszusammenfassung",
+    "programsGenerated": "Generierte Programme",
+    "totalDuration": "Gesamtdauer",
+    "contentDistribution": "Inhaltsverteilung",
+    "scoreDistribution": "Punkteverteilung",
+    "rawData": "Rohdaten",
+    "viewResult": "Ergebnis anzeigen",
+    "viewFullResult": "Vollstandiges Ergebnis anzeigen",
+    "rerun": "Erneut ausfuhren",
+    "types": {
+      "programming": "Programmierung",
+      "scoring": "Bewertung",
+      "sync": "Synchronisierung",
+      "aiGeneration": "KI-Generierung"
+    },
+    "statuses": {
+      "pending": "Ausstehend",
+      "running": "Laufend",
+      "success": "Erfolgreich",
+      "failed": "Fehlgeschlagen",
+      "cancelled": "Abgebrochen"
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "services": "Dienste",
+    "appearance": "Erscheinungsbild",
+    "theme": "Design",
+    "themes": {
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System"
+    },
+    "language": "Sprache",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "token": "Token",
+    "apiKey": "API-Schlussel",
+    "apiKeyPlaceholder": "Geben Sie Ihren API-Schlussel ein",
+    "optional": "Optional",
+    "notConfigured": "Nicht konfiguriert",
+    "connected": "Verbunden",
+    "connectionError": "Verbindungsfehler",
+    "notTested": "Nicht getestet",
+    "testing": "Teste...",
+    "saveFailed": "Speichern fehlgeschlagen",
+    "connectionFailed": "Verbindung fehlgeschlagen",
+    "plex": {
+      "title": "Plex",
+      "url": "Server-URL",
+      "token": "Authentifizierungstoken"
+    },
+    "tunarr": {
+      "title": "Tunarr",
+      "url": "Server-URL",
+      "username": "Benutzername",
+      "password": "Passwort"
+    },
+    "tmdb": {
+      "title": "TMDB",
+      "apiKey": "API-Schlussel"
+    },
+    "ollama": {
+      "title": "Ollama",
+      "url": "Server-URL",
+      "model": "Standardmodell"
+    },
+    "testConnection": "Verbindung testen",
+    "connectionSuccess": "Verbindung erfolgreich",
+    "defaults": {
+      "section": "Standardparameter",
+      "title": "Standardwerte",
+      "iterations": "Iterationen",
+      "iterationsHelp": "Anzahl der Iterationen fur die Programmgenerierung (1-100)",
+      "randomness": "Zufalligkeit",
+      "randomnessHelp": "Zufallsgrad bei der Inhaltsauswahl (0-100%)",
+      "cacheMode": "Cache-Modus",
+      "cacheModeHelp": "Legt fest, welche Datenquellen fur die Generierung verwendet werden",
+      "cacheModes": {
+        "cacheOnly": "Cache",
+        "cacheTmdb": "Cache + TMDB",
+        "tmdbOnly": "TMDB",
+        "plexOnly": "Plex"
+      }
+    },
+    "cache": {
+      "section": "Cache-Verwaltung",
+      "title": "Lokaler Cache",
+      "description": "Der lokale Cache speichert Daten, um Operationen zu beschleunigen. Das Leeren des Cache kann einige Probleme losen.",
+      "clear": "Cache leeren",
+      "cleared": "Cache geleert"
+    },
+    "about": {
+      "section": "Uber",
+      "title": "SmartTunarr",
+      "version": "Version",
+      "build": "Build",
+      "description": "SmartTunarr ist ein intelligentes Programmierungstool fur Tunarr, das JSON-Profile und KI verwendet, um optimierte Programme zu generieren."
+    }
+  },
+  "timeline": {
+    "reset": "Zurucksetzen",
+    "duration": "Dauer",
+    "startTime": "Startzeit",
+    "metadata": "Metadaten"
+  },
+  "content": {
+    "types": {
+      "movie": "Film",
+      "episode": "Episode",
+      "filler": "Fullmaterial"
+    },
+    "genres": "Genres",
+    "year": "Jahr",
+    "rating": "Bewertung"
+  },
+  "jobs": {
+    "activeJobs": "{{count}} laufende Aufgabe(n)",
+    "recentJobs": "Letzte Aufgaben",
+    "finalScore": "Endpunktzahl",
+    "clearCompleted": "Abgeschlossene loschen",
+    "programming": "Programmierung",
+    "scoring": "Bewertung",
+    "sync": "Synchronisierung",
+    "aiGeneration": "KI-Generierung"
+  },
+  "comparison": {
+    "title": "Vergleich",
+    "compare": "Vergleichen",
+    "compareSelection": "Vergleichen ({{selected}}/2)",
+    "cancel": "Abbrechen",
+    "vs": "vs",
+    "scoreA": "Punktzahl A",
+    "scoreB": "Punktzahl B",
+    "delta": "Delta",
+    "status": "Status",
+    "program": "Programm",
+    "averageScore": "Durchschnittspunktzahl",
+    "totalScore": "Gesamtpunktzahl",
+    "programs": "Programme",
+    "totalDuration": "Gesamtdauer",
+    "statusLabels": {
+      "improved": "Verbessert",
+      "degraded": "Verschlechtert",
+      "added": "Hinzugefugt",
+      "removed": "Entfernt",
+      "unchanged": "Unverandert"
+    },
+    "stats": {
+      "removed": "entfernt",
+      "added": "hinzugefugt",
+      "improved": "verbessert",
+      "degraded": "verschlechtert",
+      "unchanged": "unverandert"
+    },
+    "criteria": {
+      "type": "Typ",
+      "duration": "Dauer",
+      "genre": "Genre",
+      "timing": "Zeit",
+      "strategy": "Strategie",
+      "age": "Alter",
+      "rating": "Bewertung",
+      "filter": "Filter",
+      "bonus": "Bonus"
+    }
+  },
+  "historyPage": {
+    "confirmDelete": "Diesen Verlaufseintrag loschen?",
+    "confirmClearAll": "Gesamten Verlauf loschen?",
+    "deleteAll": "Alle loschen",
+    "delete": "Loschen",
+    "all": "Alle",
+    "noHistory": "Kein Verlauf",
+    "actions": "Aktionen",
+    "optimized": "Optimiert",
+    "improved": "Verbessert",
+    "noForbidden": "Ohne Verbotene",
+    "stats": "{{count}} Prog",
+    "days": "{{count}}T",
+    "replacements": "Ersetz.",
+    "improvements": "Verb.",
+    "viewTimeline": "Timeline",
+    "viewTable": "Tabelle"
+  },
+  "ai": {
+    "title": "KI-Generierung",
+    "description": "Beschreiben Sie die gewunschte Programmierung und die KI wird ein JSON-Profil fur Sie erstellen.",
+    "prompt": "Beschreibung",
+    "promptPlaceholder": "Z.B.: Ein Action-Filmabend mit aktuellen gut bewerteten Filmen, keine Horrorfilme...",
+    "model": "KI-Modell",
+    "autoModel": "Automatisch (empfohlen)",
+    "temperature": "Kreativitat",
+    "saveProfile": "Generiertes Profil speichern",
+    "profileNamePlaceholder": "Profilname",
+    "generate": "Profil generieren",
+    "generating": "Generiere...",
+    "generationSuccess": "Profil erfolgreich generiert",
+    "generationFailed": "Generierung fehlgeschlagen",
+    "attempts": "{{count}} Versuch(e)",
+    "attempt": "Versuch",
+    "attemptDetails": "Versuchsdetails",
+    "generatedProfile": "Generiertes Profil",
+    "forbiddenRules": "Verbotene Regeln",
+    "mandatoryRules": "Pflichtregeln",
+    "toggleDetails": "Details anzeigen/ausblenden",
+    "profileSaved": "Profil gespeichert",
+    "viewProfile": "Profil anzeigen",
+    "examplePrompts": "Beispielbeschreibungen",
+    "examples": {
+      "actionNight": "Action-Filmabend",
+      "familyWeekend": "Familienprogramm Wochenende",
+      "classicMovies": "Klassische Filme 80-90er",
+      "lateNight": "Nachtprogramm"
+    }
+  }
+}

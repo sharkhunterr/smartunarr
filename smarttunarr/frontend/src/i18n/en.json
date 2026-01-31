@@ -231,6 +231,65 @@
     "sync": "Sync",
     "aiGeneration": "AI Generation"
   },
+  "comparison": {
+    "title": "Comparison",
+    "compare": "Compare",
+    "compareSelection": "Compare ({{selected}}/2)",
+    "cancel": "Cancel",
+    "vs": "vs",
+    "scoreA": "Score A",
+    "scoreB": "Score B",
+    "delta": "Delta",
+    "status": "Status",
+    "program": "Program",
+    "averageScore": "Average score",
+    "totalScore": "Total score",
+    "programs": "Programs",
+    "totalDuration": "Total duration",
+    "statusLabels": {
+      "improved": "Improved",
+      "degraded": "Degraded",
+      "added": "Added",
+      "removed": "Removed",
+      "unchanged": "Unchanged"
+    },
+    "stats": {
+      "removed": "removed",
+      "added": "added",
+      "improved": "improved",
+      "degraded": "degraded",
+      "unchanged": "unchanged"
+    },
+    "criteria": {
+      "type": "Type",
+      "duration": "Duration",
+      "genre": "Genre",
+      "timing": "Timing",
+      "strategy": "Strategy",
+      "age": "Age",
+      "rating": "Rating",
+      "filter": "Filter",
+      "bonus": "Bonus"
+    }
+  },
+  "historyPage": {
+    "confirmDelete": "Delete this history entry?",
+    "confirmClearAll": "Delete all history?",
+    "deleteAll": "Delete all",
+    "delete": "Delete",
+    "all": "All",
+    "noHistory": "No history",
+    "actions": "Actions",
+    "optimized": "Optimized",
+    "improved": "Improved",
+    "noForbidden": "No forbidden",
+    "stats": "{{count}} prog",
+    "days": "{{count}}d",
+    "replacements": "repl.",
+    "improvements": "impr.",
+    "viewTimeline": "Timeline",
+    "viewTable": "Table"
+  },
   "ai": {
     "title": "AI Generation",
     "description": "Describe the type of programming you want and the AI will generate a JSON profile for you.",

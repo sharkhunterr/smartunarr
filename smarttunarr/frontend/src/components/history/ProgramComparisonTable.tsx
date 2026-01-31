@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 import type { ProgramComparison } from '@/types'
@@ -9,22 +10,11 @@ interface ProgramRowProps {
 }
 
 function ProgramRow({ program }: ProgramRowProps) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const statusInfo = getStatusInfo(program.status)
   const hasCriteria = program.criteriaDeltas && Object.keys(program.criteriaDeltas).length > 0
   const canExpand = hasCriteria && program.status !== 'added' && program.status !== 'removed'
-
-  const criterionLabels: Record<string, string> = {
-    type: 'Type',
-    duration: 'Duree',
-    genre: 'Genre',
-    timing: 'Timing',
-    strategy: 'Strategie',
-    age: 'Age',
-    rating: 'Note',
-    filter: 'Filtre',
-    bonus: 'Bonus',
-  }
 
   return (
     <>
@@ -69,7 +59,7 @@ function ProgramRow({ program }: ProgramRowProps) {
         <td className="px-3 py-2 text-center">
           <span className={clsx('text-sm font-medium inline-flex items-center gap-1', statusInfo.color)}>
             <span>{statusInfo.icon}</span>
-            <span className="hidden sm:inline">{statusInfo.label}</span>
+            <span className="hidden sm:inline">{t(statusInfo.labelKey)}</span>
           </span>
         </td>
       </tr>
@@ -80,7 +70,7 @@ function ProgramRow({ program }: ProgramRowProps) {
               {Object.entries(program.criteriaDeltas).map(([criterion, values]) => (
                 <div key={criterion} className="flex flex-col">
                   <span className="text-gray-500 dark:text-gray-400">
-                    {criterionLabels[criterion] || criterion}
+                    {t(`comparison.criteria.${criterion}`, criterion)}
                   </span>
                   <div className="flex items-center gap-1">
                     <span className="text-gray-600 dark:text-gray-300">
@@ -112,6 +102,7 @@ interface ProgramComparisonTableProps {
 }
 
 export function ProgramComparisonTable({ programs, maxHeight = '400px' }: ProgramComparisonTableProps) {
+  const { t } = useTranslation()
   // Group programs by status for better readability
   const removed = programs.filter(p => p.status === 'removed')
   const added = programs.filter(p => p.status === 'added')
@@ -126,19 +117,19 @@ export function ProgramComparisonTable({ programs, maxHeight = '400px' }: Progra
           <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
             <tr>
               <th className="text-left px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-                Programme
+                {t('comparison.program')}
               </th>
               <th className="text-center px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 w-20">
-                Score A
+                {t('comparison.scoreA')}
               </th>
               <th className="text-center px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 w-20">
-                Score B
+                {t('comparison.scoreB')}
               </th>
               <th className="text-center px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 w-16">
-                Delta
+                {t('comparison.delta')}
               </th>
               <th className="text-center px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 w-24">
-                Status
+                {t('comparison.status')}
               </th>
             </tr>
           </thead>

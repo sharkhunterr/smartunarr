@@ -231,6 +231,65 @@
     "sync": "Synchronisation",
     "aiGeneration": "Generation IA"
   },
+  "comparison": {
+    "title": "Comparaison",
+    "compare": "Comparer",
+    "compareSelection": "Comparer ({{selected}}/2)",
+    "cancel": "Annuler",
+    "vs": "vs",
+    "scoreA": "Score A",
+    "scoreB": "Score B",
+    "delta": "Delta",
+    "status": "Statut",
+    "program": "Programme",
+    "averageScore": "Score moyen",
+    "totalScore": "Score total",
+    "programs": "Programmes",
+    "totalDuration": "Duree totale",
+    "statusLabels": {
+      "improved": "Ameliore",
+      "degraded": "Degrade",
+      "added": "Ajoute",
+      "removed": "Retire",
+      "unchanged": "Identique"
+    },
+    "stats": {
+      "removed": "retire(s)",
+      "added": "ajoute(s)",
+      "improved": "ameliore(s)",
+      "degraded": "degrade(s)",
+      "unchanged": "identique(s)"
+    },
+    "criteria": {
+      "type": "Type",
+      "duration": "Duree",
+      "genre": "Genre",
+      "timing": "Timing",
+      "strategy": "Strategie",
+      "age": "Age",
+      "rating": "Note",
+      "filter": "Filtre",
+      "bonus": "Bonus"
+    }
+  },
+  "historyPage": {
+    "confirmDelete": "Supprimer cet element de l'historique ?",
+    "confirmClearAll": "Supprimer tout l'historique ?",
+    "deleteAll": "Tout supprimer",
+    "delete": "Supprimer",
+    "all": "Tout",
+    "noHistory": "Aucun historique",
+    "actions": "Actions",
+    "optimized": "Optimise",
+    "improved": "Ameliore",
+    "noForbidden": "Sans interdits",
+    "stats": "{{count}} prog",
+    "days": "{{count}}j",
+    "replacements": "rempl.",
+    "improvements": "amel.",
+    "viewTimeline": "Timeline",
+    "viewTable": "Tableau"
+  },
   "ai": {
     "title": "Generation par IA",
     "description": "Decrivez le type de programmation souhaite et l'IA generera un profil JSON pour vous.",

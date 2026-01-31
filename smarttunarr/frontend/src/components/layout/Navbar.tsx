@@ -20,6 +20,9 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const languages = [
     { value: 'fr', label: 'FR', flag: '🇫🇷' },
     { value: 'en', label: 'EN', flag: '🇬🇧' },
+    { value: 'it', label: 'IT', flag: '🇮🇹' },
+    { value: 'es', label: 'ES', flag: '🇪🇸' },
+    { value: 'de', label: 'DE', flag: '🇩🇪' },
   ]
 
   const handleLanguageChange = (lang: string) => {
