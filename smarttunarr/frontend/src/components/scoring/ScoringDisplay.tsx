@@ -962,7 +962,7 @@ export function ScoresTable({
                     <ScoringExpandableRow
                       prog={prog}
                       score={prog.score}
-                      criteria={currentBlock?.criteria || {}}
+                      criteria={currentBlock?.criteria || profile?.time_blocks?.[0]?.criteria || {}}
                       profile={profile}
                     />
                   )}

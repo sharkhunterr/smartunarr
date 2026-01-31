@@ -20,6 +20,7 @@ from app.services.tunarr_service import TunarrService
 from app.services.tmdb_service import TMDBService
 from app.services.content_enrichment_service import ContentEnrichmentService
 from app.services.history_service import HistoryService
+from app.services.result_service import ResultService
 from app.models.profile import Profile
 
 logger = logging.getLogger(__name__)
@@ -224,7 +225,36 @@ async def _run_scoring(
                     if i < 3:
                         logger.info(f"Program {i}: title={merged_program.get('title')}, start={start_time}, type={merged_program.get('type')}, keys={list(merged_program.keys())[:10]}")
             else:
+                # Response is a list - calculate start/end times from channel startTime
                 programs_data = programs_response if programs_response else []
+                if programs_data:
+                    from datetime import timezone, timedelta
+                    channel_start_time = channel.get("startTime")
+                    current_time = None
+                    if channel_start_time:
+                        try:
+                            if isinstance(channel_start_time, (int, float)):
+                                current_time = datetime.fromtimestamp(channel_start_time / 1000, tz=timezone.utc)
+                            elif isinstance(channel_start_time, str):
+                                if channel_start_time.replace(".", "").isdigit():
+                                    current_time = datetime.fromtimestamp(float(channel_start_time) / 1000, tz=timezone.utc)
+                                else:
+                                    current_time = datetime.fromisoformat(channel_start_time.replace("Z", "+00:00"))
+                        except Exception as e:
+                            logger.warning(f"Failed to parse channel startTime {channel_start_time}: {e}")
+
+                    # Add start/end times to each program
+                    for prog in programs_data:
+                        duration_ms = prog.get("duration", 0)
+                        if current_time:
+                            local_start = current_time.astimezone()
+                            prog["start"] = local_start.isoformat()
+                            end_dt = current_time + timedelta(milliseconds=duration_ms)
+                            prog["end"] = end_dt.astimezone().isoformat()
+                            current_time = end_dt
+                        elif not prog.get("start"):
+                            prog["start"] = ""
+                            prog["end"] = ""
 
             if not programs_data:
                 raise ValueError("No programs found in channel")
@@ -661,6 +691,17 @@ async def _run_scoring(
                 # Include time blocks for UI
                 "time_blocks": profile.time_blocks or [],
             }
+            # Save result to database for persistence
+            result_service = ResultService(session)
+            await result_service.save_result(
+                result_id=result_id,
+                result_type="scoring",
+                data=result_data,
+                channel_id=request.channel_id,
+                profile_id=request.profile_id,
+            )
+
+            # Also keep in memory for quick access during session
             _scoring_results[result_id] = result_data
 
             # Save to history
@@ -671,14 +712,15 @@ async def _run_scoring(
                 profile_id=request.profile_id,
             )
 
-            # Mark history entry as success
+            # Mark history entry as success with result reference
             await history_service.mark_success(
                 entry_id=history_entry.id,
                 best_score=average_score,
                 result_summary={
+                    "result_id": result_id,
                     "program_count": len(scored_programs),
                     "violations_count": violations_count,
-                    "forbidden_count": forbidden_count,
+                    "forbidden_count": len(forbidden_violations),
                 },
             )
 
@@ -790,18 +832,38 @@ async def analyze_scoring(
 
 
 @router.get("/results/{result_id}")
-async def get_scoring_result(result_id: str) -> dict[str, Any]:
+async def get_scoring_result(
+    result_id: str,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
     """Get a scoring result by ID."""
+    # Check in-memory cache first
     result = _scoring_results.get(result_id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Result not found")
-    return result
+    if result:
+        return result
+
+    # Fall back to database
+    result_service = ResultService(session)
+    db_result = await result_service.get_result_data(result_id)
+    if db_result:
+        # Cache for future requests
+        _scoring_results[result_id] = db_result
+        return db_result
+
+    raise HTTPException(status_code=404, detail="Result not found")
 
 
 @router.get("/results/{result_id}/export/csv")
-async def export_scoring_csv(result_id: str) -> PlainTextResponse:
+async def export_scoring_csv(
+    result_id: str,
+    session: AsyncSession = Depends(get_session),
+) -> PlainTextResponse:
     """Export scoring result as CSV."""
+    # Check in-memory cache first, then database
     result = _scoring_results.get(result_id)
+    if not result:
+        result_service = ResultService(session)
+        result = await result_service.get_result_data(result_id)
     if not result:
         raise HTTPException(status_code=404, detail="Result not found")
 
@@ -845,9 +907,16 @@ async def export_scoring_csv(result_id: str) -> PlainTextResponse:
 
 
 @router.get("/results/{result_id}/export/json")
-async def export_scoring_json(result_id: str) -> dict[str, Any]:
+async def export_scoring_json(
+    result_id: str,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
     """Export scoring result as JSON."""
+    # Check in-memory cache first, then database
     result = _scoring_results.get(result_id)
+    if not result:
+        result_service = ResultService(session)
+        result = await result_service.get_result_data(result_id)
     if not result:
         raise HTTPException(status_code=404, detail="Result not found")
     return result

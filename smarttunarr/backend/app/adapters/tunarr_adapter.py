@@ -84,12 +84,20 @@ class TunarrAdapter:
         response.raise_for_status()
         return response.json()
 
-    async def get_channel_programming(self, channel_id: str) -> list[dict[str, Any]]:
-        """Get current programming for a channel."""
+    async def get_channel_programming(self, channel_id: str) -> dict[str, Any] | list[dict[str, Any]]:
+        """Get current programming for a channel.
+
+        Uses /programming endpoint which returns the ordered lineup with programs dict.
+        Falls back to /programs if /programming fails.
+        """
         client = await self._get_client()
-        response = await client.get(f"/api/channels/{channel_id}/programs")
+        # Try /programming first (has lineup order)
+        response = await client.get(f"/api/channels/{channel_id}/programming")
         if response.status_code == 404:
-            return []
+            # Fallback to /programs
+            response = await client.get(f"/api/channels/{channel_id}/programs")
+            if response.status_code == 404:
+                return []
         response.raise_for_status()
         return response.json()
 

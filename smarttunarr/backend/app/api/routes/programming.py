@@ -20,6 +20,7 @@ from app.services.service_config_service import ServiceConfigService
 from app.services.plex_service import PlexService
 from app.services.tunarr_service import TunarrService
 from app.services.history_service import HistoryService
+from app.services.result_service import ResultService
 from app.services.tmdb_service import TMDBService
 from app.services.content_enrichment_service import ContentEnrichmentService
 from app.models.profile import Profile
@@ -638,6 +639,17 @@ async def _run_programming(
                 # Time blocks for frontend rendering
                 "time_blocks": profile.time_blocks or [],
             }
+            # Save result to database for persistence
+            result_service = ResultService(session)
+            await result_service.save_result(
+                result_id=result_id,
+                result_type="programming",
+                data=result_data,
+                channel_id=request.channel_id,
+                profile_id=request.profile_id,
+            )
+
+            # Also keep in memory for quick access during session
             _results[result_id] = result_data
 
             # Create and complete history entry with result reference
@@ -860,12 +872,25 @@ async def apply_programming(
 
 
 @router.get("/results/{result_id}")
-async def get_programming_result(result_id: str) -> dict[str, Any]:
+async def get_programming_result(
+    result_id: str,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
     """Get a programming result by ID."""
+    # Check in-memory cache first
     result = _results.get(result_id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Result not found")
-    return result
+    if result:
+        return result
+
+    # Fall back to database
+    result_service = ResultService(session)
+    db_result = await result_service.get_result_data(result_id)
+    if db_result:
+        # Cache for future requests
+        _results[result_id] = db_result
+        return db_result
+
+    raise HTTPException(status_code=404, detail="Result not found")
 
 
 @router.get("/jobs")
