@@ -36,11 +36,11 @@ type CacheMode = 'none' | 'plex_only' | 'tmdb_only' | 'cache_only' | 'full' | 'e
 type ProgrammingMode = 'profile' | 'ai'
 type ResultView = 'timeline' | 'table'
 
-const cacheModeOptions: { value: CacheMode; labelKey: string; icon: React.ElementType; description: string }[] = [
-  { value: 'cache_only', labelKey: 'Cache', icon: Database, description: 'Utilise uniquement le cache existant' },
-  { value: 'full', labelKey: 'Cache + Plex', icon: Database, description: 'Cache + nouveaux contenus Plex enrichis' },
-  { value: 'enrich_cache', labelKey: 'Enrichir', icon: RefreshCw, description: 'Re-enrichit le cache avec TMDB (budget, revenue...)' },
-  { value: 'plex_only', labelKey: 'Plex', icon: Zap, description: 'Récupère depuis Plex sans cache' },
+const cacheModeOptions: { value: CacheMode; labelKey: string; icon: React.ElementType; descKey: string }[] = [
+  { value: 'cache_only', labelKey: 'programming.cacheModes.cacheOnly', icon: Database, descKey: 'programming.cacheModeDescriptions.cacheOnly' },
+  { value: 'full', labelKey: 'programming.cacheModes.cachePlex', icon: Database, descKey: 'programming.cacheModeDescriptions.cachePlex' },
+  { value: 'enrich_cache', labelKey: 'programming.cacheModes.enrich', icon: RefreshCw, descKey: 'programming.cacheModeDescriptions.enrich' },
+  { value: 'plex_only', labelKey: 'programming.cacheModes.plexOnly', icon: Zap, descKey: 'programming.cacheModeDescriptions.plexOnly' },
 ]
 
 // Progress Step Icon
@@ -66,6 +66,7 @@ interface ProgressBarProps {
 }
 
 function ProgressBar({ job, lastCompletedJob, expanded, onToggle }: ProgressBarProps) {
+  const { t } = useTranslation()
   const displayJob = job || lastCompletedJob
   const isRunning = job?.status === 'pending' || job?.status === 'running'
   const isCompleted = displayJob?.status === 'completed'
@@ -100,7 +101,7 @@ function ProgressBar({ job, lastCompletedJob, expanded, onToggle }: ProgressBarP
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-base font-medium text-gray-900 dark:text-white">
-              {isRunning ? 'Génération...' : isCompleted ? 'Terminé' : 'Échec'}
+              {isRunning ? t('programming.generationInProgress') : isCompleted ? t('programming.completed') : t('programming.failed')}
             </span>
             <span className="text-sm text-gray-500">{Math.round(displayJob.progress || 0)}%</span>
           </div>
@@ -161,6 +162,7 @@ interface ResultsPanelProps {
 }
 
 function ResultsPanel({ result, profile, previewOnly, applying, onApply }: ResultsPanelProps) {
+  const { t } = useTranslation()
   const [view, setView] = useState<ResultView>('timeline')
   const [selectedIterationIdx, setSelectedIterationIdx] = useState(0)
 
@@ -193,16 +195,16 @@ function ResultsPanel({ result, profile, previewOnly, applying, onApply }: Resul
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-primary-500" />
             <span className="font-medium text-sm text-gray-900 dark:text-white">
-              {(isOptimized || isImproved) ? 'Optimisé' : `#${displayIteration}`}
+              {(isOptimized || isImproved) ? t('programming.optimized') : `#${displayIteration}`}
             </span>
             {isImproved && (
               <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
-                Amélioré
+                {t('programming.improved')}
               </span>
             )}
             {isOptimized && (
               <span className="px-1.5 py-0.5 text-[10px] font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
-                Optimisé
+                {t('programming.optimized')}
               </span>
             )}
           </div>
@@ -267,7 +269,7 @@ function ResultsPanel({ result, profile, previewOnly, applying, onApply }: Resul
               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg disabled:opacity-50"
             >
               {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-              <span className="hidden sm:inline">Appliquer</span>
+              <span className="hidden sm:inline">{t('programming.apply')}</span>
             </button>
           )}
         </div>
@@ -370,7 +372,7 @@ export function ProgrammingPage() {
         setCurrentJobId(null)
       } else if (currentJob.status === 'failed') {
         setLastCompletedJob(currentJob)
-        setError(currentJob.errorMessage || 'Une erreur est survenue')
+        setError(currentJob.errorMessage || t('common.errors.generic'))
         setCurrentJobId(null)
       }
     }
@@ -407,7 +409,7 @@ export function ProgrammingPage() {
         // Ollama not configured
       }
     } catch (err) {
-      setError('Erreur lors du chargement des données')
+      setError(t('common.errors.loadingData'))
       console.error(err)
     } finally {
       setLoading(false)
@@ -470,7 +472,7 @@ export function ProgrammingPage() {
 
       setCurrentJobId(response.job_id)
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la génération'
+      const errorMessage = err instanceof Error ? err.message : t('common.errors.generation')
       setError(errorMessage)
     }
   }
@@ -483,7 +485,7 @@ export function ProgrammingPage() {
       await programmingApi.apply(result.id)
       setResult(null)
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Erreur lors de l'application"
+      const errorMessage = err instanceof Error ? err.message : t('common.errors.apply')
       setError(errorMessage)
     } finally {
       setApplying(false)
@@ -559,7 +561,7 @@ export function ProgrammingPage() {
             {/* Profile/AI mode */}
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Mode
+                {t('programming.mode')}
               </label>
               <div className="flex gap-1 p-0.5 bg-gray-100 dark:bg-gray-700 rounded-lg h-[42px]">
                 <button
@@ -570,7 +572,7 @@ export function ProgrammingPage() {
                   )}
                 >
                   <Play className="w-4 h-4" />
-                  Profil
+                  {t('programming.modeProfile')}
                 </button>
                 <button
                   onClick={() => setMode('ai')}
@@ -581,7 +583,7 @@ export function ProgrammingPage() {
                   )}
                 >
                   <Sparkles className="w-4 h-4" />
-                  IA
+                  {t('programming.modeAI')}
                 </button>
               </div>
             </div>
@@ -609,7 +611,7 @@ export function ProgrammingPage() {
           {mode === 'ai' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Prompt IA
+                {t('ai.prompt')}
               </label>
               <textarea
                 value={aiPrompt}
@@ -625,7 +627,7 @@ export function ProgrammingPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
               <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
-                Durée: <span className="font-medium">{durationDays}j</span>
+                {t('programming.durationDays')}: <span className="font-medium">{t('historyPage.days', { count: durationDays })}</span>
               </label>
               <input
                 type="range" min="1" max="30" value={durationDays}
@@ -635,7 +637,7 @@ export function ProgrammingPage() {
             </div>
             <div>
               <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
-                Itérations: <span className="font-medium">{iterations}</span>
+                {t('programming.iterations')}: <span className="font-medium">{iterations}</span>
               </label>
               <input
                 type="range" min="1" max="100" value={iterations}
@@ -645,7 +647,7 @@ export function ProgrammingPage() {
             </div>
             <div>
               <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
-                Aléatoire: <span className="font-medium">{(randomness * 100).toFixed(0)}%</span>
+                {t('programming.randomness')}: <span className="font-medium">{(randomness * 100).toFixed(0)}%</span>
               </label>
               <input
                 type="range" min="0" max="100" value={randomness * 100}
@@ -654,7 +656,7 @@ export function ProgrammingPage() {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">Début</label>
+              <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">{t('programming.start')}</label>
               <input
                 type="datetime-local" value={startDate}
                 onChange={e => setStartDate(e.target.value)}
@@ -666,7 +668,7 @@ export function ProgrammingPage() {
           {/* Cache mode */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Mode de cache
+              {t('programming.cacheMode')}
             </label>
             <div className="flex flex-wrap gap-2">
               {cacheModeOptions.map(option => {
@@ -675,7 +677,7 @@ export function ProgrammingPage() {
                   <button
                     key={option.value}
                     onClick={() => setCacheMode(option.value)}
-                    title={option.description}
+                    title={t(option.descKey)}
                     className={clsx(
                       'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors',
                       cacheMode === option.value
@@ -684,7 +686,7 @@ export function ProgrammingPage() {
                     )}
                   >
                     <Icon className="w-4 h-4" />
-                    {option.labelKey}
+                    {t(option.labelKey)}
                   </button>
                 )
               })}
@@ -694,12 +696,12 @@ export function ProgrammingPage() {
           {/* Options (toggle buttons) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Options
+              {t('programming.options')}
             </label>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setPreviewOnly(!previewOnly)}
-                title="Ne pas appliquer à Tunarr, juste prévisualiser"
+                title={t('programming.previewOnlyDesc')}
                 className={clsx(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors',
                   previewOnly
@@ -708,11 +710,11 @@ export function ProgrammingPage() {
                 )}
               >
                 <Eye className="w-4 h-4" />
-                Aperçu seul
+                {t('programming.previewOnly')}
               </button>
               <button
                 onClick={() => setReplaceForbidden(!replaceForbidden)}
-                title="Remplace les contenus marqués comme interdits"
+                title={t('programming.replaceForbiddenDesc')}
                 className={clsx(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors',
                   replaceForbidden
@@ -721,11 +723,11 @@ export function ProgrammingPage() {
                 )}
               >
                 <RefreshCw className="w-4 h-4" />
-                Remplacer interdits
+                {t('programming.replaceForbidden')}
               </button>
               <button
                 onClick={() => setImproveBest(!improveBest)}
-                title="Tente d'améliorer la meilleure itération"
+                title={t('programming.improveBestDesc')}
                 className={clsx(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors',
                   improveBest
@@ -734,7 +736,7 @@ export function ProgrammingPage() {
                 )}
               >
                 <Zap className="w-4 h-4" />
-                Améliorer best
+                {t('programming.improveBest')}
               </button>
             </div>
           </div>
@@ -743,19 +745,19 @@ export function ProgrammingPage() {
           {mode === 'ai' && (
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Modèle IA</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('ai.model')}</label>
                 <select
                   value={selectedModel}
                   onChange={e => setSelectedModel(e.target.value)}
                   className="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
-                  <option value="">Auto</option>
+                  <option value="">{t('common.auto')}</option>
                   {ollamaModels.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                 </select>
               </div>
               <div className="flex-1">
                 <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
-                  Température: <span className="font-medium">{temperature.toFixed(1)}</span>
+                  {t('ai.temperature')}: <span className="font-medium">{temperature.toFixed(1)}</span>
                 </label>
                 <input
                   type="range" min="0" max="1" step="0.1" value={temperature}
@@ -774,7 +776,7 @@ export function ProgrammingPage() {
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50 text-base font-medium"
             >
               {running ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
-              {running ? 'Génération en cours...' : 'Générer la programmation'}
+              {running ? t('programming.generationInProgress') : t('programming.generate')}
             </button>
           </div>
         </div>
@@ -795,7 +797,7 @@ export function ProgrammingPage() {
       {formCollapsed && !result && !running && !lastCompletedJob && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">Cliquez sur Configuration pour lancer une programmation</p>
+          <p className="text-sm">{t('programming.emptyState')}</p>
         </div>
       )}
     </div>

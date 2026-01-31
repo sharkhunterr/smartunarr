@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Save, AlertCircle, CheckCircle, FileJson } from 'lucide-react'
 import clsx from 'clsx'
 import type { Profile } from '@/types'
@@ -20,21 +21,7 @@ interface ProfileEditorProps {
 
 type TabId = 'infos' | 'libraries' | 'blocks' | 'mfp' | 'weights' | 'enhanced' | 'strategies'
 
-interface TabConfig {
-  id: TabId
-  label: string
-  shortLabel: string
-}
-
-const TABS: TabConfig[] = [
-  { id: 'infos', label: 'Informations', shortLabel: 'Infos' },
-  { id: 'libraries', label: 'Bibliotheques', shortLabel: 'Bibl.' },
-  { id: 'blocks', label: 'Blocs Horaires', shortLabel: 'Blocs' },
-  { id: 'mfp', label: 'Criteres M/F/P', shortLabel: 'M/F/P' },
-  { id: 'weights', label: 'Poids & Scoring', shortLabel: 'Poids' },
-  { id: 'enhanced', label: 'Criteres Avances', shortLabel: 'Avances' },
-  { id: 'strategies', label: 'Strategies', shortLabel: 'Strat.' },
-]
+const TAB_IDS: TabId[] = ['infos', 'libraries', 'blocks', 'mfp', 'weights', 'enhanced', 'strategies']
 
 // Templates pre-definis
 const TEMPLATES: Record<string, Partial<Profile>> = {
@@ -153,6 +140,7 @@ const DEFAULT_PROFILE: Profile = {
 }
 
 export function ProfileEditor({ profile, onClose, onSaved, mode }: ProfileEditorProps) {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<TabId>('infos')
   const [formData, setFormData] = useState<Profile>(DEFAULT_PROFILE)
   const [saving, setSaving] = useState(false)
@@ -210,13 +198,13 @@ export function ProfileEditor({ profile, onClose, onSaved, mode }: ProfileEditor
       const localWarnings: string[] = []
 
       if (!formData.name.trim()) {
-        localErrors.push('Le nom du profil est requis')
+        localErrors.push(t('profiles.editor.nameRequired'))
       }
       if (formData.time_blocks.length === 0) {
-        localWarnings.push('Aucun bloc horaire defini')
+        localWarnings.push(t('profiles.editor.noTimeBlocks'))
       }
       if (formData.libraries.length === 0) {
-        localWarnings.push('Aucune bibliotheque selectionnee')
+        localWarnings.push(t('profiles.editor.noLibraries'))
       }
 
       // Check time block overlaps
@@ -227,7 +215,7 @@ export function ProfileEditor({ profile, onClose, onSaved, mode }: ProfileEditor
         const current = blocks[i]
         const next = blocks[i + 1]
         if (current.end_time > next.start_time && current.end_time !== '00:00') {
-          localWarnings.push(`Chevauchement possible entre "${current.name}" et "${next.name}"`)
+          localWarnings.push(t('profiles.editor.blockOverlap', { block1: current.name, block2: next.name }))
         }
       }
 
@@ -239,12 +227,12 @@ export function ProfileEditor({ profile, onClose, onSaved, mode }: ProfileEditor
 
       return localErrors.length === 0 && result.errors.length === 0
     } catch (err) {
-      setErrors(['Erreur lors de la validation'])
+      setErrors([t('profiles.editor.errorValidation')])
       return false
     } finally {
       setValidating(false)
     }
-  }, [formData])
+  }, [formData, t])
 
   // Save profile
   const handleSave = useCallback(async () => {
@@ -268,12 +256,12 @@ export function ProfileEditor({ profile, onClose, onSaved, mode }: ProfileEditor
       onSaved(savedProfile)
       onClose()
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la sauvegarde'
+      const errorMessage = err instanceof Error ? err.message : t('profiles.editor.errorSaving')
       setErrors([errorMessage])
     } finally {
       setSaving(false)
     }
-  }, [formData, mode, validateProfile, onSaved, onClose])
+  }, [formData, mode, validateProfile, onSaved, onClose, t])
 
   // Render tab content
   const renderTabContent = () => {
@@ -340,10 +328,10 @@ export function ProfileEditor({ profile, onClose, onSaved, mode }: ProfileEditor
   }
 
   const title = mode === 'create'
-    ? 'Creer un profil'
+    ? t('profiles.editor.createTitle')
     : mode === 'duplicate'
-      ? 'Dupliquer le profil'
-      : `Editer: ${profile?.name || ''}`
+      ? t('profiles.editor.duplicateTitle')
+      : t('profiles.editor.editTitle', { name: profile?.name || '' })
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -356,7 +344,7 @@ export function ProfileEditor({ profile, onClose, onSaved, mode }: ProfileEditor
             </h2>
             {hasChanges && (
               <span className="text-xs px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded">
-                Non sauvegarde
+                {t('profiles.editor.unsaved')}
               </span>
             )}
           </div>
@@ -369,7 +357,7 @@ export function ProfileEditor({ profile, onClose, onSaved, mode }: ProfileEditor
                   ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600'
                   : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
               )}
-              title="Voir JSON"
+              title={t('profiles.editor.viewJson')}
             >
               <FileJson className="w-5 h-5" />
             </button>
@@ -384,19 +372,19 @@ export function ProfileEditor({ profile, onClose, onSaved, mode }: ProfileEditor
 
         {/* Tabs */}
         <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 overflow-x-auto">
-          {TABS.map(tab => (
+          {TAB_IDS.map(tabId => (
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              key={tabId}
+              onClick={() => setActiveTab(tabId)}
               className={clsx(
                 'px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px',
-                activeTab === tab.id
+                activeTab === tabId
                   ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-white dark:bg-gray-800'
                   : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
               )}
             >
-              <span className="hidden sm:inline">{tab.label}</span>
-              <span className="sm:hidden">{tab.shortLabel}</span>
+              <span className="hidden sm:inline">{t(`profiles.tabs.${tabId}`)}</span>
+              <span className="sm:hidden">{t(`profiles.tabs.${tabId}Short`)}</span>
             </button>
           ))}
         </div>
@@ -445,7 +433,7 @@ export function ProfileEditor({ profile, onClose, onSaved, mode }: ProfileEditor
             onClick={onClose}
             className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
-            Annuler
+            {t('common.cancel')}
           </button>
           <div className="flex items-center gap-2">
             <button
@@ -454,7 +442,7 @@ export function ProfileEditor({ profile, onClose, onSaved, mode }: ProfileEditor
               className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
             >
               <CheckCircle className="w-4 h-4" />
-              {validating ? 'Validation...' : 'Valider'}
+              {validating ? t('profiles.editor.validating') : t('profiles.editor.validate')}
             </button>
             <button
               onClick={handleSave}
@@ -462,7 +450,7 @@ export function ProfileEditor({ profile, onClose, onSaved, mode }: ProfileEditor
               className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
-              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+              {saving ? t('profiles.editor.saving') : t('profiles.editor.saveBtn')}
             </button>
           </div>
         </div>

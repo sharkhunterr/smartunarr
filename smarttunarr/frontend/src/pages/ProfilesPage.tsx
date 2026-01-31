@@ -110,10 +110,10 @@ function ProfileViewModal({ profile, onClose }: ProfileModalProps) {
             <div className="flex items-center gap-3 ml-auto text-xs text-gray-500 dark:text-gray-400">
               <span className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5" />
-                {profile.time_blocks.length} blocs
+                {t('profiles.blocks', { count: profile.time_blocks.length })}
               </span>
-              <span>{profile.default_iterations} iter.</span>
-              <span>{(profile.default_randomness * 100).toFixed(0)}% rand.</span>
+              <span>{profile.default_iterations} {t('profiles.iterShort')}</span>
+              <span>{(profile.default_randomness * 100).toFixed(0)}% {t('profiles.randShort')}</span>
             </div>
           </div>
 
@@ -121,7 +121,7 @@ function ProfileViewModal({ profile, onClose }: ProfileModalProps) {
           {profile.time_blocks.length > 0 && (
             <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
               <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                Blocs horaires
+                {t('profiles.timeBlocks')}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                 {profile.time_blocks.map((block: TimeBlock, index: number) => (
@@ -157,12 +157,12 @@ function ProfileViewModal({ profile, onClose }: ProfileModalProps) {
           {hasMfp && (
             <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
               <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                Criteres M/F/P
+                {t('profiles.mfpCriteria')}
               </div>
               <div className="flex flex-wrap gap-4 text-xs">
                 {mfp.mandatory && Object.keys(mfp.mandatory).length > 0 && (
                   <div>
-                    <span className="text-orange-600 dark:text-orange-400 font-medium">Mandatory: </span>
+                    <span className="text-orange-600 dark:text-orange-400 font-medium">{t('profiles.mandatory')}: </span>
                     <span className="text-gray-700 dark:text-gray-300">
                       {Object.entries(mfp.mandatory).map(([k, v]) => `${k}: ${v}`).join(', ')}
                     </span>
@@ -170,19 +170,19 @@ function ProfileViewModal({ profile, onClose }: ProfileModalProps) {
                 )}
                 {mfp.forbidden?.genres && mfp.forbidden.genres.length > 0 && (
                   <div>
-                    <span className="text-red-600 dark:text-red-400 font-medium">Forbidden genres: </span>
+                    <span className="text-red-600 dark:text-red-400 font-medium">{t('profiles.forbiddenGenres')}: </span>
                     <span className="text-gray-700 dark:text-gray-300">{mfp.forbidden.genres.join(', ')}</span>
                   </div>
                 )}
                 {mfp.forbidden?.keywords && mfp.forbidden.keywords.length > 0 && (
                   <div>
-                    <span className="text-red-600 dark:text-red-400 font-medium">Forbidden keywords: </span>
+                    <span className="text-red-600 dark:text-red-400 font-medium">{t('profiles.forbiddenKeywords')}: </span>
                     <span className="text-gray-700 dark:text-gray-300">{mfp.forbidden.keywords.slice(0, 5).join(', ')}{mfp.forbidden.keywords.length > 5 ? ` +${mfp.forbidden.keywords.length - 5}` : ''}</span>
                   </div>
                 )}
                 {mfp.preferred?.genres && mfp.preferred.genres.length > 0 && (
                   <div>
-                    <span className="text-green-600 dark:text-green-400 font-medium">Preferred genres: </span>
+                    <span className="text-green-600 dark:text-green-400 font-medium">{t('profiles.preferredGenres')}: </span>
                     <span className="text-gray-700 dark:text-gray-300">{mfp.preferred.genres.join(', ')}</span>
                   </div>
                 )}
@@ -193,7 +193,7 @@ function ProfileViewModal({ profile, onClose }: ProfileModalProps) {
           {/* Scoring Weights - Inline */}
           <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-              Poids de scoring
+              {t('profiles.scoringWeights')}
             </div>
             <div className="flex flex-wrap gap-2">
               {Object.entries(profile.scoring_weights as ScoringWeights).map(([key, value]) => (
@@ -212,7 +212,7 @@ function ProfileViewModal({ profile, onClose }: ProfileModalProps) {
           {profile.libraries.length > 0 && (
             <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
               <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                Bibliotheques ({profile.libraries.length})
+                {t('profiles.libraries')} ({profile.libraries.length})
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {profile.libraries.map((lib, index) => (
@@ -232,7 +232,7 @@ function ProfileViewModal({ profile, onClose }: ProfileModalProps) {
           <details className="group">
             <summary className="cursor-pointer text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1">
               <FileJson className="w-3.5 h-3.5" />
-              Voir le JSON brut
+              {t('profiles.viewRawJson')}
             </summary>
             <pre className="mt-2 p-3 bg-gray-900 text-green-400 text-[10px] font-mono rounded-lg overflow-x-auto max-h-64">
               {JSON.stringify(profile, null, 2)}
@@ -290,7 +290,7 @@ export function ProfilesPage() {
       const data = await profilesApi.list()
       setProfiles(data)
     } catch {
-      setError('Erreur lors du chargement des profils')
+      setError(t('profiles.errorLoading'))
     } finally {
       setLoading(false)
     }
@@ -303,9 +303,9 @@ export function ProfilesPage() {
     try {
       await profilesApi.delete(id)
       setProfiles(prev => prev.filter(p => p.id !== id))
-      setSuccess('Profil supprimé')
+      setSuccess(t('profiles.profileDeleted'))
     } catch {
-      setError('Erreur lors de la suppression')
+      setError(t('profiles.errorDeleting'))
     } finally {
       setActionId(null)
     }
@@ -324,9 +324,9 @@ export function ProfilesPage() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-      setSuccess('Profil exporté')
+      setSuccess(t('profiles.profileExported'))
     } catch {
-      setError("Erreur lors de l'export")
+      setError(t('profiles.errorExporting'))
     } finally {
       setActionId(null)
     }
@@ -350,7 +350,7 @@ export function ProfilesPage() {
       // Validate first
       const validation = await profilesApi.validate(data)
       if (!validation.valid) {
-        setError(`JSON invalide: ${validation.errors.join(', ')}`)
+        setError(`${t('profiles.invalidJson')}: ${validation.errors.join(', ')}`)
         return
       }
 
@@ -361,12 +361,12 @@ export function ProfilesPage() {
       // Import
       await profilesApi.import(data, importOverwrite)
       await loadProfiles()
-      setSuccess('Profil importé avec succès')
+      setSuccess(t('profiles.profileImported'))
     } catch (err: unknown) {
       if (err instanceof SyntaxError) {
-        setError('Le fichier JSON est invalide')
+        setError(t('profiles.invalidJsonFile'))
       } else {
-        const errorMessage = err instanceof Error ? err.message : "Erreur lors de l'import"
+        const errorMessage = err instanceof Error ? err.message : t('profiles.errorImporting')
         setError(errorMessage)
       }
     } finally {
@@ -387,9 +387,9 @@ export function ProfilesPage() {
       setProfiles(prev => [...prev, newProfile])
       setDuplicateProfile(null)
       setDuplicateName('')
-      setSuccess('Profil dupliqué')
+      setSuccess(t('profiles.profileDuplicated'))
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la duplication'
+      const errorMessage = err instanceof Error ? err.message : t('profiles.errorDuplicating')
       setError(errorMessage)
     } finally {
       setActionId(null)
@@ -402,7 +402,7 @@ export function ProfilesPage() {
       const fullProfile = await profilesApi.get(profile.id)
       setViewProfile(fullProfile)
     } catch {
-      setError('Erreur lors du chargement du profil')
+      setError(t('profiles.errorLoading'))
     } finally {
       setActionId(null)
     }
@@ -422,7 +422,7 @@ export function ProfilesPage() {
       setEditorMode('edit')
       setShowEditor(true)
     } catch {
-      setError('Erreur lors du chargement du profil')
+      setError(t('profiles.errorLoading'))
     } finally {
       setActionId(null)
     }
@@ -434,7 +434,7 @@ export function ProfilesPage() {
     } else {
       setProfiles(prev => [...prev, savedProfile])
     }
-    setSuccess(editorMode === 'edit' ? 'Profil mis a jour' : 'Profil cree')
+    setSuccess(editorMode === 'edit' ? t('profiles.profileUpdated') : t('profiles.profileCreated'))
     setShowEditor(false)
   }
 
@@ -472,8 +472,8 @@ export function ProfilesPage() {
               onChange={e => setImportOverwrite(e.target.checked)}
               className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
             />
-            <span className="hidden sm:inline">Écraser si existant</span>
-            <span className="sm:hidden">Écraser</span>
+            <span className="hidden sm:inline">{t('profiles.overwriteExisting')}</span>
+            <span className="sm:hidden">{t('profiles.overwrite')}</span>
           </label>
           <button
             onClick={handleImportClick}
@@ -493,8 +493,7 @@ export function ProfilesPage() {
             className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm"
           >
             <Plus className="w-4 sm:w-5 h-4 sm:h-5" />
-            <span className="hidden sm:inline">{t('profiles.create')}</span>
-            <span className="sm:hidden">Creer</span>
+            <span>{t('profiles.create')}</span>
           </button>
         </div>
       </div>
@@ -522,7 +521,7 @@ export function ProfilesPage() {
             className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
           >
             <Upload className="w-4 sm:w-5 h-4 sm:h-5" />
-            Importer un profil JSON
+            {t('profiles.importProfile')}
           </button>
         </div>
       ) : (
@@ -561,7 +560,7 @@ export function ProfilesPage() {
                   <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                     {profile.created_at && (
                       <span>
-                        Créé le {new Date(profile.created_at).toLocaleDateString('fr-FR')}
+                        {t('profiles.createdAt')} {new Date(profile.created_at).toLocaleDateString()}
                       </span>
                     )}
                   </div>
@@ -573,7 +572,7 @@ export function ProfilesPage() {
                     onClick={() => handleView(profile)}
                     disabled={actionId === profile.id}
                     className="p-2 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors disabled:opacity-50"
-                    title="Voir les détails"
+                    title={t('profiles.viewDetails')}
                   >
                     {actionId === profile.id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -584,10 +583,10 @@ export function ProfilesPage() {
                   <button
                     onClick={() => {
                       setDuplicateProfile(profile)
-                      setDuplicateName(`${profile.name} (copie)`)
+                      setDuplicateName(`${profile.name} ${t('profiles.copy')}`)
                     }}
                     className="p-2 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
-                    title="Dupliquer"
+                    title={t('profiles.duplicate')}
                   >
                     <Copy className="w-4 h-4" />
                   </button>
@@ -644,7 +643,7 @@ export function ProfilesPage() {
           <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-xl">
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Dupliquer le profil
+                {t('profiles.duplicateProfile')}
               </h2>
               <button
                 onClick={() => {
@@ -659,7 +658,7 @@ export function ProfilesPage() {
             <div className="p-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Nom du nouveau profil
+                  {t('profiles.newProfileName')}
                 </label>
                 <input
                   type="text"
@@ -689,7 +688,7 @@ export function ProfilesPage() {
                   ) : (
                     <Copy className="w-4 h-4" />
                   )}
-                  Dupliquer
+                  {t('profiles.duplicate')}
                 </button>
               </div>
             </div>

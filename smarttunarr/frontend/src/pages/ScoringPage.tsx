@@ -25,10 +25,10 @@ import {
 } from '@/components/scoring/ScoringDisplay'
 import type { Profile, TunarrChannel, ScoringResult, ScoringCacheMode, MFPPolicy, CriterionMultipliers } from '@/types'
 
-const cacheModeOptions: { value: ScoringCacheMode; label: string; icon: React.ElementType; description: string }[] = [
-  { value: 'cache_only', label: 'Cache', icon: Database, description: 'Utilise uniquement le cache existant' },
-  { value: 'full', label: 'Cache + TMDB', icon: Zap, description: 'Cache + enrichissement TMDB pour les nouveaux' },
-  { value: 'none', label: 'Aucun', icon: XCircle, description: 'Pas d\'enrichissement (données Tunarr uniquement)' },
+const cacheModeOptions: { value: ScoringCacheMode; labelKey: string; icon: React.ElementType; descKey: string }[] = [
+  { value: 'cache_only', labelKey: 'scoring.cacheModes.cacheOnly', icon: Database, descKey: 'scoring.cacheModeDescriptions.cacheOnly' },
+  { value: 'full', labelKey: 'scoring.cacheModes.full', icon: Zap, descKey: 'scoring.cacheModeDescriptions.full' },
+  { value: 'none', labelKey: 'scoring.cacheModes.none', icon: XCircle, descKey: 'scoring.cacheModeDescriptions.none' },
 ]
 
 // Step icon component
@@ -46,6 +46,7 @@ interface ProgressSidebarProps {
 }
 
 function ProgressSidebar({ job, lastJob }: ProgressSidebarProps) {
+  const { t } = useTranslation()
   const displayJob = job || lastJob
 
   if (!displayJob) {
@@ -53,7 +54,7 @@ function ProgressSidebar({ job, lastJob }: ProgressSidebarProps) {
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 h-fit">
         <div className="flex flex-col items-center justify-center text-gray-400 py-6 gap-2">
           <Clock className="w-5 h-5" />
-          <span className="text-sm">Aucune analyse en cours</span>
+          <span className="text-sm">{t('scoring.noAnalysis')}</span>
         </div>
       </div>
     )
@@ -84,10 +85,10 @@ function ProgressSidebar({ job, lastJob }: ProgressSidebarProps) {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-gray-900 dark:text-white">
-            {isRunning ? 'Analyse en cours' : isCompleted ? 'Analyse terminée' : 'Échec'}
+            {isRunning ? t('scoring.analysisInProgress') : isCompleted ? t('scoring.analysisCompleted') : t('programming.failed')}
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-            {displayJob.currentStep || (isCompleted ? 'Terminé avec succès' : displayJob.errorMessage)}
+            {displayJob.currentStep || (isCompleted ? t('scoring.completedSuccess') : displayJob.errorMessage)}
           </p>
         </div>
       </div>
@@ -95,7 +96,7 @@ function ProgressSidebar({ job, lastJob }: ProgressSidebarProps) {
       {/* Progress bar */}
       <div>
         <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-          <span>Progression</span>
+          <span>{t('programming.progress')}</span>
           <span>{Math.round(displayJob.progress || 0)}%</span>
         </div>
         <div className="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -112,7 +113,7 @@ function ProgressSidebar({ job, lastJob }: ProgressSidebarProps) {
       {/* Steps */}
       {steps.length > 0 && (
         <div className="space-y-1.5 pt-2 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Étapes</div>
+          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{t('scoring.steps')}</div>
           {steps.map((step) => (
             <div key={step.id} className="flex items-start gap-2">
               <div className="flex-shrink-0 mt-0.5">
@@ -142,7 +143,7 @@ function ProgressSidebar({ job, lastJob }: ProgressSidebarProps) {
       {displayJob.bestScore != null && (
         <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500 dark:text-gray-400">Score moyen</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">{t('scoring.averageScore')}</span>
             <span className={clsx('text-xl font-bold', getScoreColor(displayJob.bestScore))}>
               {displayJob.bestScore.toFixed(1)}
             </span>
@@ -163,6 +164,7 @@ interface BlockSettingsLegendProps {
 }
 
 function BlockSettingsLegend({ timeBlocks, profile }: BlockSettingsLegendProps) {
+  const { t } = useTranslation()
   if (!timeBlocks || timeBlocks.length === 0) return null
 
   // Check if any block has custom MFP or multipliers
@@ -182,7 +184,7 @@ function BlockSettingsLegend({ timeBlocks, profile }: BlockSettingsLegendProps) 
 
   const formatMFP = (mfp: MFPPolicy | undefined, isDefault: boolean = false) => {
     const policy = mfp || defaultMFP
-    const label = isDefault ? '(défaut)' : ''
+    const label = isDefault ? t('scoring.default') : ''
     return (
       <span className="text-[9px]">
         <span className="text-orange-500">M:{(policy.mandatory_matched_bonus ?? 0) > 0 ? '+' : ''}{policy.mandatory_matched_bonus ?? 0}/{policy.mandatory_missed_penalty ?? 0}</span>
@@ -205,7 +207,7 @@ function BlockSettingsLegend({ timeBlocks, profile }: BlockSettingsLegendProps) 
 
   return (
     <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700">
-      <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Paramètres MFP & Multiplicateurs par bloc</div>
+      <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t('scoring.mfpSettings')}</div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
         {timeBlocks.map((block, idx) => {
           const blockMFP = block.criteria?.mfp_policy
@@ -231,14 +233,14 @@ function BlockSettingsLegend({ timeBlocks, profile }: BlockSettingsLegendProps) 
               {blockMFP ? (
                 <div className="mt-0.5">{formatMFP(blockMFP)}</div>
               ) : (
-                <div className="mt-0.5 text-gray-400 text-[9px]">MFP: défaut</div>
+                <div className="mt-0.5 text-gray-400 text-[9px]">{t('scoring.mfpDefault')}</div>
               )}
               {blockMultipliers ? (
                 <div className="text-[9px] text-purple-600 dark:text-purple-400 mt-0.5 truncate" title={blockMultipliers}>
                   {blockMultipliers}
                 </div>
               ) : (
-                <div className="text-[9px] text-gray-400 mt-0.5">×1.0 (tous)</div>
+                <div className="text-[9px] text-gray-400 mt-0.5">{t('scoring.allMultipliers')}</div>
               )}
             </div>
           )
@@ -246,7 +248,7 @@ function BlockSettingsLegend({ timeBlocks, profile }: BlockSettingsLegendProps) 
       </div>
       {/* Profile defaults */}
       <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-[10px] text-gray-500 dark:text-gray-400">
-        <span className="font-medium">Défauts profil:</span> {formatMFP(profile?.mfp_policy, true)}
+        <span className="font-medium">{t('scoring.profileDefaults')}</span> {formatMFP(profile?.mfp_policy, true)}
         {profile?.criterion_multipliers && formatMultipliers(profile.criterion_multipliers) && (
           <span className="ml-2 text-purple-500">| {formatMultipliers(profile.criterion_multipliers)}</span>
         )}
@@ -312,7 +314,7 @@ export function ScoringPage() {
         setCurrentJobId(null)
       } else if (currentJob.status === 'failed') {
         setLastCompletedJob(currentJob)
-        setError(currentJob.errorMessage || 'Une erreur est survenue')
+        setError(currentJob.errorMessage || t('common.errors.generic'))
         setCurrentJobId(null)
       }
     }
@@ -338,7 +340,7 @@ export function ScoringPage() {
         setSelectedProfileId(profilesData[0].id)
       }
     } catch (err) {
-      setError('Erreur lors du chargement des données')
+      setError(t('common.errors.loadingData'))
       console.error(err)
     } finally {
       setLoading(false)
@@ -368,7 +370,7 @@ export function ScoringPage() {
       })
       setCurrentJobId(response.job_id)
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Erreur lors de l'analyse"
+      const errorMessage = err instanceof Error ? err.message : t('common.errors.analysis')
       setError(errorMessage)
     }
   }
@@ -388,7 +390,7 @@ export function ScoringPage() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Erreur lors de l'export"
+      const errorMessage = err instanceof Error ? err.message : t('common.errors.export')
       setError(errorMessage)
     } finally {
       setExporting(false)
@@ -411,7 +413,7 @@ export function ScoringPage() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Erreur lors de l'export"
+      const errorMessage = err instanceof Error ? err.message : t('common.errors.export')
       setError(errorMessage)
     } finally {
       setExporting(false)
@@ -497,7 +499,7 @@ export function ScoringPage() {
           {/* Cache mode */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Mode d'enrichissement
+              {t('scoring.enrichmentMode')}
             </label>
             <div className="flex flex-wrap gap-2">
               {cacheModeOptions.map(option => {
@@ -506,7 +508,7 @@ export function ScoringPage() {
                   <button
                     key={option.value}
                     onClick={() => setCacheMode(option.value)}
-                    title={option.description}
+                    title={t(option.descKey)}
                     className={clsx(
                       'flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors',
                       cacheMode === option.value
@@ -515,7 +517,7 @@ export function ScoringPage() {
                     )}
                   >
                     <Icon className="w-4 h-4" />
-                    <span>{option.label}</span>
+                    <span>{t(option.labelKey)}</span>
                   </button>
                 )
               })}
@@ -591,7 +593,7 @@ export function ScoringPage() {
 
               {/* Score */}
               <div className="text-right">
-                <div className="text-xs text-gray-500">Score moyen</div>
+                <div className="text-xs text-gray-500">{t('scoring.averageScore')}</div>
                 <div className={clsx('text-lg font-bold', getScoreColor(result.average_score))}>
                   {result.average_score.toFixed(1)}
                 </div>
