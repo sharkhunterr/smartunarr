@@ -420,6 +420,7 @@ export interface ScoringResult {
   bonuses_applied: string[]
   score_distribution: Record<string, number>
   created_at: string
+  time_blocks?: TimeBlock[]
 }
 
 // Service types

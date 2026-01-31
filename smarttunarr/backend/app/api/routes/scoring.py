@@ -143,7 +143,7 @@ async def _run_scoring(
                 logger.info(f"Tunarr lineup: {len(lineup)} entries, programs dict: {len(programs_dict)} entries")
 
                 # Get channel's programming start time (like old code did)
-                from datetime import datetime, timezone, timedelta
+                from datetime import timezone, timedelta
 
                 channel_start_time = channel.get("startTime")
                 current_time = None
@@ -550,9 +550,15 @@ async def _run_scoring(
                 # Track violations
                 if score_result.forbidden_violations:
                     violations_count += len(score_result.forbidden_violations)
+                    content_title = content.get('title', 'Unknown')
+                    block_name = block.get("name") if block else "None"
+                    logger.warning(
+                        f"[FORBIDDEN SCORED] '{content_title}' (block: {block_name}, score: {score_result.total_score}) - "
+                        f"Violations: {score_result.forbidden_violations}"
+                    )
                     for v in score_result.forbidden_violations:
                         forbidden_violations.append(
-                            f"{content.get('title', 'Unknown')}: {v.get('message', v.get('rule', 'Unknown'))}"
+                            f"{content_title}: {v.get('message', v.get('rule', 'Unknown'))}"
                         )
 
                 if score_result.mandatory_penalties:
@@ -659,10 +665,21 @@ async def _run_scoring(
 
             # Save to history
             history_service = HistoryService(session)
-            await history_service.create_entry(
+            history_entry = await history_service.create_entry(
                 entry_type="scoring",
                 channel_id=request.channel_id,
                 profile_id=request.profile_id,
+            )
+
+            # Mark history entry as success
+            await history_service.mark_success(
+                entry_id=history_entry.id,
+                best_score=average_score,
+                result_summary={
+                    "program_count": len(scored_programs),
+                    "violations_count": violations_count,
+                    "forbidden_count": forbidden_count,
+                },
             )
 
             finalize_detail = f"Score moyen: {average_score:.1f} • {violations_count} violations"

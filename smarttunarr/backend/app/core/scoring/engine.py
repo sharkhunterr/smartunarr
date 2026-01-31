@@ -1,7 +1,10 @@
 """ScoringEngine orchestrator with weighted aggregation."""
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, RuleViolation, ScoringContext
 from app.core.scoring.criteria import (
@@ -153,13 +156,14 @@ class ScoringEngine:
         # This ensures content with forbidden age ratings, genres, etc. is completely excluded
         for criterion_name, violation in criterion_rule_violations.items():
             if violation.get("rule_type") == "forbidden":
-                forbidden_violations.append({
+                violation_entry = {
                     "rule": f"forbidden_{criterion_name}_rule",
                     "value": ", ".join(violation.get("values", [])),
                     "message": f"Content has forbidden {criterion_name}: {', '.join(violation.get('values', []))}",
                     "criterion": criterion_name,
                     "penalty": violation.get("penalty_or_bonus", -200),
-                })
+                }
+                forbidden_violations.append(violation_entry)
 
         # Check mandatory rules
         mandatory_penalties = self._check_mandatory(content, content_meta, profile, block)

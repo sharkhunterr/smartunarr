@@ -601,14 +601,14 @@ export function ScoringPage() {
 
           {/* Block settings legend */}
           <BlockSettingsLegend
-            timeBlocks={(selectedProfile?.time_blocks || []) as TimeBlockWithCriteria[]}
+            timeBlocks={(result.time_blocks || selectedProfile?.time_blocks || []) as TimeBlockWithCriteria[]}
             profile={selectedProfile}
           />
 
           {/* Scores table */}
           <ScoresTable
             programs={result.programs || []}
-            timeBlocks={(selectedProfile?.time_blocks || []) as TimeBlockWithCriteria[]}
+            timeBlocks={(result.time_blocks || selectedProfile?.time_blocks || []) as TimeBlockWithCriteria[]}
             profile={selectedProfile}
           />
         </div>

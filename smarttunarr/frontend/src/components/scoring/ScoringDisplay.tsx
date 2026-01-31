@@ -495,25 +495,47 @@ export function ScoringExpandableRow({ prog, score, criteria, profile }: Scoring
   ]
 
   // Collect violations for summary (after criteriaRows is defined)
-  // Only include violations for criteria that:
-  // 1. Are not skipped (e.g., timing for middle programs)
-  // 2. Have contentValues to check (duration/timing don't have string values to match)
+  // Priority: Backend-provided violations first, then frontend-calculated for criteria without backend data
   const violations: Violation[] = []
+  const addedViolations = new Set<string>() // Track added violations to avoid duplicates
+
   criteriaRows.forEach(row => {
     // Skip if criterion is skipped (not applicable)
     const criterionData = score?.criteria?.[row.key as keyof NonNullable<typeof score.criteria>]
     if (criterionData?.skipped) return
 
-    // Skip if no content values to check (duration, timing, rating use numeric ranges, not string matching)
-    if (row.contentValues.length === 0) return
+    // Check for backend-provided rule violations first (authoritative source)
+    const ruleViolation = criterionData?.rule_violation as { rule_type?: string; values?: string[] } | undefined
+    if (ruleViolation) {
+      const violationType = ruleViolation.rule_type === 'forbidden' ? 'F' : ruleViolation.rule_type === 'mandatory' ? 'M' : null
+      const key = `${row.key}-${violationType}`
 
-    const { m, f } = getMFPValues(row.key)
-    const { mOk, fOk } = checkMFPStatus(row.key, row.contentValues)
-    if (mOk === false && m.length > 0) {
-      violations.push({ type: 'M', criterion: row.label, expected: m, content: row.contentValues })
+      if (violationType === 'F' && !addedViolations.has(key)) {
+        violations.push({ type: 'F', criterion: row.label, expected: ruleViolation.values || [], content: [row.content || ''] })
+        addedViolations.add(key)
+      } else if (violationType === 'M' && ruleViolation.values?.some(v => v.includes('>')) && !addedViolations.has(key)) {
+        // Only show mandatory violation if it's a "missed" violation (contains ">")
+        violations.push({ type: 'M', criterion: row.label, expected: ruleViolation.values || [], content: [row.content || ''] })
+        addedViolations.add(key)
+      }
     }
-    if (fOk === false && f.length > 0) {
-      violations.push({ type: 'F', criterion: row.label, expected: f, content: row.contentValues })
+
+    // Only check frontend-calculated violations if backend didn't provide any for this criterion
+    if (row.contentValues.length > 0) {
+      const { m, f } = getMFPValues(row.key)
+      const { mOk, fOk } = checkMFPStatus(row.key, row.contentValues)
+
+      const mKey = `${row.key}-M`
+      const fKey = `${row.key}-F`
+
+      if (mOk === false && m.length > 0 && !addedViolations.has(mKey)) {
+        violations.push({ type: 'M', criterion: row.label, expected: m, content: row.contentValues })
+        addedViolations.add(mKey)
+      }
+      if (fOk === false && f.length > 0 && !addedViolations.has(fKey)) {
+        violations.push({ type: 'F', criterion: row.label, expected: f, content: row.contentValues })
+        addedViolations.add(fKey)
+      }
     }
   })
 
@@ -936,11 +958,11 @@ export function ScoresTable({
                   </tr>
 
                   {/* Expanded row with M/F/P scoring display */}
-                  {isExpanded && currentBlock?.criteria && (
+                  {isExpanded && (
                     <ScoringExpandableRow
                       prog={prog}
                       score={prog.score}
-                      criteria={currentBlock.criteria}
+                      criteria={currentBlock?.criteria || {}}
                       profile={profile}
                     />
                   )}

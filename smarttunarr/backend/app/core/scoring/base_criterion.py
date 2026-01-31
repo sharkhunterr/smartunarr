@@ -15,6 +15,7 @@ class ScoringContext:
     block_end_time: datetime | None = None  # When the current block ends
     is_first_in_block: bool = False  # Whether this is the first program in the block
     is_last_in_block: bool = False  # Whether this is the last program in the block
+    is_schedule_start: bool = False  # Whether this is the very first program of the entire schedule
 
 
 @dataclass

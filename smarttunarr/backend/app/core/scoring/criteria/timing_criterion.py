@@ -252,21 +252,30 @@ class TimingCriterion(BaseCriterion):
             is_last = details.get("is_last_in_block", False)
 
             # Determine the offset to check
+            # If schedule_start_exemption is set, skip late_start check
+            schedule_start_exemption = details.get("schedule_start_exemption", False)
             offset_minutes = 0.0
             offset_type = None
             if is_first and is_last:
                 # Single program: use the worse of late start or overflow
+                # But if schedule start exemption, only consider overflow
                 late = details.get("late_start_minutes") or 0.0
                 overflow = details.get("overflow_minutes") or 0.0
-                if late >= overflow:
+                if schedule_start_exemption:
+                    # First program of schedule: only check overflow
+                    offset_minutes = overflow
+                    offset_type = "overflow" if overflow > 0 else None
+                elif late >= overflow:
                     offset_minutes = late
                     offset_type = "late_start"
                 else:
                     offset_minutes = overflow
                     offset_type = "overflow"
             elif is_first:
-                offset_minutes = details.get("late_start_minutes") or 0.0
-                offset_type = "late_start"
+                if not schedule_start_exemption:
+                    offset_minutes = details.get("late_start_minutes") or 0.0
+                    offset_type = "late_start"
+                # If schedule start exemption, no offset to check for first program
             elif is_last:
                 offset_minutes = details.get("overflow_minutes") or 0.0
                 offset_type = "overflow"
@@ -314,25 +323,28 @@ class TimingCriterion(BaseCriterion):
                     )
                     score += bonus
 
-                # Zone 3: Beyond mandatory but within forbidden (M < offset <= F) → penalty
-                elif mandatory_max is not None and offset_minutes > mandatory_max and offset_minutes <= effective_forbidden_max:
-                    penalty = timing_rules.get("mandatory_penalty", mfp_policy.mandatory_missed_penalty)
-                    rule_violation = RuleViolation(
-                        "mandatory",
-                        [f"{offset_type}:{offset_minutes:.0f}min > {mandatory_max:.0f}min"],
-                        penalty
-                    )
-                    score += penalty
-
-                # Zone 4: Beyond forbidden (offset > F) → heavy penalty + exclusion
-                elif offset_minutes > effective_forbidden_max:
-                    penalty = timing_rules.get("forbidden_penalty", mfp_policy.forbidden_detected_penalty)
-                    rule_violation = RuleViolation(
-                        "forbidden",
-                        [f"{offset_type}:{offset_minutes:.0f}min > {effective_forbidden_max:.0f}min"],
-                        penalty
-                    )
-                    score += penalty
+                # Zone 3: Beyond mandatory (offset > M) → penalty
+                # If forbidden_max is explicitly set and offset > F, it's a forbidden violation
+                # If forbidden_max is NOT set, only apply mandatory penalty (no forbidden rule)
+                elif mandatory_max is not None and offset_minutes > mandatory_max:
+                    if forbidden_max is not None and offset_minutes > forbidden_max:
+                        # Zone 4: Beyond explicitly set forbidden threshold → heavy penalty + exclusion
+                        penalty = timing_rules.get("forbidden_penalty", mfp_policy.forbidden_detected_penalty)
+                        rule_violation = RuleViolation(
+                            "forbidden",
+                            [f"{offset_type}:{offset_minutes:.0f}min > {forbidden_max:.0f}min"],
+                            penalty
+                        )
+                        score += penalty
+                    else:
+                        # Beyond mandatory but no explicit forbidden threshold → mandatory penalty only
+                        penalty = timing_rules.get("mandatory_penalty", mfp_policy.mandatory_missed_penalty)
+                        rule_violation = RuleViolation(
+                            "mandatory",
+                            [f"{offset_type}:{offset_minutes:.0f}min > {mandatory_max:.0f}min"],
+                            penalty
+                        )
+                        score += penalty
 
                 # Store adaptive score details for frontend
                 details["adaptive_score"] = {
@@ -502,9 +514,12 @@ class TimingCriterion(BaseCriterion):
             timing_rules = block_criteria.get("timing_rules")
 
         # Calculate late start ONLY for first-in-block
+        # EXCEPTION: If this is the very first program of the entire schedule,
+        # don't penalize for late start (the schedule might start mid-block intentionally)
         late_start_offset = 0.0
         late_start_score = 100.0
-        if is_first and block_start:
+        is_schedule_start = context.is_schedule_start if context else False
+        if is_first and block_start and not is_schedule_start:
             start_offset_minutes = self._calculate_offset_minutes(current_time, block_start)
             if start_offset_minutes > 2:  # More than 2 min late
                 late_start_offset = start_offset_minutes
@@ -521,6 +536,9 @@ class TimingCriterion(BaseCriterion):
                     late_start_score = self._calculate_penalty_score(start_offset_minutes)
             elif start_offset_minutes < -2:  # More than 2 min early
                 details["early_start_minutes"] = round(abs(start_offset_minutes), 1)
+        elif is_schedule_start:
+            # Mark that late start was skipped due to schedule start
+            details["schedule_start_exemption"] = True
 
         # Calculate overflow ONLY for last-in-block
         overflow_offset = 0.0

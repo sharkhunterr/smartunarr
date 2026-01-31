@@ -333,6 +333,7 @@ class ProgrammingGenerator:
                 block_start_time=block_start_time,
                 block_end_time=block_end_time,
                 is_first_in_block=is_first_in_block,
+                is_schedule_start=(position == 0),  # First program of entire schedule
             )
 
             # Use pre-filtered content for this block (falls back to base if empty)
@@ -382,6 +383,14 @@ class ProgrammingGenerator:
                 score=score,
             )
             programs.append(program)
+
+            # Log if selected program has forbidden violations
+            if score.forbidden_violations:
+                logger.warning(
+                    f"[FORBIDDEN SELECTED] Position {position}: '{content.get('title')}' "
+                    f"(block: {block.name if block else 'None'}) - "
+                    f"Violations: {score.forbidden_violations}"
+                )
 
             # Update state
             current_time = program_end
@@ -613,6 +622,7 @@ class ProgrammingGenerator:
                     block_end_time=block_end_time,
                     is_first_in_block=True,
                     is_last_in_block=is_also_last,
+                    is_schedule_start=(first_idx == 0),  # First program of entire schedule
                 )
 
                 # Recalculate timing criterion
@@ -775,6 +785,94 @@ class ProgrammingGenerator:
                     )
 
         logger.info(f"_recalculate_block_names: {changes_made} block name changes made")
+
+    def _recalculate_full_scores(
+        self,
+        programs: list[ScheduledProgram],
+        profile: dict[str, Any],
+    ) -> None:
+        """
+        Recalculate full scores for programs after block changes.
+
+        After block name recalculation, programs may be in different blocks with
+        different criteria. This method recalculates the complete score for each
+        program using the criteria of its current block.
+        """
+        if not programs:
+            return
+
+        time_blocks = profile.get("time_blocks", [])
+        time_block_map = {tb.get("name", ""): tb for tb in time_blocks}
+
+        recalculated_count = 0
+        from app.core.scoring.base_criterion import ScoringContext
+        from app.core.blocks.time_block_manager import _get_local_timezone
+
+        def build_block_datetime_for_recalc(time_str: str, reference_dt: datetime) -> datetime | None:
+            """Build a full datetime from block time string (HH:MM) using reference date."""
+            if not time_str:
+                return None
+            try:
+                parts = time_str.split(":")
+                hour = int(parts[0])
+                minute = int(parts[1]) if len(parts) > 1 else 0
+            except (ValueError, IndexError):
+                return None
+
+            # Convert reference to local time first (block times are in local time)
+            if reference_dt.tzinfo is not None:
+                local_tz = _get_local_timezone()
+                local_ref = reference_dt.astimezone(local_tz)
+            else:
+                local_ref = reference_dt
+
+            return local_ref.replace(hour=hour, minute=minute, second=0, microsecond=0, tzinfo=None)
+
+        for prog_idx, prog in enumerate(programs):
+            block_dict = time_block_map.get(prog.block_name, {})
+
+            # Build proper timing context using program's actual start time
+            block_start_time = None
+            block_end_time = None
+            if block_dict and prog.start_time:
+                block_start_str = block_dict.get("start_time", "00:00")
+                block_end_str = block_dict.get("end_time", "00:00")
+                block_start_time = build_block_datetime_for_recalc(block_start_str, prog.start_time)
+                block_end_time = build_block_datetime_for_recalc(block_end_str, prog.start_time)
+
+            # Build scoring context with proper timing info
+            scoring_context = ScoringContext(
+                current_time=prog.start_time,
+                block_start_time=block_start_time,
+                block_end_time=block_end_time,
+                is_first_in_block=prog.position == 0,
+                is_last_in_block=False,  # Will be updated in timing recalculation
+                is_schedule_start=(prog_idx == 0),  # First program of entire schedule
+            )
+
+            # Recalculate full score with new block criteria
+            new_score = self.scoring_engine.score(
+                prog.content,
+                prog.content_meta,
+                profile,
+                block_dict,
+                scoring_context,
+            )
+
+            # Check if forbidden status changed
+            old_forbidden = len(prog.score.forbidden_violations) > 0 if prog.score else False
+            new_forbidden = len(new_score.forbidden_violations) > 0
+
+            if new_forbidden != old_forbidden:
+                logger.info(
+                    f"Forbidden status changed for '{prog.content.get('title')}': "
+                    f"{old_forbidden} -> {new_forbidden} (block: {prog.block_name})"
+                )
+
+            prog.score = new_score
+            recalculated_count += 1
+
+        logger.info(f"_recalculate_full_scores: recalculated {recalculated_count} programs")
 
     def _filter_forbidden(
         self,
@@ -1449,13 +1547,44 @@ class ProgrammingGenerator:
                         block = block_manager.get_block_for_datetime(forbidden_prog.start_time)
                         block_dict_for_scoring = block.to_dict() if block else None
 
-                        # Create scoring context
+                        # Create scoring context with proper block timing
+                        block_start_time = None
+                        block_end_time = None
+                        if block_dict_for_scoring:
+                            from app.core.blocks.time_block_manager import _get_local_timezone
+                            block_start_str = block_dict_for_scoring.get("start_time", "00:00")
+                            block_end_str = block_dict_for_scoring.get("end_time", "00:00")
+                            ref_dt = forbidden_prog.start_time
+                            try:
+                                parts = block_start_str.split(":")
+                                hour, minute = int(parts[0]), int(parts[1]) if len(parts) > 1 else 0
+                                if ref_dt.tzinfo is not None:
+                                    local_tz = _get_local_timezone()
+                                    local_ref = ref_dt.astimezone(local_tz)
+                                else:
+                                    local_ref = ref_dt
+                                block_start_time = local_ref.replace(hour=hour, minute=minute, second=0, microsecond=0, tzinfo=None)
+                            except (ValueError, IndexError):
+                                pass
+                            try:
+                                parts = block_end_str.split(":")
+                                hour, minute = int(parts[0]), int(parts[1]) if len(parts) > 1 else 0
+                                if ref_dt.tzinfo is not None:
+                                    local_tz = _get_local_timezone()
+                                    local_ref = ref_dt.astimezone(local_tz)
+                                else:
+                                    local_ref = ref_dt
+                                block_end_time = local_ref.replace(hour=hour, minute=minute, second=0, microsecond=0, tzinfo=None)
+                            except (ValueError, IndexError):
+                                pass
+
                         scoring_context = ScoringContext(
                             current_time=forbidden_prog.start_time,
-                            block_start_time=None,
-                            block_end_time=None,
+                            block_start_time=block_start_time,
+                            block_end_time=block_end_time,
                             is_first_in_block=(prog_idx == 0 or
                                 new_programs[prog_idx - 1].block_name != block_name),
+                            is_schedule_start=(prog_idx == 0),  # First program of entire schedule
                         )
 
                         score = self.scoring_engine.score(
@@ -1510,10 +1639,15 @@ class ProgrammingGenerator:
         # Recalculate block names based on new start times
         self._recalculate_block_names(new_programs, profile)
 
+        # Recalculate full scores with new block criteria (important for forbidden detection)
+        self._recalculate_full_scores(new_programs, profile)
+
         # Recalculate timing scores for the new program list
         self._recalculate_timing_scores(new_programs, profile)
 
         # Recalculate totals after timing recalculation
+        # Also recount forbidden programs after full score recalculation
+        forbidden_count = sum(1 for p in new_programs if p.score and len(p.score.forbidden_violations) > 0)
         total_score = sum((p.score.total_score or 0.0) for p in new_programs)
         avg_score = total_score / len(new_programs) if new_programs else 0.0
 
@@ -1523,7 +1657,7 @@ class ProgrammingGenerator:
             total_score=total_score,
             average_score=avg_score,
             iteration=iteration_number,
-            forbidden_count=best_result.forbidden_count,
+            forbidden_count=forbidden_count,
             seed=best_result.seed,
             all_iterations=[],  # Will be set by caller
             is_optimized=True,  # Mark as optimized iteration
@@ -1590,13 +1724,15 @@ class ProgrammingGenerator:
             if block_name not in other_iterations_map:
                 continue
 
-            # Find candidates with higher scores that aren't already used
+            # Find candidates with higher scores that aren't already used and have no forbidden violations
             candidates: list[tuple[ScheduledProgram, ProgrammingResult]] = []
             for alt_prog, alt_result in other_iterations_map[block_name]:
                 alt_id = alt_prog.content.get("plex_key", alt_prog.content.get("id", ""))
                 alt_score = alt_prog.score.total_score or 0.0
+                # Skip programs with forbidden violations
+                has_forbidden = len(alt_prog.score.forbidden_violations) > 0 if alt_prog.score else False
 
-                if alt_id and alt_id not in used_content_ids and alt_score > current_score:
+                if alt_id and alt_id not in used_content_ids and alt_score > current_score and not has_forbidden:
                     candidates.append((alt_prog, alt_result))
 
             if not candidates:
@@ -1648,10 +1784,15 @@ class ProgrammingGenerator:
         # Recalculate block names based on new start times
         self._recalculate_block_names(new_programs, profile)
 
+        # Recalculate full scores with new block criteria (important for forbidden detection)
+        self._recalculate_full_scores(new_programs, profile)
+
         # Recalculate timing scores for the new program list
         self._recalculate_timing_scores(new_programs, profile)
 
         # Recalculate totals after timing recalculation
+        # Also count forbidden programs
+        forbidden_count = sum(1 for p in new_programs if p.score and len(p.score.forbidden_violations) > 0)
         total_score = sum((p.score.total_score or 0.0) for p in new_programs)
         avg_score = total_score / len(new_programs) if new_programs else 0.0
 
@@ -1660,7 +1801,7 @@ class ProgrammingGenerator:
             total_score=total_score,
             average_score=avg_score,
             iteration=iteration_number,
-            forbidden_count=best_result.forbidden_count,
+            forbidden_count=forbidden_count,
             seed=best_result.seed,
             all_iterations=[],
             is_improved=True,
