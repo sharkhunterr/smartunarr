@@ -314,7 +314,7 @@ async def _run_programming(
                 )
 
                 try:
-                    items = plex.get_library_content(lib_id, limit=500)
+                    items = plex.get_library_content(lib_id)  # No limit - fetch all content
                     logger.info(f"Library {lib_id} ({lib_name}): fetched {len(items)} items")
 
                     # Filter out already cached items

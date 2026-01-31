@@ -361,6 +361,9 @@
       "episodes": "episodes",
       "clearLibrary": "Clear cache",
       "clearAll": "Clear all cache",
+      "syncTmdb": "Sync TMDB",
+      "enrichedResult": "{{count}} items enriched, {{failed}} failed",
+      "enrichError": "TMDB enrichment error",
       "empty": "No cached content"
     },
     "about": {

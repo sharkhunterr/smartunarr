@@ -507,3 +507,79 @@ async def clear_library_cache(
         "deleted_metadata": meta_count,
         "message": f"Cleared {content_count} contents and {meta_count} metadata for library {library_id}",
     }
+
+
+@router.post("/cache/enrich")
+async def force_tmdb_enrichment(
+    library_id: str | None = Query(None, description="Optional: enrich only this library"),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """
+    Force TMDB enrichment for all unenriched content.
+
+    This will enrich cached content that hasn't been enriched yet with TMDB metadata.
+    """
+    from sqlalchemy.orm import selectinload
+    from app.services.content_enrichment_service import ContentEnrichmentService
+
+    # Get TMDB config
+    config_service = ServiceConfigService(session)
+    tmdb_config = await config_service.get_service("tmdb")
+
+    if not tmdb_config or not tmdb_config.api_key:
+        raise HTTPException(status_code=400, detail="TMDB not configured")
+
+    creds = config_service.get_decrypted_credentials(tmdb_config)
+    tmdb = TMDBService(creds["api_key"])
+
+    # Get unenriched content
+    stmt = select(Content).options(selectinload(Content.meta))
+    if library_id:
+        stmt = stmt.where(Content.library_id == library_id)
+
+    result = await session.execute(stmt)
+    contents = result.scalars().all()
+
+    # Filter to unenriched content
+    unenriched = [c for c in contents if not c.meta or not c.meta.enriched_at]
+
+    if not unenriched:
+        return {
+            "success": True,
+            "enriched": 0,
+            "failed": 0,
+            "message": "All content is already enriched",
+        }
+
+    enrichment_service = ContentEnrichmentService(session, tmdb)
+    enriched_count = 0
+    failed_count = 0
+
+    for content in unenriched:
+        try:
+            result = await enrichment_service.enrich_with_tmdb(
+                content.plex_key,
+                content.title,
+                content.type,
+                content.year,
+                force=True,
+            )
+            if result:
+                enriched_count += 1
+            else:
+                failed_count += 1
+        except Exception as e:
+            logger.warning(f"Failed to enrich {content.title}: {e}")
+            failed_count += 1
+
+    await session.commit()
+
+    logger.info(f"TMDB enrichment completed: {enriched_count} enriched, {failed_count} failed")
+
+    return {
+        "success": True,
+        "enriched": enriched_count,
+        "failed": failed_count,
+        "total": len(unenriched),
+        "message": f"Enriched {enriched_count} items, {failed_count} failed",
+    }

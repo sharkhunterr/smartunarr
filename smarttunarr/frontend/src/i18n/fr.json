@@ -361,6 +361,9 @@
       "episodes": "episodes",
       "clearLibrary": "Vider le cache",
       "clearAll": "Vider tout le cache",
+      "syncTmdb": "Synchroniser TMDB",
+      "enrichedResult": "{{count}} elements enrichis, {{failed}} echecs",
+      "enrichError": "Erreur lors de l'enrichissement TMDB",
       "empty": "Aucun contenu en cache"
     },
     "about": {

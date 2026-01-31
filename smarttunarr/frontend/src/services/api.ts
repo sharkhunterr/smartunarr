@@ -143,6 +143,12 @@ export const cacheApi = {
   clearLibrary: async (libraryId: string): Promise<{ success: boolean; deleted_content: number; deleted_metadata: number }> => {
     const response = await client.delete(`/services/cache/library/${libraryId}`)
     return response.data
+  },
+
+  forceEnrich: async (libraryId?: string): Promise<{ success: boolean; enriched: number; failed: number; total: number }> => {
+    const params = libraryId ? { library_id: libraryId } : {}
+    const response = await client.post('/services/cache/enrich', null, { params })
+    return response.data
   }
 }
 

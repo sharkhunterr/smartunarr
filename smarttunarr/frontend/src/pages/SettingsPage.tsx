@@ -401,6 +401,7 @@ function CacheSection() {
   const [libraries, setLibraries] = useState<PlexLibrary[]>([])
   const [clearingAll, setClearingAll] = useState(false)
   const [clearingLibrary, setClearingLibrary] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -456,8 +457,23 @@ function CacheSection() {
     }
   }
 
+  const handleForceEnrich = async () => {
+    setSyncing(true)
+    setError(null)
+    try {
+      const result = await cacheApi.forceEnrich()
+      setSuccess(t('settings.cache.enrichedResult', { count: result.enriched, failed: result.failed }))
+      setTimeout(() => setSuccess(null), 5000)
+      await loadData()
+    } catch {
+      setError(t('settings.cache.enrichError'))
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   const getLibraryName = (libraryId: string): string => {
-    const lib = libraries.find(l => l.key === libraryId)
+    const lib = libraries.find(l => l.id === libraryId)
     return lib?.title || libraryId
   }
 
@@ -615,8 +631,20 @@ function CacheSection() {
         </div>
       )}
 
-      {/* Clear All Button */}
+      {/* Actions */}
       <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <button
+          onClick={handleForceEnrich}
+          disabled={syncing || (stats?.total_content ?? 0) === 0 || stats?.total_enriched === stats?.total_content}
+          className="px-3 sm:px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm sm:text-base"
+        >
+          {syncing ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+          {t('settings.cache.syncTmdb')}
+        </button>
         <button
           onClick={handleClearAll}
           disabled={clearingAll || (stats?.total_content ?? 0) === 0}

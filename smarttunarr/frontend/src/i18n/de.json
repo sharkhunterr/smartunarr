@@ -361,6 +361,9 @@
       "episodes": "Episoden",
       "clearLibrary": "Cache leeren",
       "clearAll": "Gesamten Cache leeren",
+      "syncTmdb": "TMDB synchronisieren",
+      "enrichedResult": "{{count}} Elemente angereichert, {{failed}} fehlgeschlagen",
+      "enrichError": "Fehler bei der TMDB-Anreicherung",
       "empty": "Kein zwischengespeicherter Inhalt"
     },
     "about": {
