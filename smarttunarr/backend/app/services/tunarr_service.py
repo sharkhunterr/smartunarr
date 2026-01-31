@@ -73,6 +73,8 @@ class TunarrService:
         self,
         channel_id: str,
         programs: list[dict[str, Any]],
+        plex_server_name: str = "NAS-Jérémie",
+        plex_server_id: str = "caa0e3c3-67d7-4533-8d8d-616ab86bf4bc",
     ) -> bool:
         """
         Update channel programming.
@@ -80,11 +82,15 @@ class TunarrService:
         Args:
             channel_id: Channel ID
             programs: List of program items
+            plex_server_name: Plex server name as configured in Tunarr
+            plex_server_id: Optional Plex server ID
 
         Returns:
             True if successful
         """
-        return await self.adapter.update_channel_programming(channel_id, programs)
+        return await self.adapter.update_channel_programming(
+            channel_id, programs, plex_server_name, plex_server_id
+        )
 
     async def get_server_info(self) -> dict[str, Any] | None:
         """

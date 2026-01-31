@@ -127,6 +127,10 @@ async def _run_programming(
 
             steps.append(ProgressStep("finalize", "Finalisation", "pending"))
 
+            # Add Tunarr sync step if not preview only
+            if not request.preview_only:
+                steps.append(ProgressStep("tunarr_sync", "Envoi vers Tunarr", "pending"))
+
             logger.info(f"[DEBUG] About to set job steps")
             await job_manager.set_job_steps(job_id, steps)
             logger.info(f"[DEBUG] Job steps set")
@@ -654,6 +658,68 @@ async def _run_programming(
             # Mark finalize step as completed
             finalize_detail = f"{len(programs)} programmes • Score: {result.average_score:.1f}"
             await job_manager.update_step_status(job_id, "finalize", "completed", finalize_detail)
+
+            # Tunarr sync step (if not preview only)
+            if not request.preview_only:
+                await job_manager.update_step_status(job_id, "tunarr_sync", "running")
+                await job_manager.update_job_progress(job_id, 97, "Envoi de la programmation vers Tunarr...")
+
+                try:
+                    # Get Tunarr config
+                    tunarr_config = await config_service.get_service("tunarr")
+                    if not tunarr_config or not tunarr_config.url:
+                        raise ValueError("Tunarr non configuré")
+
+                    tunarr_creds = config_service.get_decrypted_credentials(tunarr_config)
+                    tunarr_service = TunarrService(
+                        tunarr_config.url,
+                        tunarr_creds.get("username"),
+                        tunarr_creds.get("password"),
+                    )
+
+                    # Get Plex server info from Tunarr
+                    plex_servers = await tunarr_service.adapter.get_plex_servers()
+                    plex_server_name = "NAS-Jérémie"  # Default fallback
+                    plex_server_id = "caa0e3c3-67d7-4533-8d8d-616ab86bf4bc"  # Default fallback
+                    if plex_servers:
+                        # Use the first Plex server configured in Tunarr
+                        plex_server_name = plex_servers[0].get("name", plex_server_name)
+                        plex_server_id = plex_servers[0].get("id", plex_server_id)
+                        logger.info(f"Using Plex server from Tunarr: {plex_server_name} (ID: {plex_server_id})")
+
+                    # Convert programs to Tunarr format
+                    tunarr_programs = []
+                    for prog in result.programs:
+                        tunarr_programs.append({
+                            "plex_key": prog.content.get("plex_key", ""),
+                            "content_plex_key": prog.content.get("plex_key", ""),
+                            "title": prog.content.get("title", ""),
+                            "duration_ms": prog.content.get("duration_ms", 0),
+                            "type": prog.content.get("type", "movie"),
+                        })
+
+                    # Send to Tunarr
+                    success = await tunarr_service.update_channel_programming(
+                        request.channel_id,
+                        tunarr_programs,
+                        plex_server_name=plex_server_name,
+                        plex_server_id=plex_server_id,
+                    )
+                    await tunarr_service.close()
+
+                    if success:
+                        sync_detail = f"{len(tunarr_programs)} programmes envoyés"
+                        await job_manager.update_step_status(job_id, "tunarr_sync", "completed", sync_detail)
+                        logger.info(f"Tunarr sync completed: {len(tunarr_programs)} programs sent to channel {request.channel_id}")
+                    else:
+                        raise ValueError("Échec de l'envoi vers Tunarr")
+
+                except Exception as e:
+                    logger.error(f"Tunarr sync failed: {e}")
+                    sync_detail = f"Erreur: {str(e)}"
+                    await job_manager.update_step_status(job_id, "tunarr_sync", "failed", sync_detail)
+                    # Don't fail the whole job, just log the error
+                    # The programming was still generated successfully
 
             await job_manager.complete_job(
                 job_id,

@@ -87,7 +87,7 @@ class TunarrAdapter:
     async def get_channel_programming(self, channel_id: str) -> list[dict[str, Any]]:
         """Get current programming for a channel."""
         client = await self._get_client()
-        response = await client.get(f"/api/channels/{channel_id}/programming")
+        response = await client.get(f"/api/channels/{channel_id}/programs")
         if response.status_code == 404:
             return []
         response.raise_for_status()
@@ -97,40 +97,86 @@ class TunarrAdapter:
         self,
         channel_id: str,
         programs: list[dict[str, Any]],
+        plex_server_name: str = "NAS-Jérémie",
+        plex_server_id: str = "caa0e3c3-67d7-4533-8d8d-616ab86bf4bc",
     ) -> bool:
         """
-        Update channel programming.
+        Update channel programming (replaces all programs).
+
+        Uses POST /api/channels/{channel_id}/programming with Tunarr's expected format.
 
         Args:
             channel_id: Channel ID
-            programs: List of program items
+            programs: List of program items with plex_key, duration_ms, title, type
+            plex_server_name: Plex server name as configured in Tunarr
+            plex_server_id: Plex server UUID as configured in Tunarr
 
         Returns:
             True if successful
         """
         client = await self._get_client()
 
-        # Tunarr expects specific format for programming
-        programming_data = {
+        # Build programs in Tunarr format
+        tunarr_programs = []
+        for idx, p in enumerate(programs):
+            plex_key = p.get("content_plex_key") or p.get("plex_key", "")
+            unique_id = f"plex|{plex_server_name}|{plex_key}"
+
+            program = {
+                "type": "content",
+                "externalSourceType": "plex",
+                "externalSourceId": plex_server_id,
+                "externalSourceName": plex_server_name,
+                "externalKey": plex_key,
+                "duration": p.get("duration_ms", 0),
+                "title": p.get("title", ""),
+                "subtype": "movie",
+                "persisted": False,
+                "uniqueId": unique_id,
+                "id": unique_id,
+                "originalIndex": idx,
+                "startTimeOffset": 0,  # Will be recalculated
+                "externalIds": [
+                    {
+                        "source": "plex",
+                        "id": plex_key,
+                        "sourceId": plex_server_name,
+                        "type": "multi",
+                    }
+                ],
+            }
+
+            tunarr_programs.append(program)
+
+        # Recalculate startTimeOffset
+        total_offset = 0
+        for program in tunarr_programs:
+            program["startTimeOffset"] = total_offset
+            total_offset += program["duration"]
+
+        # Build lineup (index references to programs)
+        lineup = [
+            {
+                "duration": program["duration"],
+                "index": idx,
+                "type": "index",
+            }
+            for idx, program in enumerate(tunarr_programs)
+        ]
+
+        # Tunarr programming payload
+        payload = {
             "type": "manual",
-            "programs": [
-                {
-                    "type": "content",
-                    "persisted": True,
-                    "id": p.get("content_plex_key", p.get("plex_key")),
-                    "externalSourceType": "plex",
-                    "externalSourceName": p.get("library_name", "Library"),
-                    "externalKey": p.get("content_plex_key", p.get("plex_key")),
-                    "duration": p.get("duration_ms", 0),
-                    "title": p.get("title", ""),
-                }
-                for p in programs
-            ],
+            "lineup": lineup,
+            "programs": tunarr_programs,
+            "append": False,
         }
 
-        response = await client.put(
+        logger.info(f"Sending {len(tunarr_programs)} programs to Tunarr channel {channel_id}")
+
+        response = await client.post(
             f"/api/channels/{channel_id}/programming",
-            json=programming_data,
+            json=payload,
         )
         response.raise_for_status()
         return True
