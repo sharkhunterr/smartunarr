@@ -373,7 +373,13 @@
       "refreshHint": "Recupero di tutti i contenuti dalle librerie Plex",
       "refreshedResult": "{{added}} aggiunti, {{updated}} aggiornati",
       "refreshError": "Errore durante l'aggiornamento da Plex",
-      "empty": "Nessun contenuto in cache"
+      "empty": "Nessun contenuto in cache",
+      "syncModalTitle": "Sincronizzazione TMDB",
+      "syncModalDescription": "Seleziona le librerie da arricchire con i metadati TMDB",
+      "toEnrich": "da arricchire",
+      "selectAll": "Seleziona tutto",
+      "deselectAll": "Deseleziona tutto",
+      "startSync": "Avvia"
     },
     "about": {
       "section": "Informazioni",

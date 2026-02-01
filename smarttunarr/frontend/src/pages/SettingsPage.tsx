@@ -406,6 +406,8 @@ function CacheSection() {
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; startEnriched: number } | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [showSyncModal, setShowSyncModal] = useState(false)
+  const [selectedLibraries, setSelectedLibraries] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadData()
@@ -477,15 +479,55 @@ function CacheSection() {
     }
   }
 
+  const openSyncModal = () => {
+    // Pre-select all libraries from cache stats
+    const libraryIds = stats?.libraries.map(lib => lib.library_id) || []
+    setSelectedLibraries(new Set(libraryIds))
+    setShowSyncModal(true)
+  }
+
+  const toggleLibrarySelection = (libraryId: string) => {
+    setSelectedLibraries(prev => {
+      const next = new Set(prev)
+      if (next.has(libraryId)) {
+        next.delete(libraryId)
+      } else {
+        next.add(libraryId)
+      }
+      return next
+    })
+  }
+
   const handleForceEnrich = async () => {
+    setShowSyncModal(false)
     setSyncing(true)
     setError(null)
-    // Initialize progress tracking
-    const itemsToEnrich = (stats?.total_content ?? 0) - (stats?.total_enriched ?? 0)
-    setSyncProgress({ current: 0, total: itemsToEnrich, startEnriched: stats?.total_enriched ?? 0 })
+
+    // Calculate items to enrich based on selected libraries
+    const selectedStats = stats?.libraries.filter(lib => selectedLibraries.has(lib.library_id)) || []
+    const itemsToEnrich = selectedStats.reduce((sum, lib) => sum + (lib.total_items - lib.enriched_items), 0)
+    const startEnriched = selectedStats.reduce((sum, lib) => sum + lib.enriched_items, 0)
+    setSyncProgress({ current: 0, total: itemsToEnrich, startEnriched })
+
     try {
-      const result = await cacheApi.forceEnrich()
-      setSuccess(t('settings.cache.enrichedResult', { count: result.enriched, failed: result.failed }))
+      // Sync selected libraries one by one
+      let totalEnriched = 0
+      let totalFailed = 0
+
+      for (const libraryId of selectedLibraries) {
+        const result = await cacheApi.forceEnrich(libraryId)
+        totalEnriched += result.enriched
+        totalFailed += result.failed
+        // Update progress after each library
+        const newStats = await cacheApi.getStats()
+        setStats(newStats)
+        const currentEnriched = newStats.libraries
+          .filter(lib => selectedLibraries.has(lib.library_id))
+          .reduce((sum, lib) => sum + lib.enriched_items, 0)
+        setSyncProgress(prev => prev ? { ...prev, current: currentEnriched - prev.startEnriched } : null)
+      }
+
+      setSuccess(t('settings.cache.enrichedResult', { count: totalEnriched, failed: totalFailed }))
       setTimeout(() => setSuccess(null), 5000)
       await loadData()
     } catch {
@@ -726,8 +768,8 @@ function CacheSection() {
           {refreshing ? t('settings.cache.refreshing') : t('settings.cache.refreshPlex')}
         </button>
         <button
-          onClick={handleForceEnrich}
-          disabled={syncing || refreshing || (stats?.total_content ?? 0) === 0 || stats?.total_enriched === stats?.total_content}
+          onClick={openSyncModal}
+          disabled={syncing || refreshing || (stats?.total_content ?? 0) === 0}
           className="px-3 sm:px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm sm:text-base"
         >
           {syncing ? (
@@ -750,6 +792,106 @@ function CacheSection() {
           {t('settings.cache.clearAll')}
         </button>
       </div>
+
+      {/* Sync Library Selection Modal */}
+      {showSyncModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md m-4">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                {t('settings.cache.syncModalTitle')}
+              </h3>
+              <button
+                onClick={() => setShowSyncModal(false)}
+                className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                {t('settings.cache.syncModalDescription')}
+              </p>
+
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {stats?.libraries.map(lib => {
+                  const libName = getLibraryName(lib.library_id)
+                  const unenriched = lib.total_items - lib.enriched_items
+                  const isSelected = selectedLibraries.has(lib.library_id)
+
+                  return (
+                    <label
+                      key={lib.library_id}
+                      className={clsx(
+                        'flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors',
+                        isSelected
+                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleLibrarySelection(lib.library_id)}
+                          className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                        />
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {libName}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {lib.enriched_items}/{lib.total_items} {t('settings.cache.enriched')}
+                          </div>
+                        </div>
+                      </div>
+                      {unenriched > 0 && (
+                        <span className="px-2 py-1 text-xs font-medium rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
+                          {unenriched} {t('settings.cache.toEnrich')}
+                        </span>
+                      )}
+                    </label>
+                  )
+                })}
+              </div>
+
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => {
+                    if (selectedLibraries.size === stats?.libraries.length) {
+                      setSelectedLibraries(new Set())
+                    } else {
+                      setSelectedLibraries(new Set(stats?.libraries.map(lib => lib.library_id) || []))
+                    }
+                  }}
+                  className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                >
+                  {selectedLibraries.size === stats?.libraries.length
+                    ? t('settings.cache.deselectAll')
+                    : t('settings.cache.selectAll')}
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowSyncModal(false)}
+                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                  <button
+                    onClick={handleForceEnrich}
+                    disabled={selectedLibraries.size === 0}
+                    className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    {t('settings.cache.startSync')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

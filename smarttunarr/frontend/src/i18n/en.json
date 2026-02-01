@@ -373,7 +373,13 @@
       "refreshHint": "Fetching all content from Plex libraries",
       "refreshedResult": "{{added}} added, {{updated}} updated",
       "refreshError": "Error refreshing from Plex",
-      "empty": "No cached content"
+      "empty": "No cached content",
+      "syncModalTitle": "TMDB Synchronization",
+      "syncModalDescription": "Select libraries to enrich with TMDB metadata",
+      "toEnrich": "to enrich",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
+      "startSync": "Start"
     },
     "about": {
       "section": "About",

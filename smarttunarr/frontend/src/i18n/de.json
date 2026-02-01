@@ -373,7 +373,13 @@
       "refreshHint": "Alle Inhalte aus Plex-Bibliotheken abrufen",
       "refreshedResult": "{{added}} hinzugefügt, {{updated}} aktualisiert",
       "refreshError": "Fehler beim Aktualisieren von Plex",
-      "empty": "Kein zwischengespeicherter Inhalt"
+      "empty": "Kein zwischengespeicherter Inhalt",
+      "syncModalTitle": "TMDB-Synchronisation",
+      "syncModalDescription": "Wählen Sie Bibliotheken aus, die mit TMDB-Metadaten angereichert werden sollen",
+      "toEnrich": "anzureichern",
+      "selectAll": "Alle auswählen",
+      "deselectAll": "Alle abwählen",
+      "startSync": "Starten"
     },
     "about": {
       "section": "Uber",
