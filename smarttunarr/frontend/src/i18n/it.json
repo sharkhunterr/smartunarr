@@ -266,6 +266,11 @@
   },
   "settings": {
     "title": "Impostazioni",
+    "tabs": {
+      "services": "Servizi",
+      "cache": "Cache",
+      "general": "Generale"
+    },
     "services": "Servizi",
     "appearance": "Aspetto",
     "theme": "Tema",

@@ -961,49 +961,63 @@ function AboutSection() {
   )
 }
 
+type TabId = 'services' | 'cache' | 'general'
+
 export function SettingsPage() {
   const { t } = useTranslation()
+  const [activeTab, setActiveTab] = useState<TabId>('services')
+
+  const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
+    { id: 'services', label: t('settings.tabs.services'), icon: <Server className="w-4 h-4" /> },
+    { id: 'cache', label: t('settings.tabs.cache'), icon: <Database className="w-4 h-4" /> },
+    { id: 'general', label: t('settings.tabs.general'), icon: <Settings className="w-4 h-4" /> },
+  ]
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-4 sm:space-y-6">
       <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
         {t('settings.title')}
       </h1>
 
-      {/* Services */}
-      <div>
-        <h2 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-3 sm:mb-4">
-          {t('settings.services')}
-        </h2>
-        <div className="grid gap-4 sm:gap-6">
-          {serviceConfigs.map(config => (
-            <ServiceCard key={config.type} {...config} />
+      {/* Tabs Navigation */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="flex gap-1 sm:gap-2 -mb-px overflow-x-auto">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={clsx(
+                'flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors',
+                activeTab === tab.id
+                  ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+              )}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
           ))}
-        </div>
+        </nav>
       </div>
 
-      {/* Default Parameters */}
-      <div>
-        <h2 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-3 sm:mb-4">
-          {t('settings.defaults.section')}
-        </h2>
-        <DefaultsSection />
-      </div>
+      {/* Tab Content */}
+      <div className="space-y-4 sm:space-y-6">
+        {activeTab === 'services' && (
+          <div className="grid gap-4 sm:gap-6">
+            {serviceConfigs.map(config => (
+              <ServiceCard key={config.type} {...config} />
+            ))}
+          </div>
+        )}
 
-      {/* Cache Management */}
-      <div>
-        <h2 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-3 sm:mb-4">
-          {t('settings.cache.section')}
-        </h2>
-        <CacheSection />
-      </div>
+        {activeTab === 'cache' && <CacheSection />}
 
-      {/* About */}
-      <div>
-        <h2 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-3 sm:mb-4">
-          {t('settings.about.section')}
-        </h2>
-        <AboutSection />
+        {activeTab === 'general' && (
+          <div className="space-y-4 sm:space-y-6">
+            <DefaultsSection />
+            <AboutSection />
+          </div>
+        )}
       </div>
     </div>
   )
