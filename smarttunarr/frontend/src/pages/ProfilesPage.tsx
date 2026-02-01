@@ -13,11 +13,12 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  FileJson
+  FileJson,
+  Sparkles
 } from 'lucide-react'
-import { profilesApi } from '@/services/api'
+import { profilesApi, servicesApi } from '@/services/api'
 import type { Profile, TimeBlock, ScoringWeights } from '@/types'
-import { ProfileEditor } from '@/components/profile'
+import { ProfileEditor, AIGenerateModal } from '@/components/profile'
 
 interface ProfileModalProps {
   profile: Profile | null
@@ -270,9 +271,24 @@ export function ProfilesPage() {
   const [editorMode, setEditorMode] = useState<'create' | 'edit' | 'duplicate'>('create')
   const [showEditor, setShowEditor] = useState(false)
 
+  // AI generation state
+  const [showAIModal, setShowAIModal] = useState(false)
+  const [ollamaConfigured, setOllamaConfigured] = useState(false)
+
   useEffect(() => {
     loadProfiles()
+    checkOllamaConfig()
   }, [])
+
+  const checkOllamaConfig = async () => {
+    try {
+      const services = await servicesApi.list()
+      const ollama = services.find(s => s.service_type === 'ollama')
+      setOllamaConfigured(ollama?.is_configured || false)
+    } catch {
+      setOllamaConfigured(false)
+    }
+  }
 
   // Clear messages after 5 seconds
   useEffect(() => {
@@ -489,6 +505,16 @@ export function ProfilesPage() {
             <span className="sm:hidden">Import</span>
           </button>
           <button
+            onClick={() => setShowAIModal(true)}
+            disabled={!ollamaConfigured}
+            title={!ollamaConfigured ? t('ai.ollamaNotConfigured') : t('ai.generateProfile')}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+          >
+            <Sparkles className="w-4 sm:w-5 h-4 sm:h-5" />
+            <span className="hidden sm:inline">{t('ai.generateProfileBtn')}</span>
+            <span className="sm:hidden">AI</span>
+          </button>
+          <button
             onClick={handleCreate}
             className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm"
           >
@@ -699,6 +725,18 @@ export function ProfilesPage() {
           mode={editorMode}
           onClose={handleEditorClose}
           onSaved={handleEditorSave}
+        />
+      )}
+
+      {/* AI Generate Modal */}
+      {showAIModal && (
+        <AIGenerateModal
+          onClose={() => setShowAIModal(false)}
+          onProfileGenerated={(profile) => {
+            setProfiles(prev => [...prev, profile])
+            setShowAIModal(false)
+            setSuccess(t('ai.profileImported'))
+          }}
         />
       )}
     </div>

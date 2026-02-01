@@ -96,7 +96,7 @@ class AIProfileService:
         current_errors: list[str] = []
 
         for attempt_num in range(1, self.MAX_ATTEMPTS + 1):
-            logger.info(f"Generation attempt {attempt_num}/{self.MAX_ATTEMPTS}")
+            logger.info(f"Generation attempt {attempt_num}/{self.MAX_ATTEMPTS} with model '{self.model}'")
 
             # Build prompt based on attempt
             if attempt_num == 1:
@@ -113,15 +113,19 @@ class AIProfileService:
                     prompt = get_generation_prompt(user_request, available_libraries)
 
             # Generate response
+            # Note: format_json=False because some models (qwen3) don't work well with it
+            # The prompt already instructs the model to output JSON only
+            logger.info("Waiting for Ollama response (this may take several minutes)...")
             response = await self.adapter.generate(
                 model=self.model,
                 prompt=prompt,
                 system=SYSTEM_PROMPT,
                 temperature=temperature,
-                format_json=True,
+                format_json=False,
             )
 
             if not response:
+                logger.warning("No response received from Ollama")
                 attempt = GenerationAttempt(
                     attempt_number=attempt_num,
                     prompt=prompt,
@@ -134,9 +138,13 @@ class AIProfileService:
                 continue
 
             # Parse JSON
+            logger.info(f"Received response ({len(response)} chars), parsing JSON...")
+            if len(response) < 100:
+                logger.warning(f"Short response content: {response[:200]!r}")
             parsed_profile = self._parse_json_response(response)
 
-            if not parsed_profile:
+            if parsed_profile is None:
+                logger.warning(f"Failed to parse JSON from response: {response[:500]!r}")
                 attempt = GenerationAttempt(
                     attempt_number=attempt_num,
                     prompt=prompt,
@@ -150,10 +158,12 @@ class AIProfileService:
                 continue
 
             # Validate profile
+            logger.info("Validating generated profile...")
             validation_errors = self._validate_profile(parsed_profile)
 
             if not validation_errors:
                 # Success!
+                logger.info("Profile generated and validated successfully!")
                 attempt = GenerationAttempt(
                     attempt_number=attempt_num,
                     prompt=prompt,
@@ -225,7 +235,7 @@ class AIProfileService:
                 prompt=prompt,
                 system=SYSTEM_PROMPT,
                 temperature=temperature,
-                format_json=True,
+                format_json=False,  # Disabled for compatibility with qwen3 and similar models
             )
 
             if not response:

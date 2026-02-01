@@ -12,7 +12,10 @@ import type {
   HistoryEntry,
   OllamaModel,
   PlexLibrary,
-  JobResponse
+  JobResponse,
+  AIGenerateProfileRequest,
+  AIGenerateProfileResponse,
+  AIModelsResponse
 } from '@/types'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
@@ -59,9 +62,8 @@ export const profilesApi = {
   },
 
   import: async (profileData: Record<string, unknown>, overwrite = false): Promise<Profile> => {
-    const response = await client.post('/profiles/import', {
-      profile_data: profileData,
-      overwrite
+    const response = await client.post('/profiles/import', profileData, {
+      params: { overwrite }
     })
     return response.data
   },
@@ -190,6 +192,24 @@ export const plexApi = {
 export const ollamaApi = {
   getModels: async (): Promise<OllamaModel[]> => {
     const response = await client.get('/services/ollama/models')
+    return response.data
+  }
+}
+
+// AI Profile Generation API
+export const aiApi = {
+  generateProfile: async (request: AIGenerateProfileRequest): Promise<AIGenerateProfileResponse> => {
+    const response = await client.post('/ai/generate-profile', request)
+    return response.data
+  },
+
+  getModels: async (): Promise<AIModelsResponse> => {
+    const response = await client.get('/ai/models')
+    return response.data
+  },
+
+  checkModel: async (model: string): Promise<{ model: string; available: boolean; message: string }> => {
+    const response = await client.post('/ai/check-model', null, { params: { model } })
     return response.data
   }
 }

@@ -14,35 +14,38 @@ Un profil de programmation définit:
 Tu dois TOUJOURS répondre avec un JSON valide suivant le schéma fourni. Ne jamais inclure d'explications ou de texte en dehors du JSON."""
 
 
-# JSON Schema example for the prompt
+# JSON Schema example for the prompt - matches actual profile schema v6
 PROFILE_SCHEMA_EXAMPLE = """{
   "name": "Soirée Action",
-  "version": "5.0",
+  "version": "6.0",
   "libraries": [
-    {
-      "plex_library_id": "1",
-      "name": "Films",
-      "content_types": ["movie"]
-    }
+    {"id": "1", "name": "Films", "type": "movie", "weight": 1.0, "enabled": true},
+    {"id": "3", "name": "Séries", "type": "show", "weight": 0.5, "enabled": true}
   ],
+  "description": "Profil pour soirée films d'action",
   "time_blocks": [
     {
       "name": "Prime Time",
+      "description": "Soirée films d'action",
       "start_time": "20:00",
       "end_time": "23:00",
       "criteria": {
-        "content_types": ["movie"],
-        "genres": {
-          "include": ["Action", "Thriller"],
-          "exclude": ["Horror"]
-        },
-        "duration": {
-          "min_minutes": 90,
-          "max_minutes": 150
-        },
-        "age_rating": {
-          "max_rating": "R"
-        }
+        "preferred_types": ["movie"],
+        "allowed_types": ["movie", "episode"],
+        "excluded_types": [],
+        "preferred_genres": ["Action", "Thriller"],
+        "allowed_genres": ["Action", "Thriller", "Adventure", "Sci-Fi"],
+        "forbidden_genres": ["Horror", "Documentary"],
+        "min_duration_min": 90,
+        "max_duration_min": 150,
+        "max_age_rating": "R",
+        "allowed_age_ratings": ["G", "PG", "PG-13", "R"],
+        "min_tmdb_rating": 6.0,
+        "preferred_tmdb_rating": 7.5,
+        "min_vote_count": 100,
+        "max_release_age_years": 20,
+        "exclude_keywords": ["gore", "extreme"],
+        "include_keywords": ["blockbuster", "action-packed"]
       }
     }
   ],
@@ -53,44 +56,102 @@ PROFILE_SCHEMA_EXAMPLE = """{
     "timing": 1.0,
     "strategy": 0.5,
     "age": 1.0,
-    "rating": 1.0,
+    "rating": 1.5,
     "filter": 0.5,
-    "bonus": 0.5
+    "bonus": 0.5,
+    "keywords": 5,
+    "collections": 5,
+    "cast": 5,
+    "temporal": 5
   },
-  "forbidden": [
-    {
-      "field": "genre",
-      "operator": "contains",
-      "value": "Horror"
+  "mandatory_forbidden_criteria": {
+    "mandatory": {
+      "min_duration_min": 60,
+      "min_tmdb_rating": 5.0,
+      "min_vote_count": 50,
+      "required_genres": [],
+      "allowed_age_ratings": ["G", "PG", "PG-13", "R"]
+    },
+    "forbidden": {
+      "types": [],
+      "keywords": ["gore", "snuff"],
+      "genres": ["Adult"],
+      "age_ratings": ["NC-17"],
+      "collections": []
+    },
+    "preferred": {
+      "genres": ["Action", "Thriller"],
+      "keywords": ["critically acclaimed"],
+      "collections": [],
+      "studios": [],
+      "actors": [],
+      "directors": []
     }
-  ],
-  "mandatory": [
-    {
-      "field": "content_type",
-      "operator": "equals",
-      "value": "movie",
-      "penalty": 5.0
-    }
-  ],
+  },
   "strategies": {
-    "filler": {
+    "maintain_sequence": false,
+    "maximize_variety": true,
+    "marathon_mode": false,
+    "avoid_repeats_days": 7,
+    "filler_insertion": {
       "enabled": true,
-      "max_duration_minutes": 30,
-      "content_types": ["short", "trailer"]
+      "types": ["short", "trailer"],
+      "max_duration_min": 30
+    },
+    "bonuses": {
+      "holiday_bonus": false,
+      "recent_release_bonus": true,
+      "popular_content_bonus": true
     }
   },
-  "bonuses": [
-    {
-      "condition": {
-        "field": "tmdb_rating",
-        "operator": ">=",
-        "value": 8.0
-      },
-      "bonus_points": 2.0,
-      "description": "High-rated content bonus"
-    }
-  ]
+  "enhanced_criteria": {
+    "keywords_safety": {"enabled": false},
+    "collections_franchises": {"enabled": false},
+    "temporal_intelligence": {"enabled": false},
+    "quality_indicators": {"enabled": false}
+  },
+  "default_iterations": 5,
+  "default_randomness": 0.3
 }"""
+
+# Reference information for the AI
+SCHEMA_REFERENCE = """
+RÉFÉRENCE DES VALEURS POSSIBLES:
+
+TYPES DE CONTENU (content types):
+- movie: Film
+- episode: Épisode de série
+- show: Série complète
+
+GENRES (en anglais, TMDB standard):
+Action, Adventure, Animation, Comedy, Crime, Documentary, Drama, Family, Fantasy, History, Horror, Music, Mystery, Romance, Science Fiction, Thriller, TV Movie, War, Western
+
+CLASSIFICATIONS D'ÂGE (age_rating):
+- G: Tout public
+- PG: Supervision parentale suggérée
+- PG-13: Déconseillé aux moins de 13 ans
+- R: Restreint (17+ accompagné)
+- NC-17: Interdit aux moins de 17 ans
+- NR: Non classé
+
+POIDS DE NOTATION (scoring_weights) - valeurs de 0.0 à 5.0 pour les premiers, 0-100 pour les autres:
+Poids principaux (0.0-5.0):
+- type, duration, genre, timing, strategy, age, rating, filter, bonus
+Poids additionnels v6 (0-100):
+- keywords, collections, cast, temporal
+
+STRATÉGIES:
+- maintain_sequence: Garder l'ordre des épisodes de série
+- maximize_variety: Éviter les répétitions de genres consécutifs
+- marathon_mode: Programmer plusieurs épisodes/films similaires à la suite
+- avoid_repeats_days: Jours minimum avant de reprogrammer le même contenu
+
+PARAMÈTRES PAR DÉFAUT:
+- default_iterations: Nombre d'itérations (entier, 1-100, ex: 5)
+- default_randomness: Niveau d'aléatoire (décimal entre 0.0 et 1.0, ex: 0.3 = 30%)
+
+FORMAT DES HEURES: "HH:MM" (format 24h, ex: "20:00", "06:30")
+"""
 
 
 def get_generation_prompt(user_request: str, available_libraries: list[dict[str, Any]] | None = None) -> str:
@@ -106,27 +167,30 @@ def get_generation_prompt(user_request: str, available_libraries: list[dict[str,
     """
     libraries_info = ""
     if available_libraries:
-        libraries_info = "\n\nBibliothèques Plex disponibles:\n"
+        libraries_info = "\n\nBIBLIOTHÈQUES PLEX DISPONIBLES (utilise ces IDs dans le champ 'libraries'):\n"
         for lib in available_libraries:
-            libraries_info += f"- ID: {lib.get('id')}, Nom: {lib.get('name')}, Type: {lib.get('type')}\n"
+            lib_type = lib.get('type', 'movie')
+            libraries_info += f'  {{"id": "{lib.get("id")}", "name": "{lib.get("name")}", "type": "{lib_type}", "weight": 1.0, "enabled": true}}\n'
 
-    return f"""Génère un profil de programmation JSON basé sur cette demande:
+    return f"""Génère un profil de programmation TV au format JSON basé sur cette demande:
 
 "{user_request}"
 {libraries_info}
-Le JSON doit suivre ce schéma (exemple):
+{SCHEMA_REFERENCE}
 
+EXEMPLE DE STRUCTURE JSON VALIDE:
 {PROFILE_SCHEMA_EXAMPLE}
 
-Règles importantes:
-1. Les heures sont au format "HH:MM" (24h)
-2. Les genres doivent être en anglais (Action, Comedy, Drama, Horror, Thriller, etc.)
-3. Les age_rating sont: G, PG, PG-13, R, NC-17
-4. Les content_types sont: movie, episode, show
-5. Les opérateurs pour forbidden/mandatory: equals, not_equals, contains, not_contains, >=, <=, >, <
-6. Les champs disponibles: genre, content_type, age_rating, tmdb_rating, year, studio, keyword, duration
+RÈGLES CRITIQUES:
+1. Version DOIT être "6.0"
+2. Le champ "libraries" DOIT utiliser "id" (pas "plex_library_id")
+3. Les heures au format "HH:MM" (24h)
+4. Les genres en ANGLAIS (Action, Comedy, Drama, Horror, Thriller, Animation, etc.)
+5. Inclure: description, scoring_weights (avec keywords, collections, cast, temporal), mandatory_forbidden_criteria, strategies, enhanced_criteria
+6. default_randomness: décimal entre 0.0 et 1.0 (ex: 0.3)
+7. Utiliser les bibliothèques fournies ci-dessus si disponibles
 
-Génère UNIQUEMENT le JSON, sans explications."""
+Génère UNIQUEMENT le JSON complet et valide, sans explications ni commentaires."""
 
 
 def get_refinement_prompt(
@@ -232,6 +296,7 @@ Génère UNIQUEMENT le JSON (array), sans explications."""
 # Recommended models for different use cases
 RECOMMENDED_MODELS = {
     "profile_generation": [
+        "qwen3:14b",
         "llama3.1:8b",
         "llama3:8b",
         "mistral:7b",
@@ -239,11 +304,13 @@ RECOMMENDED_MODELS = {
         "codellama:13b",
     ],
     "quick_modification": [
+        "qwen3:14b",
         "llama3.1:8b",
         "mistral:7b",
         "phi3:mini",
     ],
     "complex_schedule": [
+        "qwen3:14b",
         "llama3.1:70b",
         "mixtral:8x7b",
         "llama3:70b",

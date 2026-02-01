@@ -508,6 +508,55 @@ export interface PlexLibrary {
   count?: number
 }
 
+// AI Generation types
+export interface AILibraryInfo {
+  id: string
+  name: string
+  type: string
+}
+
+export interface AIGenerateProfileRequest {
+  prompt: string
+  model?: string
+  temperature?: number
+  save_profile?: boolean
+  profile_name?: string
+  libraries?: AILibraryInfo[]
+}
+
+export interface AIGenerationAttempt {
+  attempt_number: number
+  success: boolean
+  validation_errors: string[]
+  timestamp: string
+}
+
+export interface AIGenerateProfileResponse {
+  success: boolean
+  generation_id: string
+  profile: Record<string, unknown> | null
+  total_attempts: number
+  attempts: AIGenerationAttempt[]
+  error_message: string | null
+  saved_profile_id: string | null
+}
+
+export interface AIModelInfo {
+  name: string
+  size: number
+  modified_at: string
+}
+
+export interface AIModelsResponse {
+  available_models: AIModelInfo[]
+  recommended: {
+    profile_generation: string
+    quick_modification: string
+    complex_schedule: string
+  }
+  all_recommendations: Record<string, string>
+}
+
 // Comparison types
 export type ComparisonStatus = 'unchanged' | 'improved' | 'degraded' | 'added' | 'removed'
 

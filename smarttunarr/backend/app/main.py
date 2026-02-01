@@ -60,6 +60,7 @@ def create_app() -> FastAPI:
 
     # Register routers
     from app.api.routes import (
+        ai,
         channels,
         health,
         history,
@@ -80,6 +81,7 @@ def create_app() -> FastAPI:
     app.include_router(history.router, prefix="/api/v1", tags=["History"])
     app.include_router(jobs.router, prefix="/api/v1", tags=["Jobs"])
     app.include_router(logs.router, prefix="/api/v1", tags=["Logs"])
+    app.include_router(ai.router, prefix="/api/v1", tags=["AI"])
 
     return app
 

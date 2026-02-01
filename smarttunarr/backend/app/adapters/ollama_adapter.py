@@ -27,7 +27,7 @@ class OllamaAdapter:
         if self._client is None:
             self._client = httpx.AsyncClient(
                 base_url=self.url,
-                timeout=120.0,  # Long timeout for generation
+                timeout=httpx.Timeout(600.0, connect=30.0),  # 10 min timeout for AI generation
             )
         return self._client
 
@@ -115,9 +115,11 @@ class OllamaAdapter:
             if format_json:
                 payload["format"] = "json"
 
-            logger.debug(f"Generating with model {model}, prompt length: {len(prompt)}")
+            logger.info(f"Sending request to Ollama model '{model}' (prompt: {len(prompt)} chars)")
 
             response = await client.post("/api/generate", json=payload)
+
+            logger.info(f"Ollama response received (status: {response.status_code})")
 
             if response.status_code == 200:
                 data = response.json()
@@ -126,8 +128,11 @@ class OllamaAdapter:
                 logger.error(f"Generation failed: {response.status_code} - {response.text}")
                 return None
 
+        except httpx.TimeoutException as e:
+            logger.error(f"Ollama timeout after 10 minutes - model '{model}' may be too slow or not responding: {type(e).__name__}")
+            return None
         except Exception as e:
-            logger.error(f"Generation error: {e}")
+            logger.error(f"Generation error ({type(e).__name__}): {e}")
             return None
 
     async def chat(
