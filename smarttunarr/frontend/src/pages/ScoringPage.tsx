@@ -11,7 +11,11 @@ import {
   FileSpreadsheet,
   Database,
   Zap,
-  Clock
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  Settings2,
+  Calendar
 } from 'lucide-react'
 import clsx from 'clsx'
 import { profilesApi, tunarrApi, scoringApi } from '@/services/api'
@@ -31,131 +35,114 @@ const cacheModeOptions: { value: ScoringCacheMode; labelKey: string; icon: React
   { value: 'none', labelKey: 'scoring.cacheModes.none', icon: XCircle, descKey: 'scoring.cacheModeDescriptions.none' },
 ]
 
-// Step icon component
+// Progress Step Icon
 function StepIcon({ status }: { status: string }) {
-  if (status === 'completed') return <CheckCircle className="w-4 h-4 text-green-500" />
-  if (status === 'running') return <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-  if (status === 'failed') return <XCircle className="w-4 h-4 text-red-500" />
-  return <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600" />
-}
-
-// Progress Sidebar Component
-interface ProgressSidebarProps {
-  job: Job | null
-  lastJob: Job | null
-}
-
-function ProgressSidebar({ job, lastJob }: ProgressSidebarProps) {
-  const { t } = useTranslation()
-  const displayJob = job || lastJob
-
-  if (!displayJob) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 h-fit">
-        <div className="flex flex-col items-center justify-center text-gray-400 py-6 gap-2">
-          <Clock className="w-5 h-5" />
-          <span className="text-sm">{t('scoring.noAnalysis')}</span>
-        </div>
-      </div>
-    )
+  switch (status) {
+    case 'completed':
+      return <CheckCircle className="w-4 h-4 text-green-500" />
+    case 'running':
+      return <Loader2 className="w-4 h-4 text-primary-500 animate-spin" />
+    case 'failed':
+      return <XCircle className="w-4 h-4 text-red-500" />
+    default:
+      return <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600" />
   }
+}
 
-  const isRunning = displayJob.status === 'running' || displayJob.status === 'pending'
-  const isCompleted = displayJob.status === 'completed'
-  const isFailed = displayJob.status === 'failed'
+// Compact Progress Bar Component (same pattern as ProgrammingPage)
+interface ProgressBarProps {
+  job: Job | null
+  lastCompletedJob: Job | null
+  expanded: boolean
+  onToggle: () => void
+}
+
+function ProgressBar({ job, lastCompletedJob, expanded, onToggle }: ProgressBarProps) {
+  const { t } = useTranslation()
+  const displayJob = job || lastCompletedJob
+  const isRunning = job?.status === 'pending' || job?.status === 'running'
+  const isCompleted = displayJob?.status === 'completed'
+  const isFailed = displayJob?.status === 'failed'
+
+  if (!displayJob) return null
+
   const steps = displayJob.steps || []
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 h-fit sticky top-4">
-      {/* Header */}
-      <div className="flex items-center gap-3">
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      {/* Compact header - always visible */}
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+      >
         <div className={clsx(
-          'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
+          'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
           isRunning ? 'bg-primary-100 dark:bg-primary-900/30' :
           isCompleted ? 'bg-green-100 dark:bg-green-900/30' :
           'bg-red-100 dark:bg-red-900/30'
         )}>
           {isRunning ? (
-            <Loader2 className="w-5 h-5 animate-spin text-primary-500" />
+            <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
           ) : isCompleted ? (
-            <CheckCircle className="w-5 h-5 text-green-500" />
+            <CheckCircle className="w-4 h-4 text-green-500" />
           ) : (
-            <XCircle className="w-5 h-5 text-red-500" />
+            <XCircle className="w-4 h-4 text-red-500" />
           )}
         </div>
+
         <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-gray-900 dark:text-white">
-            {isRunning ? t('scoring.analysisInProgress') : isCompleted ? t('scoring.analysisCompleted') : t('programming.failed')}
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-            {displayJob.currentStep || (isCompleted ? t('scoring.completedSuccess') : displayJob.errorMessage)}
-          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-base font-medium text-gray-900 dark:text-white">
+              {isRunning ? t('scoring.analysisInProgress') : isCompleted ? t('scoring.analysisCompleted') : t('programming.failed')}
+            </span>
+            <span className="text-sm text-gray-500">{Math.round(displayJob.progress || 0)}%</span>
+          </div>
+          <div className="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1">
+            <div
+              className={clsx(
+                'absolute inset-y-0 left-0 transition-all duration-300 rounded-full',
+                isCompleted ? 'bg-green-500' : isFailed ? 'bg-red-500' : 'bg-primary-500'
+              )}
+              style={{ width: `${displayJob.progress || 0}%` }}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Progress bar */}
-      <div>
-        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-          <span>{t('programming.progress')}</span>
-          <span>{Math.round(displayJob.progress || 0)}%</span>
-        </div>
-        <div className="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div
-            className={clsx(
-              'absolute inset-y-0 left-0 transition-all duration-300 rounded-full',
-              isCompleted ? 'bg-green-500' : isFailed ? 'bg-red-500' : 'bg-gradient-to-r from-primary-500 to-primary-600'
-            )}
-            style={{ width: `${displayJob.progress || 0}%` }}
-          />
-        </div>
-      </div>
+        {displayJob.bestScore != null && (
+          <div className={clsx('text-lg font-bold', getScoreColor(displayJob.bestScore))}>
+            {displayJob.bestScore.toFixed(1)}
+          </div>
+        )}
 
-      {/* Steps */}
-      {steps.length > 0 && (
-        <div className="space-y-1.5 pt-2 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{t('scoring.steps')}</div>
-          {steps.map((step) => (
-            <div key={step.id} className="flex items-start gap-2">
-              <div className="flex-shrink-0 mt-0.5">
+        {expanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+      </button>
+
+      {/* Expanded details */}
+      {expanded && steps.length > 0 && (
+        <div className="px-3 pb-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+          <div className="space-y-1.5">
+            {steps.map((step) => (
+              <div key={step.id} className="flex items-center gap-2">
                 <StepIcon status={step.status} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className={clsx(
+                <span className={clsx(
                   'text-sm',
-                  step.status === 'completed' ? 'text-gray-600 dark:text-gray-400' :
                   step.status === 'running' ? 'text-gray-900 dark:text-white font-medium' :
+                  step.status === 'completed' ? 'text-gray-500 dark:text-gray-400' :
                   'text-gray-400 dark:text-gray-500'
                 )}>
                   {step.label}
-                </div>
+                </span>
                 {step.detail && (
-                  <div className="text-xs text-gray-500 dark:text-gray-500 truncate">
-                    {step.detail}
-                  </div>
+                  <span className="text-sm text-gray-400 truncate">- {step.detail}</span>
                 )}
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Score */}
-      {displayJob.bestScore != null && (
-        <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500 dark:text-gray-400">{t('scoring.averageScore')}</span>
-            <span className={clsx('text-xl font-bold', getScoreColor(displayJob.bestScore))}>
-              {displayJob.bestScore.toFixed(1)}
-            </span>
+            ))}
           </div>
         </div>
       )}
     </div>
   )
 }
-
-// Types imported from ScoringDisplay: TimeBlockWithCriteria, BlockCriteria
-
 
 // Block Settings Legend Component
 interface BlockSettingsLegendProps {
@@ -257,7 +244,79 @@ function BlockSettingsLegend({ timeBlocks, profile }: BlockSettingsLegendProps) 
   )
 }
 
-// ScoresTable imported from ScoringDisplay
+// Results Panel Component
+interface ResultsPanelProps {
+  result: ScoringResult
+  profile: Profile | null
+  exporting: boolean
+  onExportCSV: () => void
+  onExportJSON: () => void
+}
+
+function ResultsPanel({ result, profile, exporting, onExportCSV, onExportJSON }: ResultsPanelProps) {
+  const { t } = useTranslation()
+  const timeBlocks = (result.time_blocks || profile?.time_blocks || []) as TimeBlockWithCriteria[]
+
+  return (
+    <div className="space-y-3">
+      {/* Compact header */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-2.5 sm:p-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Title */}
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-primary-500" />
+            <span className="font-medium text-sm text-gray-900 dark:text-white">
+              {result.channel_name}
+            </span>
+          </div>
+
+          {/* Stats */}
+          <span className="text-xs text-gray-500">
+            {result.total_items} {t('scoring.programs')} • {result.violations_count} violations
+          </span>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Export buttons */}
+          <div className="flex gap-1">
+            <button
+              onClick={onExportCSV}
+              disabled={exporting}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="hidden sm:inline">CSV</span>
+            </button>
+            <button
+              onClick={onExportJSON}
+              disabled={exporting}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+            >
+              <FileJson className="w-4 h-4" />
+              <span className="hidden sm:inline">JSON</span>
+            </button>
+          </div>
+
+          {/* Score */}
+          <div className={clsx('text-lg font-bold', getScoreColor(result.average_score))}>
+            {result.average_score.toFixed(1)}
+          </div>
+        </div>
+      </div>
+
+      {/* Block settings legend */}
+      <BlockSettingsLegend timeBlocks={timeBlocks} profile={profile} />
+
+      {/* Scores table */}
+      <ScoresTable
+        programs={result.programs || []}
+        timeBlocks={timeBlocks}
+        profile={profile}
+      />
+    </div>
+  )
+}
 
 export function ScoringPage() {
   const { t } = useTranslation()
@@ -272,10 +331,12 @@ export function ScoringPage() {
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null)
   const [cacheMode, setCacheMode] = useState<ScoringCacheMode>('full')
 
-  // Loading states
+  // UI states
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [formCollapsed, setFormCollapsed] = useState(false)
+  const [progressExpanded, setProgressExpanded] = useState(true)
 
   // Job tracking
   const [currentJobId, setCurrentJobId] = useState<string | null>(null)
@@ -303,13 +364,15 @@ export function ScoringPage() {
     }
   }, [selectedProfileId])
 
-  // Watch for job completion
+  // Watch for job completion - auto-collapse form and progress when results ready
   useEffect(() => {
     if (currentJob) {
       if (currentJob.status === 'completed') {
         setLastCompletedJob(currentJob)
         if (currentJob.result) {
           setResult(currentJob.result as unknown as ScoringResult)
+          setFormCollapsed(true) // Auto-collapse form
+          setProgressExpanded(false) // Auto-collapse progress
         }
         setCurrentJobId(null)
       } else if (currentJob.status === 'failed') {
@@ -319,6 +382,13 @@ export function ScoringPage() {
       }
     }
   }, [currentJob])
+
+  // Auto-collapse form when analysis starts
+  useEffect(() => {
+    if (analyzing) {
+      setFormCollapsed(true)
+    }
+  }, [analyzing])
 
   const loadData = async () => {
     setLoading(true)
@@ -361,6 +431,8 @@ export function ScoringPage() {
 
     setError(null)
     setResult(null)
+    setLastCompletedJob(null)
+    setProgressExpanded(true)
 
     try {
       const response = await scoringApi.analyze({
@@ -429,76 +501,99 @@ export function ScoringPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-        {t('scoring.title')}
-      </h1>
+    <div className="space-y-3">
+      {/* Header with title and form toggle */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+          {t('scoring.title')}
+        </h1>
+        <button
+          onClick={() => setFormCollapsed(!formCollapsed)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+        >
+          <Settings2 className="w-4 h-4" />
+          <span className="hidden sm:inline">{t('programming.configuration')}</span>
+          {formCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+        </button>
+      </div>
 
       {/* Error display */}
       {error && (
-        <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+        <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Two-column layout */}
-      <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr,320px]">
-        {/* Left column - Configuration */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 space-y-3 sm:space-y-4">
-          {/* Channel selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              {t('programming.selectChannel')}
-            </label>
-            {channels.length === 0 ? (
-              <div className="text-sm text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                {t('programming.noChannels')}
-              </div>
-            ) : (
-              <select
-                value={selectedChannelId}
-                onChange={e => setSelectedChannelId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                {channels.map(channel => (
-                  <option key={channel.id} value={channel.id}>
-                    {channel.number ? `${channel.number}. ` : ''}{channel.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
+      {/* Progress bar - always visible when there's a job */}
+      {(currentJob || lastCompletedJob) && (
+        <ProgressBar
+          job={currentJob || null}
+          lastCompletedJob={lastCompletedJob}
+          expanded={progressExpanded}
+          onToggle={() => setProgressExpanded(!progressExpanded)}
+        />
+      )}
 
-          {/* Profile selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              {t('programming.selectProfile')}
-            </label>
-            {profiles.length === 0 ? (
-              <div className="text-sm text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                {t('programming.noProfiles')}
-              </div>
-            ) : (
-              <select
-                value={selectedProfileId}
-                onChange={e => setSelectedProfileId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                {profiles.map(profile => (
-                  <option key={profile.id} value={profile.id}>
-                    {profile.name} (v{profile.version})
-                  </option>
-                ))}
-              </select>
-            )}
+      {/* Collapsible form */}
+      {!formCollapsed && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 space-y-4">
+          {/* Quick row: Channel + Profile */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Channel */}
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                {t('programming.selectChannel')}
+              </label>
+              {channels.length === 0 ? (
+                <div className="text-sm text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  {t('programming.noChannels')}
+                </div>
+              ) : (
+                <select
+                  value={selectedChannelId}
+                  onChange={e => setSelectedChannelId(e.target.value)}
+                  className="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                >
+                  {channels.map(channel => (
+                    <option key={channel.id} value={channel.id}>
+                      {channel.number ? `${channel.number}. ` : ''}{channel.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Profile */}
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                {t('programming.selectProfile')}
+              </label>
+              {profiles.length === 0 ? (
+                <div className="text-sm text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  {t('programming.noProfiles')}
+                </div>
+              ) : (
+                <select
+                  value={selectedProfileId}
+                  onChange={e => setSelectedProfileId(e.target.value)}
+                  className="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                >
+                  {profiles.map(profile => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.name} (v{profile.version})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
 
           {/* Cache mode */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('scoring.enrichmentMode')}
             </label>
             <div className="flex flex-wrap gap-2">
@@ -510,14 +605,14 @@ export function ScoringPage() {
                     onClick={() => setCacheMode(option.value)}
                     title={t(option.descKey)}
                     className={clsx(
-                      'flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors',
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors',
                       cacheMode === option.value
                         ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
-                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'
                     )}
                   >
                     <Icon className="w-4 h-4" />
-                    <span>{t(option.labelKey)}</span>
+                    {t(option.labelKey)}
                   </button>
                 )
               })}
@@ -529,90 +624,39 @@ export function ScoringPage() {
             <button
               onClick={handleAnalyze}
               disabled={!selectedChannelId || !selectedProfileId || analyzing}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50 text-base font-medium"
             >
-              {analyzing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <BarChart3 className="w-4 h-4" />
-              )}
-              <span>{t('scoring.analyze')}</span>
-            </button>
-
-            <button
-              onClick={handleExportCSV}
-              disabled={!result || exporting}
-              className="flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-              <span>CSV</span>
-            </button>
-
-            <button
-              onClick={handleExportJSON}
-              disabled={!result || exporting}
-              className="flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <FileJson className="w-4 h-4" />
-              <span>JSON</span>
+              {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <BarChart3 className="w-4 h-4" />}
+              {t('scoring.analyze')}
             </button>
 
             <button
               onClick={loadData}
               disabled={analyzing}
-              className="ml-auto px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
           </div>
         </div>
-
-        {/* Right column - Progress Sidebar */}
-        <ProgressSidebar job={currentJob ?? null} lastJob={lastCompletedJob} />
-      </div>
+      )}
 
       {/* Results */}
       {result && (
-        <div className="space-y-3">
-          {/* Results header */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                  <BarChart3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                    {result.channel_name}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {result.total_items} prog. • {result.violations_count} violations
-                  </p>
-                </div>
-              </div>
+        <ResultsPanel
+          result={result}
+          profile={selectedProfile}
+          exporting={exporting}
+          onExportCSV={handleExportCSV}
+          onExportJSON={handleExportJSON}
+        />
+      )}
 
-              {/* Score */}
-              <div className="text-right">
-                <div className="text-xs text-gray-500">{t('scoring.averageScore')}</div>
-                <div className={clsx('text-lg font-bold', getScoreColor(result.average_score))}>
-                  {result.average_score.toFixed(1)}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Block settings legend */}
-          <BlockSettingsLegend
-            timeBlocks={(result.time_blocks || selectedProfile?.time_blocks || []) as TimeBlockWithCriteria[]}
-            profile={selectedProfile}
-          />
-
-          {/* Scores table */}
-          <ScoresTable
-            programs={result.programs || []}
-            timeBlocks={(result.time_blocks || selectedProfile?.time_blocks || []) as TimeBlockWithCriteria[]}
-            profile={selectedProfile}
-          />
+      {/* Empty state when no results and form is collapsed */}
+      {formCollapsed && !result && !analyzing && !lastCompletedJob && (
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">{t('programming.emptyState')}</p>
         </div>
       )}
     </div>
