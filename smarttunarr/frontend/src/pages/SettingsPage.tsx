@@ -402,6 +402,7 @@ function CacheSection() {
   const [clearingAll, setClearingAll] = useState(false)
   const [clearingLibrary, setClearingLibrary] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; startEnriched: number } | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -492,6 +493,21 @@ function CacheSection() {
     } finally {
       setSyncing(false)
       setSyncProgress(null)
+    }
+  }
+
+  const handleRefreshFromPlex = async () => {
+    setRefreshing(true)
+    setError(null)
+    try {
+      const result = await cacheApi.refreshFromPlex()
+      setSuccess(t('settings.cache.refreshedResult', { added: result.added, updated: result.updated }))
+      setTimeout(() => setSuccess(null), 5000)
+      await loadData()
+    } catch {
+      setError(t('settings.cache.refreshError'))
+    } finally {
+      setRefreshing(false)
     }
   }
 
@@ -680,11 +696,38 @@ function CacheSection() {
         </div>
       )}
 
+      {/* Refresh Progress */}
+      {refreshing && (
+        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              {t('settings.cache.refreshInProgress')}
+            </span>
+          </div>
+          <p className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+            {t('settings.cache.refreshHint')}
+          </p>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
         <button
+          onClick={handleRefreshFromPlex}
+          disabled={refreshing || syncing}
+          className="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm sm:text-base"
+        >
+          {refreshing ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Server className="w-4 h-4" />
+          )}
+          {refreshing ? t('settings.cache.refreshing') : t('settings.cache.refreshPlex')}
+        </button>
+        <button
           onClick={handleForceEnrich}
-          disabled={syncing || (stats?.total_content ?? 0) === 0 || stats?.total_enriched === stats?.total_content}
+          disabled={syncing || refreshing || (stats?.total_content ?? 0) === 0 || stats?.total_enriched === stats?.total_content}
           className="px-3 sm:px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm sm:text-base"
         >
           {syncing ? (
@@ -696,7 +739,7 @@ function CacheSection() {
         </button>
         <button
           onClick={handleClearAll}
-          disabled={clearingAll || (stats?.total_content ?? 0) === 0}
+          disabled={clearingAll || refreshing || syncing || (stats?.total_content ?? 0) === 0}
           className="px-3 sm:px-4 py-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm sm:text-base"
         >
           {clearingAll ? (

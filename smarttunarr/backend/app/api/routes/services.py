@@ -588,3 +588,84 @@ async def force_tmdb_enrichment(
         "total": len(unenriched),
         "message": f"Enriched {enriched_count} items, {failed_count} failed",
     }
+
+
+@router.post("/cache/refresh")
+async def refresh_cache_from_plex(
+    library_id: str | None = Query(None, description="Optional: refresh only this library"),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """
+    Refresh the cache by fetching all content from Plex libraries.
+
+    This will fetch all content (no limit) and update/add to the cache.
+    """
+    from app.services.content_enrichment_service import ContentEnrichmentService
+
+    # Get Plex config
+    config_service = ServiceConfigService(session)
+    plex_config = await config_service.get_service("plex")
+
+    if not plex_config or not plex_config.url or not plex_config.token:
+        raise HTTPException(status_code=400, detail="Plex not configured")
+
+    creds = config_service.get_decrypted_credentials(plex_config)
+    plex = PlexService(plex_config.url, creds["token"])
+
+    enrichment_service = ContentEnrichmentService(session, None)
+
+    # Get libraries to refresh
+    if library_id:
+        library_ids = [library_id]
+    else:
+        libraries = plex.get_libraries()
+        library_ids = [lib["id"] for lib in libraries if lib.get("type") in ["movie", "show"]]
+
+    total_added = 0
+    total_updated = 0
+
+    for lib_id in library_ids:
+        # Fetch ALL content from Plex (no limit)
+        items = plex.get_library_content(lib_id)  # No limit parameter
+        logger.info(f"Fetched {len(items)} items from library {lib_id}")
+
+        for item in items:
+            plex_key = item.get("plex_key") or item.get("id")
+            if not plex_key:
+                continue
+
+            # Check if already in cache
+            existing = await enrichment_service.get_cached_content(plex_key)
+
+            content_data = {
+                "title": item.get("title", ""),
+                "type": item.get("type", "movie"),
+                "duration_ms": item.get("duration_ms", 0),
+                "year": item.get("year"),
+                "library_id": lib_id,
+            }
+
+            # Save or update in cache
+            saved = await enrichment_service.save_content_with_meta(
+                plex_key,
+                content_data,
+                {},  # Empty meta - will be enriched separately
+            )
+
+            if saved:
+                if existing:
+                    total_updated += 1
+                else:
+                    total_added += 1
+
+    await session.commit()
+
+    logger.info(f"Cache refresh completed: {total_added} added, {total_updated} updated")
+
+    return {
+        "success": True,
+        "added": total_added,
+        "updated": total_updated,
+        "total": total_added + total_updated,
+        "message": f"Cache refreshed: {total_added} added, {total_updated} updated",
+    }

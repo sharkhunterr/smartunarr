@@ -367,6 +367,12 @@
       "syncHint": "This operation may take several minutes depending on the number of items",
       "enrichedResult": "{{count}} items enriched, {{failed}} failed",
       "enrichError": "TMDB enrichment error",
+      "refreshPlex": "Refresh from Plex",
+      "refreshing": "Refreshing...",
+      "refreshInProgress": "Refreshing cache from Plex",
+      "refreshHint": "Fetching all content from Plex libraries",
+      "refreshedResult": "{{added}} added, {{updated}} updated",
+      "refreshError": "Error refreshing from Plex",
       "empty": "No cached content"
     },
     "about": {

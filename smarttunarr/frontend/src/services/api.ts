@@ -149,6 +149,12 @@ export const cacheApi = {
     const params = libraryId ? { library_id: libraryId } : {}
     const response = await client.post('/services/cache/enrich', null, { params })
     return response.data
+  },
+
+  refreshFromPlex: async (libraryId?: string): Promise<{ success: boolean; added: number; updated: number; total: number }> => {
+    const params = libraryId ? { library_id: libraryId } : {}
+    const response = await client.post('/services/cache/refresh', null, { params })
+    return response.data
   }
 }
 
