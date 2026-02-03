@@ -6,11 +6,11 @@ version: '3.8'
 services:
   backend:
     build:
-      context: ./backend
+      context: ../src/backend
       dockerfile: Dockerfile.dev
     volumes:
-      - ./backend:/app
-      - ./data:/app/data
+      - ../src/backend:/app
+      - ../data:/app/data
     environment:
       - DEBUG=true
       - LOG_LEVEL=DEBUG
@@ -19,10 +19,10 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ../src/frontend
       dockerfile: Dockerfile.dev
     volumes:
-      - ./frontend:/app
+      - ../src/frontend:/app
       - /app/node_modules
     environment:
       - VITE_API_URL=http://localhost:8080

@@ -3,7 +3,7 @@ version: '3.8'
 services:
   backend:
     build:
-      context: ./backend
+      context: ../src/backend
       dockerfile: Dockerfile
     container_name: smarttunarr-backend
     restart: unless-stopped
@@ -13,7 +13,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:80}
     volumes:
-      - ./data:/app/data
+      - ../data:/app/data
     ports:
       - "8080:8080"
     healthcheck:
@@ -27,7 +27,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ../src/frontend
       dockerfile: Dockerfile
     container_name: smarttunarr-frontend
     restart: unless-stopped

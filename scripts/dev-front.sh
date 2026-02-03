@@ -3,7 +3,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-FRONTEND_DIR="$PROJECT_DIR/frontend"
+FRONTEND_DIR="$PROJECT_DIR/src/frontend"
 LOG_FILE="/tmp/smarttunarr-frontend.log"
 PID_FILE="/tmp/smarttunarr-frontend.pid"
 

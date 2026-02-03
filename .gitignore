@@ -38,7 +38,7 @@ Thumbs.db
 logs/
 
 # Build outputs
-frontend/dist/
+src/frontend/dist/
 .vite/
 
 # Environment variables
