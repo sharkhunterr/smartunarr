@@ -1,6 +1,6 @@
 {
   "name": "smartunarr",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "SmarTunarr - Smart TV Channel Programming with AI-powered scheduling",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
