@@ -205,6 +205,7 @@ build:docker:
     DOCKER_BUILDKIT: 1
   script:
     - echo "Construction de l'image Docker SmarTunarr..."
+    - DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${CI_PROJECT_NAME}"
     - |
       docker build \
         --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
@@ -214,10 +215,10 @@ build:docker:
         --tag ${DOCKER_IMAGE}:${CI_COMMIT_REF_SLUG} \
         --file docker/Dockerfile \
         .
-    # Push to GitLab registry for subsequent jobs
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker tag ${DOCKER_IMAGE}:${CI_COMMIT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
-    - docker push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+    # Push to Docker Hub for subsequent jobs
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    - docker tag ${DOCKER_IMAGE}:${CI_COMMIT_SHA} ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA}
+    - docker push ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA}
   rules:
     - if: '$ENABLE_DOCKER_BUILD == "true"'
 
@@ -228,9 +229,10 @@ test:docker:health:
   stage: test-docker
   <<: *docker_template
   script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker pull ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
-    - docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
+    - DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${CI_PROJECT_NAME}"
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    - docker pull ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA}
+    - docker tag ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
     - echo "Test de santé du conteneur..."
     - |
       docker run -d --name test-container -p 3000:3000 -p 4273:4273 ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
@@ -268,9 +270,10 @@ test:docker:security:
   stage: test-docker
   <<: *docker_template
   script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker pull ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
-    - docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
+    - DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${CI_PROJECT_NAME}"
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    - docker pull ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA}
+    - docker tag ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
     - echo "Scan de sécurité de l'image..."
     - docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
   allow_failure: true
@@ -281,9 +284,10 @@ test:docker:size:
   stage: test-docker
   <<: *docker_template
   script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker pull ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
-    - docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
+    - DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${CI_PROJECT_NAME}"
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    - docker pull ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA}
+    - docker tag ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
     - echo "Vérification de la taille de l'image..."
     - |
       SIZE=$(docker images ${DOCKER_IMAGE}:${CI_COMMIT_SHA} --format "{{.Size}}")
@@ -294,25 +298,8 @@ test:docker:size:
 # =============================================================================
 # Stage: Publish
 # =============================================================================
-publish:gitlab-registry:
-  stage: publish
-  <<: *docker_template
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker pull ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
-    - echo "Publication des tags sur GitLab Registry..."
-    - docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
-    - docker push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
-    - |
-      if [ -n "$CI_COMMIT_TAG" ]; then
-        docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}
-        docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${CI_REGISTRY_IMAGE}:latest
-        docker push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}
-        docker push ${CI_REGISTRY_IMAGE}:latest
-      fi
-  rules:
-    - if: '$ENABLE_GITLAB_REGISTRY == "true" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-    - if: '$ENABLE_GITLAB_REGISTRY == "true" && $CI_COMMIT_TAG'
+# publish:gitlab-registry désactivé - GitLab Container Registry non configuré
+# Pour activer, configurer le registry GitLab et définir ENABLE_GITLAB_REGISTRY="true"
 
 deploy:
   stage: deploy
@@ -330,20 +317,18 @@ deploy:
     # Publication Docker Hub
     - |
       if [ "$DOCKER_HUB_ENABLED" = "true" ]; then
-        echo "Récupération de l'image depuis GitLab Registry..."
-        echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-        docker pull ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
-        docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
-
-        echo "Publication sur Docker Hub..."
-        echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
-
         DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${CI_PROJECT_NAME}"
-        docker tag ${DOCKER_IMAGE}:${CI_COMMIT_SHA} ${DOCKER_HUB_IMAGE}:${CI_COMMIT_TAG:-latest}
+
+        echo "Récupération de l'image CI depuis Docker Hub..."
+        echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+        docker pull ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA}
+
+        echo "Publication des tags de release sur Docker Hub..."
+        docker tag ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA} ${DOCKER_HUB_IMAGE}:${CI_COMMIT_TAG:-latest}
         docker push ${DOCKER_HUB_IMAGE}:${CI_COMMIT_TAG:-latest}
 
         if [ -n "$CI_COMMIT_TAG" ]; then
-          docker tag ${DOCKER_IMAGE}:${CI_COMMIT_SHA} ${DOCKER_HUB_IMAGE}:latest
+          docker tag ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA} ${DOCKER_HUB_IMAGE}:latest
           docker push ${DOCKER_HUB_IMAGE}:latest
         fi
 
