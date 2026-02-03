@@ -41,6 +41,13 @@ logs/
 src/frontend/dist/
 .vite/
 
+# Test coverage
+.coverage
+coverage.xml
+junit.xml
+htmlcov/
+.pytest_cache/
+
 # Environment variables
 .env.local
 .env.production
