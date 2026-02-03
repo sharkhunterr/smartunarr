@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.6](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.5...v0.1.6) (2026-02-03)
+
+
+### Bug Fixes
+
+* Correct health endpoint path in CI (/health not /api/v1/health) ([8e7310f](https://github.com/sharkhunterr/smartunarr/-/commit/8e7310fd7bc9bd03d73b2926b9e2add746145e44))
+
 ### [0.1.5](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.4...v0.1.5) (2026-02-03)
 
 
