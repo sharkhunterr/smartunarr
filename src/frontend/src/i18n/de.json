@@ -2,6 +2,7 @@
   "nav": {
     "programming": "Programmierung",
     "scoring": "Bewertung",
+    "schedules": "Zeitplanung",
     "profiles": "Profile",
     "history": "Verlauf",
     "logs": "Logs",
@@ -358,6 +359,62 @@
       "success": "Erfolgreich",
       "failed": "Fehlgeschlagen",
       "cancelled": "Abgebrochen"
+    },
+    "scheduled": "Geplant",
+    "triggeredBy": "Ausgelost von: {{name}}"
+  },
+  "schedules": {
+    "title": "Zeitplanung",
+    "create": "Neue Zeitplanung",
+    "edit": "Zeitplanung bearbeiten",
+    "delete": "Zeitplanung loschen",
+    "confirmDelete": "Mochten Sie diese Zeitplanung wirklich loschen?",
+    "name": "Name",
+    "namePlaceholder": "z.B. Taglicher Kindermorgen",
+    "description": "Beschreibung",
+    "type": "Typ",
+    "types": {
+      "programming": "Programmerstellung",
+      "scoring": "Bewertungsanalyse"
+    },
+    "configuration": "Zeitplan-Konfiguration",
+    "simpleMode": "Einfach",
+    "expertMode": "Experte (Cron)",
+    "frequency": "Haufigkeit",
+    "frequencies": {
+      "daily": "Taglich",
+      "weekly": "Wochentlich",
+      "specific_days": "Bestimmte Tage"
+    },
+    "days": "Tage",
+    "daysShort": {
+      "mon": "Mo",
+      "tue": "Di",
+      "wed": "Mi",
+      "thu": "Do",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "So"
+    },
+    "time": "Zeit",
+    "cronExpression": "Cron-Ausdruck",
+    "nextRun": "Nachste Ausfuhrung",
+    "lastRun": "Letzte Ausfuhrung",
+    "status": "Status",
+    "enabled": "Aktiviert",
+    "disabled": "Deaktiviert",
+    "actions": "Aktionen",
+    "runNow": "Jetzt ausfuhren",
+    "noSchedules": "Keine Zeitplanungen konfiguriert",
+    "channel": "Kanal",
+    "profile": "Profil",
+    "selectChannel": "Kanal auswahlen",
+    "selectProfile": "Profil auswahlen",
+    "never": "Nie",
+    "statusLabels": {
+      "success": "Erfolgreich",
+      "failed": "Fehlgeschlagen",
+      "running": "Laufend"
     }
   },
   "settings": {

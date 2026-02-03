@@ -95,6 +95,7 @@ class HistoryService:
         channel_id: str | None = None,
         profile_id: str | None = None,
         iterations: int | None = None,
+        schedule_id: str | None = None,
     ) -> HistoryEntry:
         """
         Create a new history entry.
@@ -104,6 +105,7 @@ class HistoryService:
             channel_id: Optional channel ID
             profile_id: Optional profile ID
             iterations: Optional iteration count
+            schedule_id: Optional schedule ID if triggered by scheduler
 
         Returns:
             Created entry
@@ -115,6 +117,7 @@ class HistoryService:
             started_at=datetime.utcnow(),
             status="running",
             iterations=iterations,
+            schedule_id=schedule_id,
         )
 
         self.session.add(entry)
@@ -288,6 +291,7 @@ class HistoryService:
             "type": entry.type,
             "channel_id": entry.channel_id,
             "profile_id": entry.profile_id,
+            "schedule_id": entry.schedule_id,
             "started_at": entry.started_at.isoformat(),
             "completed_at": entry.completed_at.isoformat() if entry.completed_at else None,
             "status": entry.status,

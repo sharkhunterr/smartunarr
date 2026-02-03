@@ -27,13 +27,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Import here to avoid circular imports
     from app.db.database import init_db
+    from app.core.scheduler import get_scheduler_manager
 
     await init_db()
     logger.info("Database initialized")
 
+    # Start scheduler
+    scheduler = get_scheduler_manager()
+    await scheduler.start()
+    logger.info("Scheduler started")
+
     yield
 
     # Shutdown
+    await scheduler.stop()
+    logger.info("Scheduler stopped")
     logger.info(f"Shutting down {settings.app_name}")
 
 
@@ -68,6 +76,7 @@ def create_app() -> FastAPI:
         logs,
         profiles,
         programming,
+        schedules,
         scoring,
         services,
     )
@@ -75,6 +84,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router, tags=["Health"])
     app.include_router(programming.router, prefix="/api/v1", tags=["Programming"])
     app.include_router(scoring.router, prefix="/api/v1", tags=["Scoring"])
+    app.include_router(schedules.router, prefix="/api/v1", tags=["Schedules"])
     app.include_router(profiles.router, prefix="/api/v1", tags=["Profiles"])
     app.include_router(channels.router, prefix="/api/v1", tags=["Channels"])
     app.include_router(services.router, prefix="/api/v1", tags=["Services"])

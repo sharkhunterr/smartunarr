@@ -2,6 +2,7 @@
   "nav": {
     "programming": "Programmation",
     "scoring": "Notation",
+    "schedules": "Planification",
     "profiles": "Profils",
     "history": "Historique",
     "logs": "Logs",
@@ -357,6 +358,79 @@
       "success": "Reussi",
       "failed": "Echec",
       "cancelled": "Annule"
+    },
+    "scheduled": "Planifie",
+    "triggeredBy": "Declencheur : {{name}}"
+  },
+  "schedules": {
+    "title": "Planification",
+    "create": "Nouvelle planification",
+    "edit": "Modifier la planification",
+    "delete": "Supprimer la planification",
+    "confirmDelete": "Etes-vous sur de vouloir supprimer cette planification ?",
+    "name": "Nom",
+    "namePlaceholder": "Ex: Matinee enfants quotidienne",
+    "description": "Description",
+    "descriptionPlaceholder": "Description optionnelle",
+    "type": "Type",
+    "types": {
+      "programming": "Generation de programmation",
+      "scoring": "Analyse de notation"
+    },
+    "configuration": "Configuration horaire",
+    "simpleMode": "Simple",
+    "expertMode": "Expert (Cron)",
+    "frequency": "Frequence",
+    "frequencies": {
+      "daily": "Quotidien",
+      "weekly": "Hebdomadaire",
+      "specific_days": "Jours specifiques"
+    },
+    "days": "Jours",
+    "daysOfWeek": {
+      "monday": "Lundi",
+      "tuesday": "Mardi",
+      "wednesday": "Mercredi",
+      "thursday": "Jeudi",
+      "friday": "Vendredi",
+      "saturday": "Samedi",
+      "sunday": "Dimanche"
+    },
+    "daysShort": {
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mer",
+      "thu": "Jeu",
+      "fri": "Ven",
+      "sat": "Sam",
+      "sun": "Dim"
+    },
+    "time": "Heure",
+    "cronExpression": "Expression Cron",
+    "cronHelp": "Format : minute heure jour mois jour_semaine",
+    "cronExamples": "Exemples : 0 6 * * * (tous les jours a 6h), 0 8 * * 1-5 (semaine a 8h)",
+    "nextRun": "Prochaine execution",
+    "lastRun": "Derniere execution",
+    "status": "Statut",
+    "enabled": "Active",
+    "disabled": "Desactive",
+    "actions": "Actions",
+    "runNow": "Executer maintenant",
+    "noSchedules": "Aucune planification configuree",
+    "executionParams": "Parametres d'execution",
+    "saved": "Planification enregistree",
+    "deleted": "Planification supprimee",
+    "toggled": "Planification {{status}}",
+    "triggered": "Planification declenchee",
+    "channel": "Chaine",
+    "profile": "Profil",
+    "selectChannel": "Selectionner une chaine",
+    "selectProfile": "Selectionner un profil",
+    "never": "Jamais",
+    "statusLabels": {
+      "success": "Reussi",
+      "failed": "Echec",
+      "running": "En cours"
     }
   },
   "settings": {

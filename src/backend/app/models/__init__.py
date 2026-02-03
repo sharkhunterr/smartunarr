@@ -6,6 +6,7 @@ from app.models.content import Content, ContentMeta
 from app.models.history import HistoryEntry
 from app.models.profile import Profile, ProfileLabel
 from app.models.result import Result
+from app.models.schedule import Schedule
 from app.models.scoring import ScoringResult
 from app.models.service import Service
 
@@ -18,6 +19,7 @@ __all__ = [
     "Channel",
     "Program",
     "Result",
+    "Schedule",
     "ScoringResult",
     "Service",
     "HistoryEntry",

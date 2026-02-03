@@ -2,6 +2,7 @@
   "nav": {
     "programming": "Programmazione",
     "scoring": "Valutazione",
+    "schedules": "Pianificazione",
     "profiles": "Profili",
     "history": "Cronologia",
     "logs": "Log",
@@ -358,6 +359,60 @@
       "success": "Successo",
       "failed": "Fallito",
       "cancelled": "Annullato"
+    },
+    "scheduled": "Pianificato",
+    "triggeredBy": "Attivato da: {{name}}"
+  },
+  "schedules": {
+    "title": "Pianificazione",
+    "create": "Nuova pianificazione",
+    "edit": "Modifica pianificazione",
+    "delete": "Elimina pianificazione",
+    "confirmDelete": "Sei sicuro di voler eliminare questa pianificazione?",
+    "name": "Nome",
+    "type": "Tipo",
+    "types": {
+      "programming": "Generazione programmazione",
+      "scoring": "Analisi valutazione"
+    },
+    "configuration": "Configurazione orario",
+    "simpleMode": "Semplice",
+    "expertMode": "Esperto (Cron)",
+    "frequency": "Frequenza",
+    "frequencies": {
+      "daily": "Giornaliero",
+      "weekly": "Settimanale",
+      "specific_days": "Giorni specifici"
+    },
+    "days": "Giorni",
+    "daysShort": {
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mer",
+      "thu": "Gio",
+      "fri": "Ven",
+      "sat": "Sab",
+      "sun": "Dom"
+    },
+    "time": "Ora",
+    "cronExpression": "Espressione Cron",
+    "nextRun": "Prossima esecuzione",
+    "lastRun": "Ultima esecuzione",
+    "status": "Stato",
+    "enabled": "Abilitato",
+    "disabled": "Disabilitato",
+    "actions": "Azioni",
+    "runNow": "Esegui ora",
+    "noSchedules": "Nessuna pianificazione configurata",
+    "channel": "Canale",
+    "profile": "Profilo",
+    "selectChannel": "Seleziona canale",
+    "selectProfile": "Seleziona profilo",
+    "never": "Mai",
+    "statusLabels": {
+      "success": "Successo",
+      "failed": "Fallito",
+      "running": "In corso"
     }
   },
   "settings": {

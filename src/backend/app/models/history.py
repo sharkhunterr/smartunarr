@@ -21,6 +21,10 @@ class HistoryEntry(BaseModel):
     profile_id: Mapped[str | None] = mapped_column(
         ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True
     )
+    # Reference to schedule if triggered by scheduler
+    schedule_id: Mapped[str | None] = mapped_column(
+        ForeignKey("schedules.id", ondelete="SET NULL"), nullable=True
+    )
     started_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(

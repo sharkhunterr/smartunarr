@@ -505,6 +505,8 @@ export interface HistoryEntry {
   channel_name?: string
   profile_id?: string
   profile_name?: string
+  schedule_id?: string
+  schedule_name?: string
   score?: number
   iterations?: number
   duration_sec?: number
@@ -643,4 +645,55 @@ export interface ComparisonSummary {
   durationMinB: number
   durationDelta: number
   programComparisons: ProgramComparison[]
+}
+
+// Schedule types
+export interface ScheduleConfig {
+  mode: 'simple' | 'cron'
+  // Simple mode fields
+  frequency?: 'daily' | 'weekly' | 'specific_days'
+  days?: number[]  // 0=Monday, 6=Sunday
+  time?: string    // HH:MM format
+  // Cron mode field
+  expression?: string
+}
+
+export interface Schedule {
+  id: string
+  name: string
+  description?: string
+  schedule_type: 'programming' | 'scoring'
+  channel_id: string
+  channel_name?: string
+  profile_id?: string
+  profile_name?: string
+  schedule_config: ScheduleConfig
+  execution_params: Partial<ProgrammingRequest> | Partial<ScoringRequest>
+  enabled: boolean
+  last_execution_at?: string
+  last_execution_status?: 'success' | 'failed' | 'running'
+  next_execution_at?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ScheduleCreate {
+  name: string
+  description?: string
+  schedule_type: 'programming' | 'scoring'
+  channel_id: string
+  profile_id: string
+  schedule_config: ScheduleConfig
+  execution_params: Partial<ProgrammingRequest> | Partial<ScoringRequest>
+  enabled?: boolean
+}
+
+export interface ScheduleUpdate {
+  name?: string
+  description?: string
+  channel_id?: string
+  profile_id?: string
+  schedule_config?: ScheduleConfig
+  execution_params?: Partial<ProgrammingRequest> | Partial<ScoringRequest>
+  enabled?: boolean
 }

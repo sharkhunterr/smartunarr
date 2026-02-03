@@ -17,7 +17,10 @@ import type {
   AIGenerateProfileResponse,
   AIModelsResponse,
   AIImprovementRequest,
-  AIImprovementResponse
+  AIImprovementResponse,
+  Schedule,
+  ScheduleCreate,
+  ScheduleUpdate
 } from '@/types'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
@@ -315,6 +318,49 @@ export const historyApi = {
       return programmingApi.getResult(entry.result_id)
     }
     return scoringApi.getResult(entry.result_id)
+  }
+}
+
+// Schedules API
+export const schedulesApi = {
+  list: async (params?: {
+    schedule_type?: 'programming' | 'scoring'
+    channel_id?: string
+    enabled?: boolean
+    limit?: number
+    offset?: number
+  }): Promise<Schedule[]> => {
+    const response = await client.get('/schedules', { params })
+    return response.data
+  },
+
+  get: async (id: string): Promise<Schedule> => {
+    const response = await client.get(`/schedules/${id}`)
+    return response.data
+  },
+
+  create: async (data: ScheduleCreate): Promise<Schedule> => {
+    const response = await client.post('/schedules', data)
+    return response.data
+  },
+
+  update: async (id: string, data: ScheduleUpdate): Promise<Schedule> => {
+    const response = await client.put(`/schedules/${id}`, data)
+    return response.data
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await client.delete(`/schedules/${id}`)
+  },
+
+  toggle: async (id: string, enabled: boolean): Promise<Schedule> => {
+    const response = await client.post(`/schedules/${id}/toggle`, { enabled })
+    return response.data
+  },
+
+  runNow: async (id: string): Promise<{ status: string; schedule_id: string; message: string }> => {
+    const response = await client.post(`/schedules/${id}/run-now`)
+    return response.data
   }
 }
 

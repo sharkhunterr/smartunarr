@@ -41,6 +41,7 @@ class ScoringRequest(BaseModel):
 async def _run_scoring(
     job_id: str,
     request: ScoringRequest,
+    schedule_id: str | None = None,
 ) -> None:
     """Background task to run scoring analysis."""
     job_manager = get_job_manager()
@@ -124,6 +125,7 @@ async def _run_scoring(
                 entry_type="scoring",
                 channel_id=request.channel_id,
                 profile_id=request.profile_id,
+                schedule_id=schedule_id,
             )
 
             # Get channel programs from Tunarr

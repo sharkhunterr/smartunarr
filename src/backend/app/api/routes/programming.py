@@ -85,6 +85,7 @@ class ApplyAIModificationRequest(BaseModel):
 async def _run_programming(
     job_id: str,
     request: ProgrammingRequest,
+    schedule_id: str | None = None,
 ) -> None:
     """Background task to run programming generation."""
     import traceback
@@ -205,6 +206,7 @@ async def _run_programming(
                 channel_id=request.channel_id,
                 profile_id=request.profile_id,
                 iterations=request.iterations,
+                schedule_id=schedule_id,
             )
 
             # Initialize TMDB service if needed

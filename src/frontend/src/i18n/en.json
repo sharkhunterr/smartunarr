@@ -2,6 +2,7 @@
   "nav": {
     "programming": "Programming",
     "scoring": "Scoring",
+    "schedules": "Schedules",
     "profiles": "Profiles",
     "history": "History",
     "logs": "Logs",
@@ -357,6 +358,79 @@
       "success": "Success",
       "failed": "Failed",
       "cancelled": "Cancelled"
+    },
+    "scheduled": "Scheduled",
+    "triggeredBy": "Triggered by: {{name}}"
+  },
+  "schedules": {
+    "title": "Schedules",
+    "create": "New Schedule",
+    "edit": "Edit Schedule",
+    "delete": "Delete Schedule",
+    "confirmDelete": "Are you sure you want to delete this schedule?",
+    "name": "Name",
+    "namePlaceholder": "E.g., Daily Kids Morning",
+    "description": "Description",
+    "descriptionPlaceholder": "Optional description",
+    "type": "Type",
+    "types": {
+      "programming": "Programming Generation",
+      "scoring": "Scoring Analysis"
+    },
+    "configuration": "Schedule Configuration",
+    "simpleMode": "Simple",
+    "expertMode": "Expert (Cron)",
+    "frequency": "Frequency",
+    "frequencies": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "specific_days": "Specific Days"
+    },
+    "days": "Days",
+    "daysOfWeek": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "daysShort": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "time": "Time",
+    "cronExpression": "Cron Expression",
+    "cronHelp": "Format: minute hour day month weekday",
+    "cronExamples": "Examples: 0 6 * * * (daily at 6am), 0 8 * * 1-5 (weekdays at 8am)",
+    "nextRun": "Next Run",
+    "lastRun": "Last Run",
+    "status": "Status",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "actions": "Actions",
+    "runNow": "Run Now",
+    "noSchedules": "No schedules configured",
+    "executionParams": "Execution Parameters",
+    "saved": "Schedule saved",
+    "deleted": "Schedule deleted",
+    "toggled": "Schedule {{status}}",
+    "triggered": "Schedule triggered",
+    "channel": "Channel",
+    "profile": "Profile",
+    "selectChannel": "Select a channel",
+    "selectProfile": "Select a profile",
+    "never": "Never",
+    "statusLabels": {
+      "success": "Success",
+      "failed": "Failed",
+      "running": "Running"
     }
   },
   "settings": {

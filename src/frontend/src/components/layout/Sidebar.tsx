@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Tv,
   BarChart3,
+  CalendarClock,
   FolderCog,
   History,
   Settings,
@@ -14,6 +15,7 @@ import clsx from 'clsx'
 const navItems = [
   { path: '/programming', icon: Tv, labelKey: 'nav.programming' },
   { path: '/scoring', icon: BarChart3, labelKey: 'nav.scoring' },
+  { path: '/schedules', icon: CalendarClock, labelKey: 'nav.schedules' },
   { path: '/profiles', icon: FolderCog, labelKey: 'nav.profiles' },
   { path: '/history', icon: History, labelKey: 'nav.history' },
   { path: '/logs', icon: ScrollText, labelKey: 'nav.logs' },

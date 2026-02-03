@@ -7,6 +7,7 @@ import { ProfilesPage } from '@/pages/ProfilesPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import { LogsPage } from '@/pages/LogsPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { SchedulingPage } from '@/pages/SchedulingPage'
 import { JobsNotification } from '@/components/common/JobsNotification'
 import { sseService } from '@/services/sse'
 
@@ -26,6 +27,7 @@ function App() {
           <Route index element={<Navigate to="/programming" replace />} />
           <Route path="programming" element={<ProgrammingPage />} />
           <Route path="scoring" element={<ScoringPage />} />
+          <Route path="schedules" element={<SchedulingPage />} />
           <Route path="profiles" element={<ProfilesPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="logs" element={<LogsPage />} />

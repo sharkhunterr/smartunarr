@@ -11,6 +11,7 @@ from app.services.history_service import HistoryService
 from app.services.tunarr_service import TunarrService
 from app.services.service_config_service import ServiceConfigService
 from app.models.profile import Profile
+from app.models.schedule import Schedule
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,12 @@ async def enrich_entry_with_names(
     if profile_id:
         profile = await session.get(Profile, profile_id)
         entry_response["profile_name"] = profile.name if profile else "Deleted"
+
+    # Get schedule name from database
+    schedule_id = entry_response.get("schedule_id")
+    if schedule_id:
+        schedule = await session.get(Schedule, schedule_id)
+        entry_response["schedule_name"] = schedule.name if schedule else "Deleted"
 
     # Map API fields to frontend expected fields
     entry_response["created_at"] = entry_response.get("started_at")

@@ -17,6 +17,7 @@ import {
   ChevronRight,
   X,
   Calendar,
+  CalendarClock,
   Table,
   LayoutGrid,
   GitCompare,
@@ -647,6 +648,15 @@ export function HistoryPage() {
                             <div className="flex items-center gap-2 text-gray-900 dark:text-white">
                               <TypeIcon className="w-4 h-4 text-gray-400" />
                               {t(`history.types.${entry.type}`)}
+                              {entry.schedule_id && (
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded"
+                                  title={entry.schedule_name ? t('history.triggeredBy', { name: entry.schedule_name }) : t('history.scheduled')}
+                                >
+                                  <CalendarClock className="w-3 h-3" />
+                                  {t('history.scheduled')}
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
@@ -738,6 +748,9 @@ export function HistoryPage() {
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
                         {t(`history.types.${entry.type}`)}
                       </span>
+                      {entry.schedule_id && (
+                        <CalendarClock className="w-3.5 h-3.5 text-purple-500" title={t('history.scheduled')} />
+                      )}
                     </div>
                     {entry.score && (
                       <span className="font-medium text-primary-600 dark:text-primary-400 text-sm">
