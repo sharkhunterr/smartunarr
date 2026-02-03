@@ -21,7 +21,8 @@ variables:
   GITHUB_DEPLOY_ENABLED: "true"       # Synchroniser avec GitHub (sur les tags)
 
   # Docker
-  DOCKER_IMAGE: $CI_PROJECT_NAME
+  DOCKER_IMAGE: smartunarr
+  DOCKER_HUB_IMAGE_NAME: smartunarr
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
   DOCKER_HOST: tcp://docker:2375
@@ -205,7 +206,7 @@ build:docker:
     DOCKER_BUILDKIT: 1
   script:
     - echo "Construction de l'image Docker SmarTunarr..."
-    - DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${CI_PROJECT_NAME}"
+    - DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${DOCKER_HUB_IMAGE_NAME}"
     - |
       docker build \
         --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
@@ -229,7 +230,7 @@ test:docker:health:
   stage: test-docker
   <<: *docker_template
   script:
-    - DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${CI_PROJECT_NAME}"
+    - DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${DOCKER_HUB_IMAGE_NAME}"
     - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
     - docker pull ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA}
     - docker tag ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
@@ -270,7 +271,7 @@ test:docker:security:
   stage: test-docker
   <<: *docker_template
   script:
-    - DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${CI_PROJECT_NAME}"
+    - DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${DOCKER_HUB_IMAGE_NAME}"
     - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
     - docker pull ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA}
     - docker tag ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
@@ -284,7 +285,7 @@ test:docker:size:
   stage: test-docker
   <<: *docker_template
   script:
-    - DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${CI_PROJECT_NAME}"
+    - DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${DOCKER_HUB_IMAGE_NAME}"
     - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
     - docker pull ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA}
     - docker tag ${DOCKER_HUB_IMAGE}:ci-${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
@@ -317,7 +318,7 @@ deploy:
     # Publication Docker Hub
     - |
       if [ "$DOCKER_HUB_ENABLED" = "true" ]; then
-        DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${CI_PROJECT_NAME}"
+        DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${DOCKER_HUB_IMAGE_NAME}"
 
         echo "Récupération de l'image CI depuis Docker Hub..."
         echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
@@ -480,7 +481,7 @@ verify:
     - |
       if [ "$DOCKER_HUB_ENABLED" = "true" ] && [ "$DEPLOY" = "true" ]; then
         echo "Vérification Docker Hub..."
-        DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${CI_PROJECT_NAME}"
+        DOCKER_HUB_IMAGE="${DOCKER_HUB_USER}/${DOCKER_HUB_IMAGE_NAME}"
         TAG="${CI_COMMIT_TAG:-latest}"
         RESPONSE=$(curl -s "https://hub.docker.com/v2/repositories/${DOCKER_HUB_IMAGE}/tags/${TAG}")
         if echo "$RESPONSE" | jq -e '.name' > /dev/null 2>&1; then
