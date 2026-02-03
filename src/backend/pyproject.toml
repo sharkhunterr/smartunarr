@@ -58,6 +58,8 @@ include = ["app*"]
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -70,9 +72,12 @@ select = [
 ignore = [
     "E501",  # line too long (handled by formatter)
     "B008",  # do not perform function calls in argument defaults
+    "B904",  # raise from (common pattern with HTTPException)
+    "B007",  # loop control variable not used
+    "B023",  # function definition does not bind loop variable
 ]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["app"]
 
 [tool.mypy]

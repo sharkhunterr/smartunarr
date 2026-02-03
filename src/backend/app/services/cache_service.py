@@ -2,10 +2,11 @@
 
 import asyncio
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Callable, TypeVar, Generic
 from functools import wraps
+from typing import Any, Generic, TypeVar
 
 logger = logging.getLogger(__name__)
 

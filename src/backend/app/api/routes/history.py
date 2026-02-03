@@ -7,11 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
-from app.services.history_service import HistoryService
-from app.services.tunarr_service import TunarrService
-from app.services.service_config_service import ServiceConfigService
 from app.models.profile import Profile
 from app.models.schedule import Schedule
+from app.services.history_service import HistoryService
+from app.services.service_config_service import ServiceConfigService
+from app.services.tunarr_service import TunarrService
 
 logger = logging.getLogger(__name__)
 

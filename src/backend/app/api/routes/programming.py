@@ -8,22 +8,22 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import get_session, async_session_maker
+from app.core.job_manager import JobType, ProgressStep, get_job_manager
 from app.core.programming.generator import ProgrammingGenerator, ProgrammingResult
 from app.core.scoring.engine import ScoringEngine
-from app.core.job_manager import get_job_manager, JobType, ProgressStep
-from app.services.service_config_service import ServiceConfigService
-from app.services.plex_service import PlexService
-from app.services.tunarr_service import TunarrService
-from app.services.history_service import HistoryService
-from app.services.result_service import ResultService
-from app.services.tmdb_service import TMDBService
-from app.services.content_enrichment_service import ContentEnrichmentService
+from app.db.database import async_session_maker, get_session
 from app.models.profile import Profile
+from app.services.content_enrichment_service import ContentEnrichmentService
+from app.services.history_service import HistoryService
+from app.services.plex_service import PlexService
+from app.services.result_service import ResultService
+from app.services.service_config_service import ServiceConfigService
+from app.services.tmdb_service import TMDBService
+from app.services.tunarr_service import TunarrService
 
 logger = logging.getLogger(__name__)
 
@@ -88,28 +88,27 @@ async def _run_programming(
     schedule_id: str | None = None,
 ) -> None:
     """Background task to run programming generation."""
-    import traceback
 
     logger.info(f"[DEBUG] _run_programming started for job {job_id}")
     logger.info(f"[DEBUG] Current thread: {threading.current_thread().name}")
 
     job_manager = get_job_manager()
-    logger.info(f"[DEBUG] Got job_manager")
+    logger.info("[DEBUG] Got job_manager")
 
     try:
-        logger.info(f"[DEBUG] About to call job_manager.start_job")
+        logger.info("[DEBUG] About to call job_manager.start_job")
         await job_manager.start_job(job_id)
-        logger.info(f"[DEBUG] job_manager.start_job completed")
+        logger.info("[DEBUG] job_manager.start_job completed")
     except Exception as e:
         logger.error(f"[DEBUG] Error in start_job: {e}")
         logger.error(f"[DEBUG] Traceback: {traceback.format_exc()}")
         raise
 
     try:
-        logger.info(f"[DEBUG] About to create async session")
+        logger.info("[DEBUG] About to create async session")
         # Create a new session for the background task
         async with async_session_maker() as session:
-            logger.info(f"[DEBUG] Session created successfully")
+            logger.info("[DEBUG] Session created successfully")
 
             # Initialize progress steps based on cache mode
             cache_mode = request.cache_mode
@@ -155,11 +154,11 @@ async def _run_programming(
             if not request.preview_only:
                 steps.append(ProgressStep("tunarr_sync", "Envoi vers Tunarr", "pending"))
 
-            logger.info(f"[DEBUG] About to set job steps")
+            logger.info("[DEBUG] About to set job steps")
             await job_manager.set_job_steps(job_id, steps)
-            logger.info(f"[DEBUG] Job steps set")
+            logger.info("[DEBUG] Job steps set")
             await job_manager.update_job_progress(job_id, 5, "Chargement configuration...")
-            logger.info(f"[DEBUG] Progress updated")
+            logger.info("[DEBUG] Progress updated")
 
             # Load services configuration
             config_service = ServiceConfigService(session)
@@ -265,7 +264,7 @@ async def _run_programming(
                     )
 
                     enriched_count = 0
-                    for i, (content, meta, original_idx) in enumerate(items_to_enrich):
+                    for i, (content, meta, _original_idx) in enumerate(items_to_enrich):
                         if i % 10 == 0:
                             await job_manager.update_step_status(
                                 job_id, "enrich_existing", "running",
@@ -440,7 +439,7 @@ async def _run_programming(
             if not all_contents:
                 raise ValueError("No content found in Plex libraries")
 
-            total_detail = f"{len(all_contents)} contenus ({cached_count} cache + {len(plex_items)} Plex)"
+            f"{len(all_contents)} contenus ({cached_count} cache + {len(plex_items)} Plex)"
             await job_manager.update_job_progress(
                 job_id,
                 50,
@@ -567,9 +566,13 @@ async def _run_programming(
                 await job_manager.update_job_progress(job_id, 90, "Analyse IA en cours...")
 
                 try:
-                    from app.services.ai_prompt_template import get_ai_improvement_prompt, SYSTEM_PROMPT
-                    from app.adapters.ollama_adapter import OllamaAdapter
                     import json
+
+                    from app.adapters.ollama_adapter import OllamaAdapter
+                    from app.services.ai_prompt_template import (
+                        SYSTEM_PROMPT,
+                        get_ai_improvement_prompt,
+                    )
 
                     # Get Ollama configuration
                     ollama_config = await config_service.get_service("ollama")
@@ -670,7 +673,7 @@ async def _run_programming(
                                             logger.error(f"JSON content: {json_str[:300]}...")
                                             ai_result = None
                                     else:
-                                        logger.error(f"No JSON braces found in response")
+                                        logger.error("No JSON braces found in response")
                                         ai_result = None
 
                                 if ai_result:
@@ -806,7 +809,6 @@ async def _run_programming(
                         await job_manager.update_step_status(job_id, "ai_improve", "completed", "Ollama non configuré")
                 except Exception as e:
                     logger.error(f"AI improvement failed: {e}")
-                    import traceback
                     logger.error(f"AI improvement traceback: {traceback.format_exc()}")
                     await job_manager.update_step_status(job_id, "ai_improve", "failed", f"Erreur: {str(e)[:50]}")
 
@@ -1051,7 +1053,7 @@ async def _run_programming(
                         if start_time_updated:
                             logger.info(f"Channel start time updated to {start_dt.isoformat()}")
                         else:
-                            logger.warning(f"Failed to update channel start time")
+                            logger.warning("Failed to update channel start time")
 
                         sync_detail = f"{len(tunarr_programs)} programmes envoyés"
                         await job_manager.update_step_status(job_id, "tunarr_sync", "completed", sync_detail)
@@ -1115,7 +1117,7 @@ async def generate_programming(
     # Create job
     job_id = await job_manager.create_job(
         job_type=JobType.PROGRAMMING,
-        title=f"Programming generation",
+        title="Programming generation",
         channel_id=request.channel_id,
         profile_id=request.profile_id,
         total_iterations=request.iterations,
@@ -1163,8 +1165,8 @@ async def improve_programming_with_ai(
 
     Returns suggestions for improving the programming based on user feedback.
     """
-    from app.services.ai_prompt_template import get_ai_improvement_prompt, SYSTEM_PROMPT
     from app.adapters.ollama_adapter import OllamaAdapter
+    from app.services.ai_prompt_template import SYSTEM_PROMPT, get_ai_improvement_prompt
 
     # Get the result
     result = _results.get(request.result_id)

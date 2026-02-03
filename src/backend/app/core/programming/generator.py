@@ -2,13 +2,15 @@
 
 import logging
 import random
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Callable
+from typing import Any
 
-from app.core.blocks.time_block_manager import TimeBlock, TimeBlockManager
+from app.core.blocks.time_block_manager import TimeBlockManager
 from app.core.scoring.base_criterion import ScoringContext
-from app.core.scoring.engine import ScoringEngine, ScoringResult as ScoreResult
+from app.core.scoring.engine import ScoringEngine
+from app.core.scoring.engine import ScoringResult as ScoreResult
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +145,7 @@ class ProgrammingGenerator:
         if filtered_contents:
             age_ratings: dict[str, int] = {}
             no_rating_count = 0
-            for content, meta in filtered_contents[:100]:  # Sample first 100
+            for _content, meta in filtered_contents[:100]:  # Sample first 100
                 rating = (meta or {}).get("age_rating", "") or (meta or {}).get("content_rating", "")
                 if rating:
                     age_ratings[rating] = age_ratings.get(rating, 0) + 1
@@ -692,7 +694,6 @@ class ProgrammingGenerator:
         timing_result,
     ) -> None:
         """Update program's score with new timing criterion result."""
-        from app.core.scoring.base_criterion import CriterionResult
 
         # Update criterion results with new timing
         prog.score.criterion_results["timing"] = timing_result
@@ -820,8 +821,8 @@ class ProgrammingGenerator:
         time_block_map = {tb.get("name", ""): tb for tb in time_blocks}
 
         recalculated_count = 0
-        from app.core.scoring.base_criterion import ScoringContext
         from app.core.blocks.time_block_manager import _get_local_timezone
+        from app.core.scoring.base_criterion import ScoringContext
 
         def build_block_datetime_for_recalc(time_str: str, reference_dt: datetime) -> datetime | None:
             """Build a full datetime from block time string (HH:MM) using reference date."""
@@ -899,9 +900,9 @@ class ProgrammingGenerator:
         forbidden = criteria.get("forbidden", {})
 
         forbidden_ids = set(forbidden.get("content_ids", []))
-        forbidden_types = set(t.lower() for t in forbidden.get("types", []))
+        forbidden_types = {t.lower() for t in forbidden.get("types", [])}
         forbidden_keywords = [k.lower() for k in forbidden.get("keywords", [])]
-        forbidden_genres = set(g.lower() for g in forbidden.get("genres", []))
+        forbidden_genres = {g.lower() for g in forbidden.get("genres", [])}
 
         filtered = []
         for content, meta in contents:
@@ -922,7 +923,7 @@ class ProgrammingGenerator:
 
             # Check genres
             if meta:
-                content_genres = set(g.lower() for g in meta.get("genres", []))
+                content_genres = {g.lower() for g in meta.get("genres", [])}
                 if content_genres & forbidden_genres:
                     continue
 
@@ -964,7 +965,6 @@ class ProgrammingGenerator:
 
         Returns a pool sorted by preselection score (best first).
         """
-        from app.core.scoring.criteria.age_criterion import AgeCriterion
 
         criteria = block.get("criteria", {}) if block else {}
         if not criteria:
@@ -1108,7 +1108,7 @@ class ProgrammingGenerator:
 
         # === GENRE EVALUATION ===
         if "genre" in rules_config:
-            content_genres = set(g.lower() for g in meta.get("genres", []))
+            content_genres = {g.lower() for g in meta.get("genres", [])}
             genre_rules = rules_config["genre"]
 
             # Preferred genres

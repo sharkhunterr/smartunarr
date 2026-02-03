@@ -34,7 +34,6 @@ class StrategyCriterion(BaseCriterion):
             return 80.0  # No strategies defined
 
         score = 100.0
-        penalty_per_violation = 20.0
 
         # Check sequence strategy
         if strategies.get("maintain_sequence", False):

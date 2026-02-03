@@ -48,7 +48,7 @@ async def jobs_stream() -> StreamingResponse:
                     # Wait for messages with timeout for keepalive
                     message = await asyncio.wait_for(queue.get(), timeout=30.0)
                     yield message
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # Send keepalive comment
                     yield ": keepalive\n\n"
         except asyncio.CancelledError:

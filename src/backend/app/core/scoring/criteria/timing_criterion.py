@@ -3,7 +3,12 @@
 from datetime import datetime, timedelta
 from typing import Any
 
-from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, RuleViolation, ScoringContext
+from app.core.scoring.base_criterion import (
+    BaseCriterion,
+    CriterionResult,
+    RuleViolation,
+    ScoringContext,
+)
 
 
 class TimingCriterion(BaseCriterion):
@@ -180,7 +185,6 @@ class TimingCriterion(BaseCriterion):
             return 75.0
 
         # Time-of-day scoring heuristics
-        is_morning = 6 <= start_hour < 12
         is_afternoon = 12 <= start_hour < 18
         is_evening = 18 <= start_hour < 22
         is_night = start_hour >= 22 or start_hour < 6
@@ -516,13 +520,11 @@ class TimingCriterion(BaseCriterion):
         # Calculate late start ONLY for first-in-block
         # EXCEPTION: If this is the very first program of the entire schedule,
         # don't penalize for late start (the schedule might start mid-block intentionally)
-        late_start_offset = 0.0
         late_start_score = 100.0
         is_schedule_start = context.is_schedule_start if context else False
         if is_first and block_start and not is_schedule_start:
             start_offset_minutes = self._calculate_offset_minutes(current_time, block_start)
             if start_offset_minutes > 2:  # More than 2 min late
-                late_start_offset = start_offset_minutes
                 details["late_start_minutes"] = round(start_offset_minutes, 1)
                 if timing_rules:
                     # Use adaptive curve
@@ -541,12 +543,10 @@ class TimingCriterion(BaseCriterion):
             details["schedule_start_exemption"] = True
 
         # Calculate overflow ONLY for last-in-block
-        overflow_offset = 0.0
         overflow_score = 100.0
         if is_last and content_end_time and block_end:
             overflow_minutes = self._calculate_offset_minutes(content_end_time, block_end)
             if overflow_minutes > 2:  # More than 2 min overflow
-                overflow_offset = overflow_minutes
                 details["overflow_minutes"] = round(overflow_minutes, 1)
                 if timing_rules:
                     # Use adaptive curve

@@ -3,7 +3,14 @@
 from datetime import datetime
 from typing import Any
 
-from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, MFPPolicyConfig, RuleViolation, ScoringContext, DEFAULT_MFP_POLICY
+from app.core.scoring.base_criterion import (
+    DEFAULT_MFP_POLICY,
+    BaseCriterion,
+    CriterionResult,
+    MFPPolicyConfig,
+    RuleViolation,
+    ScoringContext,
+)
 
 
 class BonusCriterion(BaseCriterion):

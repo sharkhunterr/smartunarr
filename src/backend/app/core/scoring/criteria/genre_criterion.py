@@ -2,7 +2,12 @@
 
 from typing import Any
 
-from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, RuleViolation, ScoringContext
+from app.core.scoring.base_criterion import (
+    BaseCriterion,
+    CriterionResult,
+    RuleViolation,
+    ScoringContext,
+)
 
 
 class GenreCriterion(BaseCriterion):
@@ -32,7 +37,7 @@ class GenreCriterion(BaseCriterion):
         if not content_meta:
             return 50.0  # Neutral if no metadata
 
-        content_genres = set(g.lower() for g in content_meta.get("genres", []))
+        content_genres = {g.lower() for g in content_meta.get("genres", [])}
         if not content_genres:
             return 50.0  # Neutral if no genres
 
@@ -42,22 +47,22 @@ class GenreCriterion(BaseCriterion):
             genre_config = block_criteria.get("genre_criteria", {})
             # Direct definitions from block criteria
             # allowed_genres = mandatory (at least one must match)
-            allowed = set(g.lower() for g in block_criteria.get("allowed_genres", []))
-            preferred = set(g.lower() for g in block_criteria.get("preferred_genres", []))
-            forbidden = set(g.lower() for g in block_criteria.get("forbidden_genres", []))
+            allowed = {g.lower() for g in block_criteria.get("allowed_genres", [])}
+            preferred = {g.lower() for g in block_criteria.get("preferred_genres", [])}
+            forbidden = {g.lower() for g in block_criteria.get("forbidden_genres", [])}
             # Also check genre_rules for M/F/P values
             genre_rules = block_criteria.get("genre_rules", {})
             if genre_rules:
-                allowed |= set(g.lower() for g in (genre_rules.get("mandatory_values") or []))
-                forbidden |= set(g.lower() for g in (genre_rules.get("forbidden_values") or []))
-                preferred |= set(g.lower() for g in (genre_rules.get("preferred_values") or []))
+                allowed |= {g.lower() for g in (genre_rules.get("mandatory_values") or [])}
+                forbidden |= {g.lower() for g in (genre_rules.get("forbidden_values") or [])}
+                preferred |= {g.lower() for g in (genre_rules.get("preferred_values") or [])}
         else:
             criteria = profile.get("mandatory_forbidden_criteria", {})
             genre_config = criteria.get("genre_criteria", {})
             # Direct definitions from profile
-            allowed = set(g.lower() for g in criteria.get("allowed_genres", []))
-            preferred = set(g.lower() for g in criteria.get("preferred_genres", []))
-            forbidden = set(g.lower() for g in criteria.get("forbidden_genres", []))
+            allowed = {g.lower() for g in criteria.get("allowed_genres", [])}
+            preferred = {g.lower() for g in criteria.get("preferred_genres", [])}
+            forbidden = {g.lower() for g in criteria.get("forbidden_genres", [])}
 
         # Extract mandatory/forbidden/preferred from genre_criteria structure (legacy)
         mandatory_config = genre_config.get("mandatory_genres", {})
@@ -65,9 +70,9 @@ class GenreCriterion(BaseCriterion):
         preferred_config = genre_config.get("preferred_genres", {})
 
         # Get genres from legacy configs
-        mandatory_genres_legacy = set(g.lower() for g in mandatory_config.get("genres", []))
-        forbidden_genres_legacy = set(g.lower() for g in forbidden_config.get("genres", []))
-        preferred_genres_legacy = set(g.lower() for g in preferred_config.get("genres", []))
+        mandatory_genres_legacy = {g.lower() for g in mandatory_config.get("genres", [])}
+        forbidden_genres_legacy = {g.lower() for g in forbidden_config.get("genres", [])}
+        preferred_genres_legacy = {g.lower() for g in preferred_config.get("genres", [])}
 
         # Merge all mandatory sources (allowed_genres + legacy mandatory)
         mandatory = allowed | mandatory_genres_legacy
@@ -128,25 +133,25 @@ class GenreCriterion(BaseCriterion):
         # Check for rule violations (genre-specific logic: at least one mandatory must match)
         rule_violation = None
         if content_meta:
-            content_genres = set(g.lower() for g in content_meta.get("genres", []))
+            content_genres = {g.lower() for g in content_meta.get("genres", [])}
 
             # Collect all mandatory/forbidden/preferred genres from block or profile
             if block:
                 block_criteria = block.get("criteria", {})
-                mandatory = set(g.lower() for g in block_criteria.get("allowed_genres", []))
-                forbidden = set(g.lower() for g in block_criteria.get("forbidden_genres", []))
-                preferred = set(g.lower() for g in block_criteria.get("preferred_genres", []))
+                mandatory = {g.lower() for g in block_criteria.get("allowed_genres", [])}
+                forbidden = {g.lower() for g in block_criteria.get("forbidden_genres", [])}
+                preferred = {g.lower() for g in block_criteria.get("preferred_genres", [])}
                 # Add from genre_rules
                 genre_rules = block_criteria.get("genre_rules", {})
                 if genre_rules:
-                    mandatory |= set(g.lower() for g in (genre_rules.get("mandatory_values") or []))
-                    forbidden |= set(g.lower() for g in (genre_rules.get("forbidden_values") or []))
-                    preferred |= set(g.lower() for g in (genre_rules.get("preferred_values") or []))
+                    mandatory |= {g.lower() for g in (genre_rules.get("mandatory_values") or [])}
+                    forbidden |= {g.lower() for g in (genre_rules.get("forbidden_values") or [])}
+                    preferred |= {g.lower() for g in (genre_rules.get("preferred_values") or [])}
             else:
                 criteria = profile.get("mandatory_forbidden_criteria", {})
-                mandatory = set(g.lower() for g in criteria.get("allowed_genres", []))
-                forbidden = set(g.lower() for g in criteria.get("forbidden_genres", []))
-                preferred = set(g.lower() for g in criteria.get("preferred_genres", []))
+                mandatory = {g.lower() for g in criteria.get("allowed_genres", [])}
+                forbidden = {g.lower() for g in criteria.get("forbidden_genres", [])}
+                preferred = {g.lower() for g in criteria.get("preferred_genres", [])}
 
             # 1. Check for FORBIDDEN violation (highest priority)
             forbidden_matches = content_genres & forbidden

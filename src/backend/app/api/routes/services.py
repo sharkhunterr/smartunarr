@@ -5,16 +5,15 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from sqlalchemy import delete, func, select
 
 from app.db.database import get_session
 from app.models.content import Content, ContentMeta
-from app.services.service_config_service import ServiceConfigService
 from app.services.plex_service import PlexService
-from app.services.tunarr_service import TunarrService
+from app.services.service_config_service import ServiceConfigService
 from app.services.tmdb_service import TMDBService
+from app.services.tunarr_service import TunarrService
 
 logger = logging.getLogger(__name__)
 
@@ -520,6 +519,7 @@ async def force_tmdb_enrichment(
     This will enrich cached content that hasn't been enriched yet with TMDB metadata.
     """
     from sqlalchemy.orm import selectinload
+
     from app.services.content_enrichment_service import ContentEnrichmentService
 
     # Get TMDB config

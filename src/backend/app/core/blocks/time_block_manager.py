@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, time, timedelta, timezone
 from typing import Any
 
+
 # Get local timezone offset
 def _get_local_timezone() -> timezone:
     """Get the local timezone based on current DST status."""

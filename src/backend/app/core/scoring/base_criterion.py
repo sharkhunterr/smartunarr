@@ -1,7 +1,7 @@
 """Base criterion abstract class for scoring."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 

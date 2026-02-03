@@ -749,7 +749,9 @@ export function HistoryPage() {
                         {t(`history.types.${entry.type}`)}
                       </span>
                       {entry.schedule_id && (
-                        <CalendarClock className="w-3.5 h-3.5 text-purple-500" title={t('history.scheduled')} />
+                        <span title={t('history.scheduled')}>
+                          <CalendarClock className="w-3.5 h-3.5 text-purple-500" />
+                        </span>
                       )}
                     </div>
                     {entry.score && (

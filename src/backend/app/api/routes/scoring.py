@@ -3,25 +3,25 @@
 import asyncio
 import logging
 import threading
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import get_session, async_session_maker
+from app.core.job_manager import JobType, ProgressStep, get_job_manager
 from app.core.scoring.engine import ScoringEngine
-from app.core.job_manager import get_job_manager, JobType, ProgressStep
-from app.services.service_config_service import ServiceConfigService
-from app.services.tunarr_service import TunarrService
-from app.services.tmdb_service import TMDBService
+from app.db.database import async_session_maker, get_session
+from app.models.profile import Profile
 from app.services.content_enrichment_service import ContentEnrichmentService
 from app.services.history_service import HistoryService
 from app.services.result_service import ResultService
-from app.models.profile import Profile
+from app.services.service_config_service import ServiceConfigService
+from app.services.tmdb_service import TMDBService
+from app.services.tunarr_service import TunarrService
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +154,7 @@ async def _run_scoring(
                 logger.info(f"Tunarr lineup: {len(lineup)} entries, programs dict: {len(programs_dict)} entries")
 
                 # Get channel's programming start time (like old code did)
-                from datetime import timezone, timedelta
+                from datetime import timedelta
 
                 channel_start_time = channel.get("startTime")
                 current_time = None
@@ -163,10 +163,10 @@ async def _run_scoring(
                     try:
                         # startTime can be a timestamp (ms) or ISO string
                         if isinstance(channel_start_time, (int, float)):
-                            current_time = datetime.fromtimestamp(channel_start_time / 1000, tz=timezone.utc)
+                            current_time = datetime.fromtimestamp(channel_start_time / 1000, tz=UTC)
                         elif isinstance(channel_start_time, str):
                             if channel_start_time.replace(".", "").isdigit():
-                                current_time = datetime.fromtimestamp(float(channel_start_time) / 1000, tz=timezone.utc)
+                                current_time = datetime.fromtimestamp(float(channel_start_time) / 1000, tz=UTC)
                             else:
                                 current_time = datetime.fromisoformat(channel_start_time.replace("Z", "+00:00"))
                         logger.info(f"Channel startTime: {channel_start_time} -> {current_time}")
@@ -204,7 +204,7 @@ async def _run_scoring(
                     elif i < len(start_time_offsets) and start_time_offsets[i]:
                         # Fallback to startTimeOffsets if available
                         offset_ms = start_time_offsets[i]
-                        utc_start = datetime.fromtimestamp(offset_ms / 1000, tz=timezone.utc)
+                        utc_start = datetime.fromtimestamp(offset_ms / 1000, tz=UTC)
                         start_time = utc_start.astimezone().isoformat()
                         if duration_ms:
                             utc_end = utc_start + timedelta(milliseconds=duration_ms)
@@ -238,16 +238,16 @@ async def _run_scoring(
                 # Response is a list - calculate start/end times from channel startTime
                 programs_data = programs_response if programs_response else []
                 if programs_data:
-                    from datetime import timezone, timedelta
+                    from datetime import timedelta
                     channel_start_time = channel.get("startTime")
                     current_time = None
                     if channel_start_time:
                         try:
                             if isinstance(channel_start_time, (int, float)):
-                                current_time = datetime.fromtimestamp(channel_start_time / 1000, tz=timezone.utc)
+                                current_time = datetime.fromtimestamp(channel_start_time / 1000, tz=UTC)
                             elif isinstance(channel_start_time, str):
                                 if channel_start_time.replace(".", "").isdigit():
-                                    current_time = datetime.fromtimestamp(float(channel_start_time) / 1000, tz=timezone.utc)
+                                    current_time = datetime.fromtimestamp(float(channel_start_time) / 1000, tz=UTC)
                                 else:
                                     current_time = datetime.fromisoformat(channel_start_time.replace("Z", "+00:00"))
                         except Exception as e:
@@ -329,7 +329,7 @@ async def _run_scoring(
                     first_prog = not_in_cache[0][1]
                     logger.info(f"First program to enrich: title={first_prog.get('title')}, type={first_prog.get('type')}, year={first_prog.get('year')}, keys={list(first_prog.keys())[:15]}")
 
-                for idx, (prog_idx, prog) in enumerate(not_in_cache):
+                for idx, (_prog_idx, prog) in enumerate(not_in_cache):
                     title = prog.get("title", "")
                     # Tunarr returns type="content" with subtype="movie" or "episode"
                     prog_type = prog.get("subtype") or prog.get("type", "movie")
@@ -404,7 +404,7 @@ async def _run_scoring(
 
                 # Commit the cached content to database for future "cache only" requests
                 await session.commit()
-                logger.info(f"TMDB enrichment saved to cache")
+                logger.info("TMDB enrichment saved to cache")
 
             # Score each program
             await job_manager.update_step_status(job_id, "scoring", "running")

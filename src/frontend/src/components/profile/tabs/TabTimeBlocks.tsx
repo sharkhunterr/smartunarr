@@ -71,7 +71,7 @@ export function TabTimeBlocks({ timeBlocks, onChange }: TabTimeBlocksProps) {
   const getBlockDuration = (block: TimeBlock) => {
     const [startH, startM] = block.start_time.split(':').map(Number)
     const [endH, endM] = block.end_time.split(':').map(Number)
-    let startMins = startH * 60 + startM
+    const startMins = startH * 60 + startM
     let endMins = endH * 60 + endM
     if (endMins <= startMins) endMins += 24 * 60 // overnight
     return Math.round((endMins - startMins) / 60)

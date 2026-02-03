@@ -12,10 +12,9 @@ from app.services.ai_prompt_template import (
     SYSTEM_PROMPT,
     get_generation_prompt,
     get_modification_prompt,
-    get_refinement_prompt,
     get_recommended_model,
+    get_refinement_prompt,
 )
-from app.schemas.profile_schema import ProfileCreate
 
 logger = logging.getLogger(__name__)
 

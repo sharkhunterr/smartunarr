@@ -1,6 +1,7 @@
 """Database indexes for performance optimization."""
 
 import logging
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -96,7 +97,7 @@ async def drop_indexes(session: AsyncSession) -> int:
     """
     dropped = 0
 
-    for table, index_defs in INDEXES.items():
+    for _table, index_defs in INDEXES.items():
         for index_name, _ in index_defs:
             try:
                 await session.execute(text(f"DROP INDEX IF EXISTS {index_name}"))

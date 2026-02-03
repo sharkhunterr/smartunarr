@@ -1,7 +1,6 @@
 """Content and ContentMeta models per data-model.md."""
 
 from datetime import datetime
-from typing import Any
 
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.dialects.sqlite import JSON

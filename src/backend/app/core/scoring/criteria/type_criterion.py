@@ -2,7 +2,12 @@
 
 from typing import Any
 
-from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, RuleViolation, ScoringContext
+from app.core.scoring.base_criterion import (
+    BaseCriterion,
+    CriterionResult,
+    RuleViolation,
+    ScoringContext,
+)
 
 
 class TypeCriterion(BaseCriterion):

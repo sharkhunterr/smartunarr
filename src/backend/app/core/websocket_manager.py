@@ -1,12 +1,11 @@
 """WebSocket connection manager for real-time progress updates."""
 
 import asyncio
-import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 from uuid import uuid4
 
 from fastapi import WebSocket

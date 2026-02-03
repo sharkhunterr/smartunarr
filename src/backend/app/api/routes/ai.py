@@ -8,10 +8,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
-from app.services.service_config_service import ServiceConfigService
-from app.services.ai_profile_service import AIProfileService, GenerationResult
-from app.services.profile_service import ProfileService
 from app.schemas.profile_schema import ProfileCreate
+from app.services.ai_profile_service import AIProfileService
+from app.services.profile_service import ProfileService
+from app.services.service_config_service import ServiceConfigService
 
 logger = logging.getLogger(__name__)
 

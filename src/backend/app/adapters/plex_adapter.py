@@ -3,8 +3,8 @@
 import logging
 from typing import Any
 
+from plexapi.exceptions import NotFound, Unauthorized
 from plexapi.server import PlexServer
-from plexapi.exceptions import Unauthorized, NotFound
 
 logger = logging.getLogger(__name__)
 

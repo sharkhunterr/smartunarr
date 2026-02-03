@@ -2,7 +2,13 @@
 
 from typing import Any
 
-from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, MFPPolicyConfig, RuleViolation, ScoringContext
+from app.core.scoring.base_criterion import (
+    BaseCriterion,
+    CriterionResult,
+    MFPPolicyConfig,
+    RuleViolation,
+    ScoringContext,
+)
 
 
 class FilterCriterion(BaseCriterion):
@@ -34,23 +40,23 @@ class FilterCriterion(BaseCriterion):
         preferred_bonus = mfp_policy.preferred_matched_bonus if mfp_policy else 20.0
         forbidden_penalty = mfp_policy.forbidden_detected_penalty if mfp_policy else -400.0
 
-        content_keywords = set(k.lower() for k in content_meta.get("keywords", []))
-        content_studios = set(s.lower() for s in content_meta.get("studios", []))
+        content_keywords = {k.lower() for k in content_meta.get("keywords", [])}
+        content_studios = {s.lower() for s in content_meta.get("studios", [])}
         content_title = content.get("title", "").lower()
 
         # Get filters from block or profile
         filter_rules = None
         if block:
             block_criteria = block.get("criteria", {})
-            forbidden_keywords = set(k.lower() for k in block_criteria.get("forbidden_keywords", []))
-            preferred_keywords = set(k.lower() for k in block_criteria.get("preferred_keywords", []))
-            forbidden_studios = set(s.lower() for s in block_criteria.get("forbidden_studios", []))
-            preferred_studios = set(s.lower() for s in block_criteria.get("preferred_studios", []))
+            forbidden_keywords = {k.lower() for k in block_criteria.get("forbidden_keywords", [])}
+            preferred_keywords = {k.lower() for k in block_criteria.get("preferred_keywords", [])}
+            forbidden_studios = {s.lower() for s in block_criteria.get("forbidden_studios", [])}
+            preferred_studios = {s.lower() for s in block_criteria.get("preferred_studios", [])}
             # Also include from filter_rules if defined
             filter_rules = block_criteria.get("filter_rules", {})
             if filter_rules:
-                forbidden_keywords |= set(k.lower() for k in (filter_rules.get("forbidden_values") or []))
-                preferred_keywords |= set(k.lower() for k in (filter_rules.get("preferred_values") or []))
+                forbidden_keywords |= {k.lower() for k in (filter_rules.get("forbidden_values") or [])}
+                preferred_keywords |= {k.lower() for k in (filter_rules.get("preferred_values") or [])}
                 # MFP policy takes precedence, only use rule-specific values as fallback
                 # if MFP policy wasn't provided
                 if not mfp_policy:
@@ -60,10 +66,10 @@ class FilterCriterion(BaseCriterion):
                         forbidden_penalty = filter_rules["forbidden_penalty"]
         else:
             criteria = profile.get("mandatory_forbidden_criteria", {})
-            forbidden_keywords = set(k.lower() for k in criteria.get("forbidden_keywords", []))
-            preferred_keywords = set(k.lower() for k in criteria.get("preferred_keywords", []))
-            forbidden_studios = set(s.lower() for s in criteria.get("forbidden_studios", []))
-            preferred_studios = set(s.lower() for s in criteria.get("preferred_studios", []))
+            forbidden_keywords = {k.lower() for k in criteria.get("forbidden_keywords", [])}
+            preferred_keywords = {k.lower() for k in criteria.get("preferred_keywords", [])}
+            forbidden_studios = {s.lower() for s in criteria.get("forbidden_studios", [])}
+            preferred_studios = {s.lower() for s in criteria.get("preferred_studios", [])}
 
         rule_violation = None
         matched_keywords: list[str] = []

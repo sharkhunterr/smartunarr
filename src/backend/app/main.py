@@ -1,8 +1,8 @@
 """Main FastAPI application entrypoint."""
 
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,8 +26,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
 
     # Import here to avoid circular imports
-    from app.db.database import init_db
     from app.core.scheduler import get_scheduler_manager
+    from app.db.database import init_db
 
     await init_db()
     logger.info("Database initialized")

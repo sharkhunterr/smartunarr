@@ -153,7 +153,6 @@ class SchedulerManager:
 
         from app.db.database import async_session_maker
         from app.services.schedule_service import ScheduleService
-        from app.models.schedule import Schedule
 
         try:
             async with async_session_maker() as session:
@@ -200,7 +199,7 @@ class SchedulerManager:
     async def _execute_programming(self, schedule: Any) -> None:
         """Execute a programming schedule."""
         from app.api.routes.programming import ProgrammingRequest, _run_programming
-        from app.core.job_manager import get_job_manager, JobType
+        from app.core.job_manager import JobType, get_job_manager
         from app.db.database import async_session_maker
         from app.services.schedule_service import ScheduleService
 
@@ -265,7 +264,7 @@ class SchedulerManager:
     async def _execute_scoring(self, schedule: Any) -> None:
         """Execute a scoring schedule."""
         from app.api.routes.scoring import ScoringRequest, _run_scoring
-        from app.core.job_manager import get_job_manager, JobType
+        from app.core.job_manager import JobType, get_job_manager
         from app.db.database import async_session_maker
         from app.services.schedule_service import ScheduleService
 

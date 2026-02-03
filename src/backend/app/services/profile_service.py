@@ -1,6 +1,5 @@
 """ProfileService with CRUD operations."""
 
-import json
 import logging
 from typing import Any
 
@@ -8,10 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.blocks.time_block_manager import TimeBlockManager
 from app.models.profile import Profile, ProfileLabel
 from app.schemas.profile_schema import ProfileCreate, ProfileUpdate, ProfileValidation
 from app.services.profile_migration import ProfileMigration
-from app.core.blocks.time_block_manager import TimeBlockManager
 
 logger = logging.getLogger(__name__)
 

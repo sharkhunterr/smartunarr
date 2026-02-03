@@ -4,9 +4,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
-from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, RuleViolation, ScoringContext
+from app.core.scoring.base_criterion import BaseCriterion, CriterionResult, ScoringContext
 from app.core.scoring.criteria import (
     AgeCriterion,
     BonusCriterion,
@@ -18,6 +16,8 @@ from app.core.scoring.criteria import (
     TimingCriterion,
     TypeCriterion,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass

@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.service import Service
-from app.utils.encryption import encrypt_value, decrypt_value
+from app.utils.encryption import decrypt_value, encrypt_value
 
 logger = logging.getLogger(__name__)
 

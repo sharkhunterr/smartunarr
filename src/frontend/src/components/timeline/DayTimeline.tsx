@@ -94,7 +94,7 @@ export function DayTimeline({
   const timeBlockPositions = useMemo(() => {
     return timeBlocks.map((block, idx) => {
       const startOffset = getTimeOffset(block.start_time)
-      let endOffset = getTimeOffset(block.end_time)
+      const endOffset = getTimeOffset(block.end_time)
 
       // Handle overnight blocks (e.g., 20:00 - 07:00)
       if (endOffset <= startOffset) {

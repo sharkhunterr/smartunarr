@@ -3,13 +3,13 @@
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
+from app.schemas.profile_schema import ProfileCreate, ProfileResponse, ProfileUpdate
 from app.services.profile_service import ProfileService
-from app.schemas.profile_schema import ProfileCreate, ProfileUpdate, ProfileResponse
 
 logger = logging.getLogger(__name__)
 
