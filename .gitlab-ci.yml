@@ -27,14 +27,11 @@ variables:
   DOCKER_HOST: tcp://docker:2375
 
 # =============================================================================
-# Workflow - évite les pipelines en double
+# Workflow - pipeline uniquement sur les tags
 # =============================================================================
 workflow:
   rules:
-    - if: '$CI_COMMIT_TAG'                    # Toujours exécuter sur les tags
-    - if: '$CI_COMMIT_MESSAGE =~ /^chore\(release\)/'
-      when: never                              # Ignorer les commits de release
-    - if: '$CI_COMMIT_BRANCH'                  # Exécuter sur les branches
+    - if: '$CI_COMMIT_TAG'                    # Exécuter uniquement sur les tags
 
 # =============================================================================
 # Stages du pipeline
