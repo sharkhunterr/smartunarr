@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.5](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.4...v0.1.5) (2026-02-03)
+
+
+### Bug Fixes
+
+* Run CI pipeline only on tags ([64c47d4](https://github.com/sharkhunterr/smartunarr/-/commit/64c47d41cc511f152b165adae7da0b872849e4f4))
+* Use Docker Hub instead of GitLab registry for CI images ([39b8561](https://github.com/sharkhunterr/smartunarr/-/commit/39b856171cce05a2206ef22fd992b1ad250674f1))
+
 ### [0.1.4](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.3...v0.1.4) (2026-02-03)
 
 
