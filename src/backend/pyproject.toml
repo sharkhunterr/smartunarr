@@ -5,6 +5,13 @@ build-backend = "setuptools.build_meta"
 [tool.poetry]
 package-mode = false
 
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.4.0"
+pytest-asyncio = ">=0.23.0"
+pytest-cov = ">=4.1.0"
+ruff = ">=0.1.0"
+mypy = ">=1.8.0"
+
 [project]
 name = "smartunarr"
 version = "0.1.0"
