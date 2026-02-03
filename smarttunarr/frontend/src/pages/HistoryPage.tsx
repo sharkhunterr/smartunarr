@@ -51,7 +51,7 @@ const typeIcons = {
   ai_generation: Sparkles,
 }
 
-type FilterType = 'all' | 'programming' | 'scoring' | 'ai_generation'
+type FilterType = 'all' | 'programming' | 'scoring'
 type ResultView = 'timeline' | 'table'
 
 interface ResultModalProps {
@@ -338,7 +338,7 @@ export function HistoryPage() {
   const loadHistory = async () => {
     setLoading(true)
     try {
-      const params = filter !== 'all' ? { type: filter as 'programming' | 'scoring' | 'ai_generation' } : {}
+      const params = filter !== 'all' ? { type: filter as 'programming' | 'scoring' } : {}
       const data = await historyApi.list(params)
       setHistory(data)
     } catch {
@@ -549,7 +549,7 @@ export function HistoryPage() {
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
         <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
-          {(['all', 'programming', 'scoring', 'ai_generation'] as FilterType[]).map(type => (
+          {(['all', 'programming', 'scoring'] as FilterType[]).map(type => (
             <button
               key={type}
               onClick={() => setFilter(type)}
