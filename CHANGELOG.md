@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.3](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.2...v0.1.3) (2026-02-03)
+
+
+### Bug Fixes
+
+* Add dev dependencies in Poetry format for CI ([534b263](https://github.com/sharkhunterr/smartunarr/-/commit/534b263d9c7222e714c903ee8ebb018c1907d4b6))
+
 ### [0.1.2](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.1...v0.1.2) (2026-02-03)
 
 
