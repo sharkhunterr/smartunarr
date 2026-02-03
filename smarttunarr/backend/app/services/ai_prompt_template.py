@@ -293,6 +293,130 @@ Format attendu (array de time_blocks):
 Génère UNIQUEMENT le JSON (array), sans explications."""
 
 
+def get_improvement_prompt(
+    current_programs: list[dict[str, Any]],
+    user_feedback: str,
+    all_iterations: list[dict[str, Any]] | None = None,
+) -> str:
+    """
+    Build the prompt for AI-assisted programming improvement.
+
+    Args:
+        current_programs: Current best iteration programs
+        user_feedback: User's feedback/improvement request
+        all_iterations: All iterations data (optional, for context)
+
+    Returns:
+        Improvement prompt string
+    """
+    import json
+
+    # Summarize current programs for the prompt
+    programs_summary = []
+    for prog in current_programs[:50]:  # Limit to avoid too long prompts
+        programs_summary.append({
+            "title": prog.get("title", ""),
+            "type": prog.get("type", "movie"),
+            "score": prog.get("score", {}).get("total", 0) if prog.get("score") else 0,
+            "genres": prog.get("genres", [])[:3],  # Limit genres
+            "start_time": prog.get("start_time", "")[:16],  # Just date+hour:min
+            "duration_min": round(prog.get("duration_min", 0)),
+            "block": prog.get("block_name", ""),
+            "forbidden_violated": prog.get("score", {}).get("forbidden_violated", False) if prog.get("score") else False,
+        })
+
+    # Build iteration summary if available
+    iterations_info = ""
+    if all_iterations and len(all_iterations) > 1:
+        iterations_summary = []
+        for it in all_iterations[:10]:  # Show top 10 iterations
+            iterations_summary.append({
+                "iteration": it.get("iteration", 0),
+                "score": round(it.get("average_score", 0), 1),
+                "programs": it.get("program_count", 0),
+                "is_optimized": it.get("is_optimized", False),
+                "is_improved": it.get("is_improved", False),
+            })
+        iterations_info = f"""
+TOUTES LES ITÉRATIONS DISPONIBLES (triées par score décroissant):
+{json.dumps(iterations_summary, indent=2, ensure_ascii=False)}
+"""
+
+    return f"""Tu es un assistant expert en programmation TV. L'utilisateur te demande d'améliorer une programmation générée.
+
+PROGRAMMATION ACTUELLE (résumé):
+{json.dumps(programs_summary, indent=2, ensure_ascii=False)}
+{iterations_info}
+DEMANDE DE L'UTILISATEUR:
+"{user_feedback}"
+
+Analyse la programmation actuelle et la demande de l'utilisateur, puis suggère des améliorations concrètes.
+
+Réponds en JSON avec ce format:
+{{
+  "analysis": "Ton analyse de la programmation actuelle et des problèmes identifiés",
+  "suggestions": [
+    {{
+      "type": "replace|reorder|remove|add",
+      "target": "titre ou bloc concerné",
+      "reason": "pourquoi ce changement",
+      "suggestion": "ce que tu suggères à la place"
+    }}
+  ],
+  "profile_adjustments": {{
+    "scoring_weights": {{"critère": "augmenter|diminuer|inchangé"}},
+    "time_blocks": ["ajustements suggérés pour les blocs horaires"],
+    "forbidden": ["contenus/genres à ajouter aux interdits"],
+    "preferred": ["contenus/genres à favoriser"]
+  }},
+  "summary": "Résumé en une phrase des améliorations principales"
+}}
+
+Génère UNIQUEMENT le JSON, sans explications supplémentaires."""
+
+
+def get_ai_improvement_prompt(
+    current_programs: list[dict[str, Any]],
+    user_feedback: str,
+    all_iterations: list[dict[str, Any]] | None = None,
+) -> str:
+    """Build a simple prompt for AI programming improvement."""
+
+    # Format current programs simply
+    current_list = []
+    for prog in current_programs:
+        title = prog.get('title', '')
+        block = prog.get("block_name", "")
+        studios = ", ".join(prog.get("studios", [])) if prog.get("studios") else ""
+        current_list.append(f'"{title}" - {block}' + (f" - Studios: {studios}" if studios else ""))
+
+    # Collect alternatives from other iterations
+    current_titles = {p.get("title", "") for p in current_programs}
+    alternatives = []
+    if all_iterations:
+        seen = set()
+        for it in all_iterations:
+            for prog in it.get("programs", []):
+                title = prog.get("title", "")
+                if title and title not in current_titles and title not in seen:
+                    seen.add(title)
+                    studios = ", ".join(prog.get("studios", [])) if prog.get("studios") else ""
+                    alternatives.append(f'"{title}"' + (f" - Studios: {studios}" if studios else ""))
+
+    return f"""PROGRAMMATION ACTUELLE:
+{chr(10).join(current_list)}
+
+ALTERNATIVES DISPONIBLES:
+{chr(10).join(alternatives)}
+
+DEMANDE: {user_feedback}
+
+Réponds en JSON:
+{{"analysis": "...", "modifications": [{{"action": "replace", "original_title": "titre actuel", "replacement_title": "titre alternatif", "reason": "..."}}], "summary": "..."}}
+
+Utilise UNIQUEMENT les titres ci-dessus."""
+
+
 # Recommended models for different use cases
 RECOMMENDED_MODELS = {
     "profile_generation": [

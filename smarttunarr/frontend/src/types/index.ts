@@ -259,6 +259,8 @@ export interface ProgramItem {
   is_replacement?: boolean
   replacement_reason?: 'forbidden' | 'improved' | null
   replaced_title?: string | null
+  // AI improvement flag
+  is_ai_improved?: boolean
 }
 
 // Rule violation for a criterion
@@ -346,6 +348,22 @@ export interface IterationResult {
   program_count: number
   is_optimized?: boolean  // True if this is the forbidden-replacement optimized iteration
   is_improved?: boolean  // True if this is the improved iteration (better programs from other iterations)
+  is_ai_improved?: boolean  // True if this is the AI-improved iteration
+}
+
+// AI modification suggestion
+export interface AIModification {
+  action: 'replace' | 'reorder' | 'remove' | 'modify'
+  original_title: string
+  replacement_title?: string  // For replace action - the title to replace with
+  reason: string
+}
+
+// AI response from generation
+export interface AIResponse {
+  analysis?: string
+  modifications?: AIModification[]
+  summary?: string
 }
 
 export interface ProgramResult {
@@ -363,6 +381,8 @@ export interface ProgramResult {
   total_iterations?: number
   // Time blocks for rendering
   time_blocks?: TimeBlock[]
+  // AI response from generation
+  ai_response?: AIResponse | null
 }
 
 // Programming request types
@@ -377,6 +397,10 @@ export interface ProgrammingRequest {
   improve_best?: boolean  // Upgrade programs with better ones from other iterations
   duration_days: number  // Number of days to program (1-30)
   start_datetime?: string  // ISO format datetime
+  // AI improvement options
+  ai_improve?: boolean
+  ai_prompt?: string
+  ai_model?: string
 }
 
 export interface AIProgrammingRequest {
@@ -555,6 +579,23 @@ export interface AIModelsResponse {
     complex_schedule: string
   }
   all_recommendations: Record<string, string>
+}
+
+// AI Programming Improvement types
+export interface AIImprovementRequest {
+  result_id: string
+  prompt: string
+  model?: string
+  iteration_index?: number  // Which iteration to improve (default: best)
+  temperature?: number
+}
+
+export interface AIImprovementResponse {
+  success: boolean
+  result_id?: string
+  model?: string
+  suggestions?: unknown  // AI-generated suggestions object
+  message?: string
 }
 
 // Comparison types

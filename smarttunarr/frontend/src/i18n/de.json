@@ -86,7 +86,20 @@
     "improved": "Verbessert",
     "apply": "Anwenden",
     "emptyState": "Klicken Sie auf Konfiguration, um eine Programmierung zu starten",
-    "steps": "Schritte"
+    "steps": "Schritte",
+    "aiButton": "KI",
+    "aiSend": "Senden",
+    "aiOriginal": "Original",
+    "aiReplacement": "Ersetzt durch",
+    "aiResponse": "KI-Antwort",
+    "aiAnalysis": "Analyse",
+    "aiProposedChanges": "Vorgeschlagene Anderungen",
+    "aiApplyAll": "Alle anwenden",
+    "aiApplyOne": "Anwenden",
+    "aiNoChanges": "Keine Anderungen vorgeschlagen",
+    "aiReplace": "Ersetzen",
+    "aiProcessing": "Verarbeitung...",
+    "aiEnterPrompt": "Prompt eingeben"
   },
   "scoring": {
     "title": "Programmbewertung",

@@ -30,10 +30,9 @@ import {
   getScoreColor,
 } from '@/components/scoring/ScoringDisplay'
 import { useJobsStore, Job } from '@/stores/useJobsStore'
-import type { Profile, TunarrChannel, OllamaModel, ProgramResult, ProgrammingRequest, AIProgrammingRequest } from '@/types'
+import type { Profile, TunarrChannel, OllamaModel, ProgramResult, ProgrammingRequest } from '@/types'
 
 type CacheMode = 'none' | 'plex_only' | 'tmdb_only' | 'cache_only' | 'full' | 'enrich_cache'
-type ProgrammingMode = 'profile' | 'ai'
 type ResultView = 'timeline' | 'table'
 
 const cacheModeOptions: { value: CacheMode; labelKey: string; icon: React.ElementType; descKey: string }[] = [
@@ -159,12 +158,24 @@ interface ResultsPanelProps {
   previewOnly: boolean
   applying: boolean
   onApply: () => void
+  ollamaModels?: OllamaModel[]
+  onAiRequest?: (prompt: string, model?: string) => Promise<void>
+  onApplyModification?: (originalTitle: string, replacementTitle: string) => Promise<void>
+  aiLoading?: boolean
+  aiResponse?: { analysis?: string; modifications?: Array<{ action: string; original_title: string; replacement_title?: string; reason: string }>; summary?: string } | null
 }
 
-function ResultsPanel({ result, profile, previewOnly, applying, onApply }: ResultsPanelProps) {
+function ResultsPanel({ result, profile, previewOnly, applying, onApply, ollamaModels = [], onAiRequest, onApplyModification, aiLoading = false, aiResponse: externalAiResponse }: ResultsPanelProps) {
   const { t } = useTranslation()
   const [view, setView] = useState<ResultView>('timeline')
   const [selectedIterationIdx, setSelectedIterationIdx] = useState(0)
+  const [aiDropdownOpen, setAiDropdownOpen] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [selectedAiModel, setSelectedAiModel] = useState('')
+  const [applyingMod, setApplyingMod] = useState<string | null>(null)
+
+  // AI response can come from result or external state
+  const aiResponse = externalAiResponse || result.ai_response
 
   const allIterations = result.all_iterations || []
   const hasMultipleIterations = allIterations.length > 1
@@ -175,6 +186,7 @@ function ResultsPanel({ result, profile, previewOnly, applying, onApply }: Resul
   const displayIteration = currentIteration?.iteration ?? result.iteration ?? 1
   const isOptimized = currentIteration?.is_optimized ?? false
   const isImproved = currentIteration?.is_improved ?? false
+  const isAiImproved = currentIteration?.is_ai_improved ?? false
 
   const totalMinutes = currentIteration?.total_duration_min || result.total_duration_min || 0
   const hours = Math.floor(totalMinutes / 60)
@@ -195,7 +207,7 @@ function ResultsPanel({ result, profile, previewOnly, applying, onApply }: Resul
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-primary-500" />
             <span className="font-medium text-sm text-gray-900 dark:text-white">
-              {(isOptimized || isImproved) ? t('programming.optimized') : `#${displayIteration}`}
+              {(isOptimized || isImproved || isAiImproved) ? t('programming.optimized') : `#${displayIteration}`}
             </span>
             {isImproved && (
               <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
@@ -205,6 +217,12 @@ function ResultsPanel({ result, profile, previewOnly, applying, onApply }: Resul
             {isOptimized && (
               <span className="px-1.5 py-0.5 text-[10px] font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
                 {t('programming.optimized')}
+              </span>
+            )}
+            {isAiImproved && (
+              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                {t('programming.aiImproved')}
               </span>
             )}
           </div>
@@ -261,6 +279,208 @@ function ResultsPanel({ result, profile, previewOnly, applying, onApply }: Resul
             {displayScore.toFixed(1)}
           </div>
 
+          {/* AI Button with dropdown */}
+          {ollamaModels.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => setAiDropdownOpen(!aiDropdownOpen)}
+                className={clsx(
+                  'flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium rounded-lg border transition-colors',
+                  (aiResponse?.modifications?.length || displayPrograms.some(p => p.is_ai_improved))
+                    ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400'
+                    : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-purple-300'
+                )}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{aiResponse?.modifications?.length || displayPrograms.filter(p => p.is_ai_improved).length}</span>
+                <ChevronDown className={clsx('w-3 h-3 transition-transform', aiDropdownOpen && 'rotate-180')} />
+              </button>
+
+              {/* Dropdown */}
+              {aiDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1 w-96 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-[70vh] overflow-y-auto">
+                  <div className="p-3 space-y-3">
+                    {/* AI Response section */}
+                    {aiResponse && (
+                      <div>
+                        <div className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          {t('programming.aiResponse')}
+                        </div>
+
+                        {/* Analysis */}
+                        {aiResponse.analysis && (
+                          <div className="mb-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded text-xs text-gray-700 dark:text-gray-300">
+                            <div className="font-medium text-gray-500 dark:text-gray-400 mb-1">{t('programming.aiAnalysis')}</div>
+                            {aiResponse.analysis}
+                          </div>
+                        )}
+
+                        {/* Summary */}
+                        {aiResponse.summary && (
+                          <div className="mb-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded text-xs text-purple-700 dark:text-purple-300">
+                            {aiResponse.summary}
+                          </div>
+                        )}
+
+                        {/* Proposed modifications */}
+                        {aiResponse.modifications && aiResponse.modifications.length > 0 ? (
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                {t('programming.aiProposedChanges')} ({aiResponse.modifications.length})
+                              </span>
+                              {onApplyModification && aiResponse.modifications.filter(m => m.action === 'replace' && m.replacement_title).length > 1 && (
+                                <button
+                                  onClick={async () => {
+                                    for (const mod of aiResponse.modifications || []) {
+                                      if (mod.action === 'replace' && mod.replacement_title) {
+                                        await onApplyModification(mod.original_title, mod.replacement_title)
+                                      }
+                                    }
+                                  }}
+                                  disabled={applyingMod !== null}
+                                  className="text-[10px] px-2 py-0.5 bg-purple-600 hover:bg-purple-700 text-white rounded disabled:opacity-50"
+                                >
+                                  {t('programming.aiApplyAll')}
+                                </button>
+                              )}
+                            </div>
+                            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                              {aiResponse.modifications.map((mod, idx) => (
+                                <div key={idx} className="text-xs p-2 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-200 dark:border-gray-600">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-gray-500 dark:text-gray-400 line-through truncate">{mod.original_title}</div>
+                                      {mod.replacement_title && (
+                                        <div className="font-medium text-purple-700 dark:text-purple-300 truncate">→ {mod.replacement_title}</div>
+                                      )}
+                                      {mod.reason && (
+                                        <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{mod.reason}</div>
+                                      )}
+                                    </div>
+                                    {onApplyModification && mod.action === 'replace' && mod.replacement_title && (
+                                      <button
+                                        onClick={async () => {
+                                          setApplyingMod(mod.original_title)
+                                          try {
+                                            await onApplyModification(mod.original_title, mod.replacement_title!)
+                                          } finally {
+                                            setApplyingMod(null)
+                                          }
+                                        }}
+                                        disabled={applyingMod !== null}
+                                        className="flex-shrink-0 px-2 py-1 text-[10px] bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded hover:bg-purple-200 dark:hover:bg-purple-900/50 disabled:opacity-50"
+                                      >
+                                        {applyingMod === mod.original_title ? (
+                                          <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          t('programming.aiApplyOne')
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-400 dark:text-gray-500 italic">
+                            {t('programming.aiNoChanges')}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Already applied modifications */}
+                    {displayPrograms.filter(p => p.is_ai_improved).length > 0 && (
+                      <div className={aiResponse ? 'border-t border-gray-200 dark:border-gray-700 pt-3' : ''}>
+                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                          {t('programming.aiModifiedPrograms')} ({displayPrograms.filter(p => p.is_ai_improved).length})
+                        </div>
+                        <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                          {displayPrograms.filter(p => p.is_ai_improved).map((prog, idx) => (
+                            <div key={idx} className="text-xs p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                              <div className="font-medium text-green-900 dark:text-green-100">{prog.title}</div>
+                              {prog.replaced_title && (
+                                <div className="text-green-600 dark:text-green-400 mt-0.5 text-[10px]">
+                                  {t('programming.aiOriginal')}: {prog.replaced_title}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* New AI request section */}
+                    <div className={(aiResponse || displayPrograms.filter(p => p.is_ai_improved).length > 0) ? 'border-t border-gray-200 dark:border-gray-700 pt-3' : ''}>
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                        {t('programming.aiNewRequest')}
+                      </div>
+                      <div className="flex items-start gap-2 mb-2 px-2 py-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-amber-700 dark:text-amber-400 text-[10px]">
+                        <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                        <span>{t('programming.aiExperimental')}</span>
+                      </div>
+                      {ollamaModels.length > 1 && (
+                        <select
+                          value={selectedAiModel}
+                          onChange={e => setSelectedAiModel(e.target.value)}
+                          className="w-full mb-2 px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        >
+                          <option value="">{t('common.auto')}</option>
+                          {ollamaModels.map(m => (
+                            <option key={m.name} value={m.name}>{m.name}</option>
+                          ))}
+                        </select>
+                      )}
+                      <textarea
+                        value={aiPrompt}
+                        onChange={e => setAiPrompt(e.target.value)}
+                        placeholder={t('programming.aiRequestPlaceholder')}
+                        rows={2}
+                        className="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 resize-none"
+                      />
+                      <button
+                        onClick={() => {
+                          if (aiPrompt.trim() && onAiRequest) {
+                            onAiRequest(aiPrompt.trim(), selectedAiModel || undefined)
+                            setAiPrompt('')
+                          }
+                        }}
+                        disabled={!aiPrompt.trim() || aiLoading}
+                        className={clsx(
+                          'w-full mt-2 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors',
+                          aiPrompt.trim()
+                            ? 'bg-purple-600 hover:bg-purple-700 text-white cursor-pointer'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed',
+                          aiLoading && 'opacity-70'
+                        )}
+                      >
+                        {aiLoading ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            {t('programming.aiProcessing')}
+                          </>
+                        ) : aiPrompt.trim() ? (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            {t('programming.aiSend')}
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            {t('programming.aiEnterPrompt')}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Apply */}
           {!previewOnly && (
             <button
@@ -274,6 +494,26 @@ function ResultsPanel({ result, profile, previewOnly, applying, onApply }: Resul
           )}
         </div>
       </div>
+
+      {/* AI Summary - shown when viewing AI-improved iteration */}
+      {isAiImproved && (
+        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            <span className="font-medium text-purple-900 dark:text-purple-100">
+              {t('programming.aiSummaryTitle')}
+            </span>
+            <span className="text-sm text-purple-600 dark:text-purple-400">
+              {displayPrograms.filter(p => p.is_ai_improved).length} {t('programming.aiModificationsCount')}
+            </span>
+          </div>
+          {result.ai_response?.summary && (
+            <p className="mt-2 text-sm text-purple-800 dark:text-purple-200">
+              {result.ai_response.summary}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Content */}
       {view === 'timeline' && (
@@ -299,9 +539,6 @@ export function ProgrammingPage() {
   const [selectedProfileId, setSelectedProfileId] = useState<string>('')
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null)
 
-  // Programming mode
-  const [mode, setMode] = useState<ProgrammingMode>('profile')
-
   // Parameters
   const [iterations, setIterations] = useState(10)
   const [randomness, setRandomness] = useState(0.3)
@@ -309,15 +546,11 @@ export function ProgrammingPage() {
   const [previewOnly, setPreviewOnly] = useState(false)
   const [replaceForbidden, setReplaceForbidden] = useState(false)
   const [improveBest, setImproveBest] = useState(false)
+  const [aiImprove, setAiImprove] = useState(false)
+  const [aiPromptForm, setAiPromptForm] = useState('')
+  const [selectedAiModelForm, setSelectedAiModelForm] = useState('')
   const [durationDays, setDurationDays] = useState(1)
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 16))
-
-  // AI parameters
-  const [aiPrompt, setAiPrompt] = useState('')
-  const [selectedModel, setSelectedModel] = useState<string>('')
-  const [temperature, setTemperature] = useState(0.7)
-  const [saveGeneratedProfile, _setSaveGeneratedProfile] = useState(false)
-  const [generatedProfileName, _setGeneratedProfileName] = useState('')
 
   // UI states
   const [loading, setLoading] = useState(true)
@@ -334,6 +567,8 @@ export function ProgrammingPage() {
   // Result
   const [result, setResult] = useState<ProgramResult | null>(null)
   const [applying, setApplying] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiResponse, setAiResponse] = useState<{ analysis?: string; modifications?: Array<{ action: string; original_title: string; replacement_title?: string; reason: string }>; summary?: string } | null>(null)
 
   const running = currentJob?.status === 'pending' || currentJob?.status === 'running'
 
@@ -404,7 +639,6 @@ export function ProgrammingPage() {
       try {
         const models = await ollamaApi.getModels()
         setOllamaModels(models)
-        if (models.length > 0) setSelectedModel(models[0].name)
       } catch {
         // Ollama not configured
       }
@@ -426,9 +660,7 @@ export function ProgrammingPage() {
   }
 
   const handleGenerate = async () => {
-    if (!selectedChannelId) return
-    if (mode === 'profile' && !selectedProfileId) return
-    if (mode === 'ai' && !aiPrompt.trim()) return
+    if (!selectedChannelId || !selectedProfileId) return
 
     setError(null)
     setResult(null)
@@ -436,40 +668,22 @@ export function ProgrammingPage() {
     setProgressExpanded(true)
 
     try {
-      let response: { job_id: string; status: string; message: string }
-
-      if (mode === 'profile') {
-        const request: ProgrammingRequest = {
-          channel_id: selectedChannelId,
-          profile_id: selectedProfileId,
-          iterations,
-          randomness,
-          cache_mode: cacheMode,
-          preview_only: previewOnly,
-          replace_forbidden: replaceForbidden,
-          improve_best: improveBest,
-          duration_days: durationDays,
-          start_datetime: new Date(startDate).toISOString()
-        }
-        response = await programmingApi.generate(request)
-      } else {
-        const request: AIProgrammingRequest = {
-          channel_id: selectedChannelId,
-          prompt: aiPrompt,
-          model: selectedModel || undefined,
-          temperature,
-          iterations,
-          randomness,
-          cache_mode: cacheMode,
-          preview_only: previewOnly,
-          duration_days: durationDays,
-          start_datetime: new Date(startDate).toISOString(),
-          save_profile: saveGeneratedProfile,
-          profile_name: saveGeneratedProfile ? generatedProfileName : undefined
-        }
-        response = await programmingApi.generateWithAI(request)
+      const request: ProgrammingRequest = {
+        channel_id: selectedChannelId,
+        profile_id: selectedProfileId,
+        iterations,
+        randomness,
+        cache_mode: cacheMode,
+        preview_only: previewOnly,
+        replace_forbidden: replaceForbidden,
+        improve_best: improveBest,
+        duration_days: durationDays,
+        start_datetime: new Date(startDate).toISOString(),
+        ai_improve: aiImprove,
+        ai_prompt: aiImprove ? aiPromptForm : undefined,
+        ai_model: aiImprove && selectedAiModelForm ? selectedAiModelForm : undefined
       }
-
+      const response = await programmingApi.generate(request)
       setCurrentJobId(response.job_id)
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : t('common.errors.generation')
@@ -489,6 +703,93 @@ export function ProgrammingPage() {
       setError(errorMessage)
     } finally {
       setApplying(false)
+    }
+  }
+
+  const handleAiRequest = async (prompt: string, model?: string) => {
+    if (!result) return
+
+    setAiLoading(true)
+    setAiResponse(null) // Clear previous response
+    setError(null) // Clear any previous error
+    try {
+      console.log('[AI Request] Sending request for result:', result.id)
+      const response = await programmingApi.improveWithAI({
+        result_id: result.id,
+        prompt,
+        model: model || undefined,
+        temperature: 0.5
+      })
+      console.log('[AI Request] Response received:', response)
+
+      // Store AI response for display - always set, even if empty
+      const suggestions = response.suggestions as { analysis?: string; modifications?: Array<{ action: string; original_title: string; replacement_title?: string; reason: string }>; summary?: string } | undefined
+      if (suggestions) {
+        console.log('[AI Request] Setting aiResponse:', suggestions)
+        setAiResponse(suggestions)
+      } else {
+        // Fallback if no suggestions - still show that AI responded
+        console.log('[AI Request] No suggestions in response, setting fallback')
+        setAiResponse({
+          analysis: t('programming.aiNoChanges'),
+          modifications: [],
+          summary: ''
+        })
+      }
+
+      // Refresh the result to get updated programs
+      if (response.result_id) {
+        const updatedResult = await programmingApi.getResult(response.result_id)
+        setResult(updatedResult)
+      }
+    } catch (err: unknown) {
+      console.error('[AI Request] Error:', err)
+      const errorMessage = err instanceof Error ? err.message : t('common.errors.generic')
+      setError(errorMessage)
+      // Set a response showing the error
+      setAiResponse({
+        analysis: errorMessage,
+        modifications: [],
+        summary: ''
+      })
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const handleApplyModification = async (originalTitle: string, replacementTitle: string) => {
+    if (!result) return
+
+    console.log('[Apply Modification]', originalTitle, '->', replacementTitle)
+    try {
+      const response = await programmingApi.applyAIModification(result.id, originalTitle, replacementTitle)
+      if (response.success) {
+        console.log('[Apply Modification] Success:', response)
+        // Refresh result to get updated programs
+        const updatedResult = await programmingApi.getResult(result.id)
+        setResult(updatedResult)
+
+        // Remove applied modification from AI response
+        if (aiResponse?.modifications) {
+          setAiResponse({
+            ...aiResponse,
+            modifications: aiResponse.modifications.filter(m => m.original_title !== originalTitle)
+          })
+        }
+      }
+    } catch (err: unknown) {
+      console.error('[Apply Modification] Error:', err)
+      // Extract error message from axios response or generic error
+      let errorMessage = t('common.errors.generic')
+      if (err && typeof err === 'object') {
+        const axiosError = err as { response?: { data?: { detail?: string } }; message?: string }
+        if (axiosError.response?.data?.detail) {
+          errorMessage = axiosError.response.data.detail
+        } else if (axiosError.message) {
+          errorMessage = axiosError.message
+        }
+      }
+      setError(errorMessage)
     }
   }
 
@@ -538,7 +839,7 @@ export function ProgrammingPage() {
       {/* Collapsible form */}
       {!formCollapsed && (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 space-y-4">
-          {/* Quick row: Channel + Mode + Profile */}
+          {/* Channel + Profile selectors */}
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Channel */}
             <div className="flex-1">
@@ -558,70 +859,22 @@ export function ProgrammingPage() {
               </select>
             </div>
 
-            {/* Profile/AI mode */}
+            {/* Profile selector */}
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                {t('programming.mode')}
+                {t('programming.selectProfile')}
               </label>
-              <div className="flex gap-1 p-0.5 bg-gray-100 dark:bg-gray-700 rounded-lg h-[42px]">
-                <button
-                  onClick={() => setMode('profile')}
-                  className={clsx(
-                    'flex-1 flex items-center justify-center gap-1.5 px-3 rounded text-sm font-medium transition-colors',
-                    mode === 'profile' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500'
-                  )}
-                >
-                  <Play className="w-4 h-4" />
-                  {t('programming.modeProfile')}
-                </button>
-                <button
-                  onClick={() => setMode('ai')}
-                  disabled={ollamaModels.length === 0}
-                  className={clsx(
-                    'flex-1 flex items-center justify-center gap-1.5 px-3 rounded text-sm font-medium transition-colors disabled:opacity-40',
-                    mode === 'ai' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500'
-                  )}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  {t('programming.modeAI')}
-                </button>
-              </div>
+              <select
+                value={selectedProfileId}
+                onChange={e => setSelectedProfileId(e.target.value)}
+                className="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+              >
+                {profiles.map(profile => (
+                  <option key={profile.id} value={profile.id}>{profile.name}</option>
+                ))}
+              </select>
             </div>
-
-            {/* Profile selector (profile mode) */}
-            {mode === 'profile' && (
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  {t('programming.selectProfile')}
-                </label>
-                <select
-                  value={selectedProfileId}
-                  onChange={e => setSelectedProfileId(e.target.value)}
-                  className="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                >
-                  {profiles.map(profile => (
-                    <option key={profile.id} value={profile.id}>{profile.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
-
-          {/* AI prompt (AI mode) */}
-          {mode === 'ai' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                {t('ai.prompt')}
-              </label>
-              <textarea
-                value={aiPrompt}
-                onChange={e => setAiPrompt(e.target.value)}
-                placeholder={t('ai.promptPlaceholder')}
-                rows={3}
-                className="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 resize-none"
-              />
-            </div>
-          )}
 
           {/* Parameters row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -738,31 +991,51 @@ export function ProgrammingPage() {
                 <Zap className="w-4 h-4" />
                 {t('programming.improveBest')}
               </button>
+              {ollamaModels.length > 0 && (
+                <button
+                  onClick={() => setAiImprove(!aiImprove)}
+                  title={t('programming.aiImproveDesc')}
+                  className={clsx(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors',
+                    aiImprove
+                      ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400'
+                      : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'
+                  )}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  {t('programming.aiImprove')}
+                  <span className="ml-1 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded">
+                    {t('programming.aiExperimental')}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* AI specific options */}
-          {mode === 'ai' && (
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('ai.model')}</label>
+          {/* AI Improvement section - shown when AI Improve is enabled */}
+          {aiImprove && ollamaModels.length > 0 && (
+            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3">
+              <div className="flex items-start gap-2 mb-3 px-2 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-700 dark:text-amber-400 text-xs">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{t('programming.aiExperimentalWarning')}</span>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
                 <select
-                  value={selectedModel}
-                  onChange={e => setSelectedModel(e.target.value)}
-                  className="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  value={selectedAiModelForm}
+                  onChange={e => setSelectedAiModelForm(e.target.value)}
+                  className="px-2 py-1.5 text-sm border border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white sm:w-40"
                 >
                   <option value="">{t('common.auto')}</option>
-                  {ollamaModels.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                  {ollamaModels.map(m => (
+                    <option key={m.name} value={m.name}>{m.name}</option>
+                  ))}
                 </select>
-              </div>
-              <div className="flex-1">
-                <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
-                  {t('ai.temperature')}: <span className="font-medium">{temperature.toFixed(1)}</span>
-                </label>
-                <input
-                  type="range" min="0" max="1" step="0.1" value={temperature}
-                  onChange={e => setTemperature(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                <textarea
+                  value={aiPromptForm}
+                  onChange={e => setAiPromptForm(e.target.value)}
+                  placeholder={t('programming.aiImprovePlaceholder')}
+                  rows={2}
+                  className="flex-1 px-3 py-2 text-sm border border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 resize-none"
                 />
               </div>
             </div>
@@ -772,7 +1045,7 @@ export function ProgrammingPage() {
           <div className="pt-2">
             <button
               onClick={handleGenerate}
-              disabled={!selectedChannelId || (mode === 'profile' && !selectedProfileId) || (mode === 'ai' && !aiPrompt.trim()) || running}
+              disabled={!selectedChannelId || !selectedProfileId || running}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50 text-base font-medium"
             >
               {running ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
@@ -790,6 +1063,11 @@ export function ProgrammingPage() {
           previewOnly={previewOnly}
           applying={applying}
           onApply={handleApply}
+          ollamaModels={ollamaModels}
+          onAiRequest={handleAiRequest}
+          onApplyModification={handleApplyModification}
+          aiLoading={aiLoading}
+          aiResponse={aiResponse}
         />
       )}
 

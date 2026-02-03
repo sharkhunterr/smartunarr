@@ -45,6 +45,10 @@ class ProgrammingRequest(BaseModel):
     improve_best: bool = False  # Upgrade programs with better ones from other iterations
     duration_days: int = 1  # Number of days to program (1-30)
     start_datetime: str | None = None  # ISO format datetime, defaults to now
+    # AI improvement options
+    ai_improve: bool = False  # Use AI to improve programming after generation
+    ai_prompt: str | None = None  # User prompt for AI improvement
+    ai_model: str | None = None  # Ollama model to use for AI improvement
 
 
 class AIProgrammingRequest(BaseModel):
@@ -61,6 +65,21 @@ class AIProgrammingRequest(BaseModel):
     profile_name: str | None = None
     duration_days: int = 1  # Number of days to program (1-30)
     start_datetime: str | None = None  # ISO format datetime, defaults to now
+
+
+class AIImprovementRequest(BaseModel):
+    """Request to improve programming with AI feedback."""
+    result_id: str
+    prompt: str
+    model: str | None = None
+    iteration_index: int | None = None  # Which iteration to improve (default: best)
+    temperature: float = 0.5
+
+
+class ApplyAIModificationRequest(BaseModel):
+    """Request to apply a single AI modification to a programming result."""
+    original_title: str
+    replacement_title: str
 
 
 async def _run_programming(
@@ -125,6 +144,9 @@ async def _run_programming(
 
             if request.replace_forbidden:
                 steps.append(ProgressStep("optimize", "Optimisation (remplacement interdits)", "pending"))
+
+            if request.ai_improve and request.ai_prompt:
+                steps.append(ProgressStep("ai_improve", "Amélioration IA", "pending"))
 
             steps.append(ProgressStep("finalize", "Finalisation", "pending"))
 
@@ -534,6 +556,258 @@ async def _run_programming(
 
                 await job_manager.update_step_status(job_id, "optimize", "completed", optimize_detail)
 
+            # AI Improvement step (if enabled)
+            ai_improved_programs: set[str] = set()  # Track programs actually modified by AI
+            ai_response_data: dict[str, Any] | None = None  # Store AI response for frontend
+            ai_applied_count = 0  # Count of actually applied modifications
+            if request.ai_improve and request.ai_prompt:
+                await job_manager.update_step_status(job_id, "ai_improve", "running")
+                await job_manager.update_job_progress(job_id, 90, "Analyse IA en cours...")
+
+                try:
+                    from app.services.ai_prompt_template import get_ai_improvement_prompt, SYSTEM_PROMPT
+                    from app.adapters.ollama_adapter import OllamaAdapter
+                    import json
+
+                    # Get Ollama configuration
+                    ollama_config = await config_service.get_service("ollama")
+
+                    if ollama_config and ollama_config.url:
+                        # Prepare programs data for AI
+                        programs_for_ai = []
+                        for prog in result.programs:
+                            programs_for_ai.append({
+                                "title": prog.content.get("title", ""),
+                                "type": prog.content.get("type", "movie"),
+                                "duration_min": prog.content.get("duration_ms", 0) / 60000,
+                                "genres": prog.content_meta.get("genres", []) if prog.content_meta else [],
+                                "keywords": prog.content_meta.get("keywords", []) if prog.content_meta else [],
+                                "collections": prog.content_meta.get("collections", []) if prog.content_meta else [],
+                                "studios": prog.content_meta.get("studios", []) if prog.content_meta else [],
+                                "year": prog.content.get("year"),
+                                "content_rating": prog.content_meta.get("content_rating") if prog.content_meta else None,
+                                "tmdb_rating": prog.content_meta.get("tmdb_rating") if prog.content_meta else None,
+                                "block_name": prog.block_name,
+                                "score": prog.score.total_score,
+                                "forbidden_violated": len(prog.score.forbidden_violations) > 0,
+                            })
+
+                        # Prepare all iterations data with FULL information
+                        all_iter_data = []
+                        for iter_result in result.all_iterations:
+                            iter_programs = []
+                            for prog in iter_result.programs:
+                                iter_programs.append({
+                                    "title": prog.content.get("title", ""),
+                                    "type": prog.content.get("type", "movie"),
+                                    "duration_min": prog.content.get("duration_ms", 0) / 60000,
+                                    "genres": prog.content_meta.get("genres", []) if prog.content_meta else [],
+                                    "keywords": prog.content_meta.get("keywords", []) if prog.content_meta else [],
+                                    "collections": prog.content_meta.get("collections", []) if prog.content_meta else [],
+                                    "studios": prog.content_meta.get("studios", []) if prog.content_meta else [],
+                                    "year": prog.content.get("year"),
+                                    "content_rating": prog.content_meta.get("content_rating") if prog.content_meta else None,
+                                    "tmdb_rating": prog.content_meta.get("tmdb_rating") if prog.content_meta else None,
+                                    "score": prog.score.total_score,
+                                    "block_name": prog.block_name,
+                                    "forbidden_violated": len(prog.score.forbidden_violations) > 0,
+                                })
+                            all_iter_data.append({
+                                "iteration": iter_result.iteration,
+                                "average_score": iter_result.average_score,
+                                "programs": iter_programs,
+                            })
+
+                        # Build AI prompt
+                        ai_prompt = get_ai_improvement_prompt(
+                            current_programs=programs_for_ai,
+                            user_feedback=request.ai_prompt,
+                            all_iterations=all_iter_data,
+                        )
+
+                        # Determine model to use
+                        model = request.ai_model or "qwen3:14b"
+
+                        # Create adapter and generate
+                        adapter = OllamaAdapter(ollama_config.url)
+
+                        try:
+                            await job_manager.update_job_progress(job_id, 92, f"Génération IA avec {model}...")
+
+                            response = await adapter.generate(
+                                model=model,
+                                prompt=ai_prompt,
+                                system=SYSTEM_PROMPT,
+                                temperature=0.5,
+                                format_json=False,
+                            )
+
+                            if response:
+                                logger.info(f"AI response received, length: {len(response)} chars")
+                                logger.debug(f"AI response content: {response[:500]}...")
+
+                                # Parse AI response
+                                ai_result = None
+                                try:
+                                    # Try direct parse
+                                    ai_result = json.loads(response)
+                                    logger.info("AI response parsed as direct JSON")
+                                except json.JSONDecodeError as e:
+                                    logger.info(f"Direct JSON parse failed: {e}, trying extraction...")
+                                    # Try to extract JSON
+                                    start = response.find("{")
+                                    end = response.rfind("}") + 1
+                                    if start != -1 and end > start:
+                                        json_str = response[start:end]
+                                        logger.info(f"Extracted JSON from position {start} to {end}")
+                                        try:
+                                            ai_result = json.loads(json_str)
+                                            logger.info("Extracted JSON parsed successfully")
+                                        except json.JSONDecodeError as e2:
+                                            logger.error(f"Extracted JSON parse failed: {e2}")
+                                            logger.error(f"JSON content: {json_str[:300]}...")
+                                            ai_result = None
+                                    else:
+                                        logger.error(f"No JSON braces found in response")
+                                        ai_result = None
+
+                                if ai_result:
+                                    logger.info(f"AI result keys: {list(ai_result.keys())}")
+                                    logger.info(f"AI analysis: {ai_result.get('analysis', 'N/A')[:200]}")
+                                    logger.info(f"AI summary: {ai_result.get('summary', 'N/A')[:200]}")
+                                    if "modifications" in ai_result:
+                                        mods = ai_result.get('modifications', [])
+                                        logger.info(f"Found {len(mods)} modifications: {mods}")
+                                    else:
+                                        logger.warning("AI result has no 'modifications' key")
+                                else:
+                                    logger.error("AI result is None after parsing attempts")
+
+                                # Process AI modifications - ACTUALLY APPLY THEM
+                                if ai_result and "modifications" in ai_result:
+                                    # Store the full AI response for frontend display
+                                    ai_response_data = ai_result
+
+                                    modifications = ai_result.get("modifications", [])
+
+                                    # Build lookup of all programs from all iterations by title
+                                    all_programs_by_title: dict[str, Any] = {}
+                                    for iter_result in result.all_iterations:
+                                        for prog in iter_result.programs:
+                                            title = prog.content.get("title", "")
+                                            if title:
+                                                # Keep the one with highest score
+                                                existing = all_programs_by_title.get(title)
+                                                if not existing or prog.score.total_score > existing.score.total_score:
+                                                    all_programs_by_title[title] = prog
+
+                                    # Build lookup of current programs by title
+                                    current_programs_by_title = {
+                                        prog.content.get("title", ""): (idx, prog)
+                                        for idx, prog in enumerate(result.programs)
+                                    }
+
+                                    # Helper to strip year from title (AI sometimes includes year like "Title (2017)")
+                                    import re
+                                    def strip_year_from_title(title: str) -> str:
+                                        """Remove trailing year in parentheses from title."""
+                                        return re.sub(r'\s*\(\d{4}\)\s*$', '', title).strip()
+
+                                    def find_in_dict(title: str, programs_dict: dict) -> tuple[str, Any] | None:
+                                        """Find program by exact title or title without year."""
+                                        # Try exact match first
+                                        if title in programs_dict:
+                                            return title, programs_dict[title]
+                                        # Try without year
+                                        title_no_year = strip_year_from_title(title)
+                                        if title_no_year in programs_dict:
+                                            return title_no_year, programs_dict[title_no_year]
+                                        # Try matching stripped versions
+                                        for key, value in programs_dict.items():
+                                            if strip_year_from_title(key) == title_no_year:
+                                                return key, value
+                                        return None
+
+                                    # Log details for debugging
+                                    logger.info(f"Processing {len(modifications)} AI modifications")
+                                    current_titles_list = list(current_programs_by_title.keys())
+                                    available_titles_list = list(all_programs_by_title.keys())
+                                    logger.info(f"Current program titles ({len(current_titles_list)}): {current_titles_list[:10]}...")
+                                    logger.info(f"Available replacement titles ({len(available_titles_list)}): {available_titles_list}")  # Log ALL available titles
+
+                                    # Apply modifications
+                                    for mod in modifications:
+                                        logger.info(f"Processing modification: {mod}")
+                                        if mod.get("action") == "replace":
+                                            original_title = mod.get("original_title", "")
+                                            replacement_title = mod.get("replacement_title", "")
+
+                                            if original_title and replacement_title:
+                                                # Find original program in current (with fuzzy year matching)
+                                                original_match = find_in_dict(original_title, current_programs_by_title)
+                                                if original_match:
+                                                    matched_title, (idx, original_prog) = original_match
+                                                    logger.info(f"Matched original '{original_title}' -> '{matched_title}'")
+
+                                                    # Find replacement in all iterations (with fuzzy year matching)
+                                                    replacement_match = find_in_dict(replacement_title, all_programs_by_title)
+                                                    if replacement_match:
+                                                        matched_replacement, replacement_prog = replacement_match
+                                                        logger.info(f"Matched replacement '{replacement_title}' -> '{matched_replacement}'")
+
+                                                        # Create a copy with modified attributes
+                                                        new_prog = type(original_prog)(
+                                                            content=replacement_prog.content,
+                                                            content_meta=replacement_prog.content_meta,
+                                                            start_time=original_prog.start_time,
+                                                            end_time=original_prog.end_time,
+                                                            block_name=original_prog.block_name,
+                                                            score=replacement_prog.score,
+                                                        )
+                                                        # Mark as AI improved
+                                                        new_prog.is_replacement = True
+                                                        new_prog.replacement_reason = "ai_improved"
+                                                        new_prog.replaced_title = matched_title  # Use actual matched title
+
+                                                        # Apply the replacement
+                                                        result.programs[idx] = new_prog
+                                                        ai_improved_programs.add(matched_replacement)  # Use actual matched title
+                                                        ai_applied_count += 1
+                                                        logger.info(f"AI applied: replaced '{matched_title}' with '{matched_replacement}'")
+                                                    else:
+                                                        logger.warning(f"AI replacement not found: '{replacement_title}'")
+                                                else:
+                                                    logger.warning(f"AI original not found: '{original_title}'")
+
+                                    # Recalculate result scores after modifications
+                                    if ai_applied_count > 0:
+                                        result.total_score = sum(p.score.total_score for p in result.programs)
+                                        result.average_score = result.total_score / len(result.programs) if result.programs else 0
+                                        # Mark the result as AI improved
+                                        result.is_ai_improved = True
+
+                                    ai_improve_detail = f"{ai_applied_count} modifications appliquées par IA"
+                                    await job_manager.update_step_status(job_id, "ai_improve", "completed", ai_improve_detail)
+                                    logger.info(f"AI improvement: {ai_applied_count} programs actually modified")
+                                else:
+                                    # Still save AI response for frontend even if no modifications applied
+                                    if ai_result:
+                                        ai_response_data = ai_result
+                                        logger.info("AI result saved but no modifications to apply")
+                                    await job_manager.update_step_status(job_id, "ai_improve", "completed", "Aucune modification suggérée")
+                            else:
+                                logger.warning("AI response was empty")
+                                await job_manager.update_step_status(job_id, "ai_improve", "completed", "Réponse IA vide")
+                        finally:
+                            await adapter.close()
+                    else:
+                        await job_manager.update_step_status(job_id, "ai_improve", "completed", "Ollama non configuré")
+                except Exception as e:
+                    logger.error(f"AI improvement failed: {e}")
+                    import traceback
+                    logger.error(f"AI improvement traceback: {traceback.format_exc()}")
+                    await job_manager.update_step_status(job_id, "ai_improve", "failed", f"Erreur: {str(e)[:50]}")
+
             # Post-generation progress
             await job_manager.update_job_progress(
                 job_id,
@@ -552,18 +826,26 @@ async def _run_programming(
             await job_manager.update_job_progress(job_id, 95, "Traitement des résultats...")
 
             # Helper to convert programs to API format
-            def convert_programs(progs: list) -> list[dict]:
+            def convert_programs(progs: list, ai_modified_titles: set[str] | None = None) -> list[dict]:
                 converted = []
                 for prog in progs:
+                    title = prog.content.get("title", "")
+                    # Check if this program was AI improved (either by replacement_reason or by title in set)
+                    is_ai_improved = (
+                        getattr(prog, "replacement_reason", None) == "ai_improved" or
+                        (ai_modified_titles is not None and title in ai_modified_titles)
+                    )
                     converted.append({
                         "id": str(uuid4()),
-                        "title": prog.content.get("title", ""),
+                        "title": title,
                         "type": prog.content.get("type", "movie"),
                         "start_time": prog.start_time.isoformat(),
                         "end_time": prog.end_time.isoformat(),
                         "duration_min": prog.content.get("duration_ms", 0) / 60000,
                         "genres": prog.content_meta.get("genres", []) if prog.content_meta else [],
                         "keywords": prog.content_meta.get("keywords", []) if prog.content_meta else [],
+                        "studios": prog.content_meta.get("studios", []) if prog.content_meta else [],
+                        "collections": prog.content_meta.get("collections", []) if prog.content_meta else [],
                         "year": prog.content.get("year"),
                         "tmdb_rating": prog.content_meta.get("tmdb_rating") if prog.content_meta else None,
                         "content_rating": prog.content_meta.get("content_rating") if prog.content_meta else None,
@@ -602,22 +884,39 @@ async def _run_programming(
                             "keyword_match": prog.score.keyword_match,
                             "criterion_rule_violations": prog.score.criterion_rule_violations,
                         },
-                        "is_replacement": prog.is_replacement,
-                        "replacement_reason": prog.replacement_reason,
-                        "replaced_title": prog.replaced_title,
+                        "is_replacement": getattr(prog, "is_replacement", False),
+                        "replacement_reason": getattr(prog, "replacement_reason", None),
+                        "replaced_title": getattr(prog, "replaced_title", None),
+                        "is_ai_improved": is_ai_improved,
                     })
                 return converted
 
-            # Convert best result to API format
-            programs = convert_programs(result.programs)
+            # Convert best result to API format (pass AI improved titles for marking)
+            programs = convert_programs(result.programs, ai_improved_programs if ai_improved_programs else None)
 
             # Calculate total duration
             total_duration = sum(p["duration_min"] for p in programs)
 
             # Convert all iterations (sorted by score descending)
             all_iterations_data = []
+
+            # If AI modifications were applied, add an AI-improved iteration at the beginning
+            if ai_applied_count > 0:
+                all_iterations_data.append({
+                    "iteration": 0,  # Special iteration number for AI improved
+                    "programs": programs,  # The AI-modified programs
+                    "total_score": result.total_score,
+                    "average_score": result.average_score,
+                    "total_duration_min": total_duration,
+                    "program_count": len(programs),
+                    "is_optimized": False,
+                    "is_improved": False,
+                    "is_ai_improved": True,  # New flag for AI improved iteration
+                })
+
             for iter_result in result.all_iterations:
-                iter_programs = convert_programs(iter_result.programs)
+                # Don't pass AI titles to other iterations - they weren't modified
+                iter_programs = convert_programs(iter_result.programs, None)
                 iter_total_duration = sum(p["duration_min"] for p in iter_programs)
                 all_iterations_data.append({
                     "iteration": iter_result.iteration,
@@ -628,6 +927,7 @@ async def _run_programming(
                     "program_count": len(iter_programs),
                     "is_optimized": iter_result.is_optimized,
                     "is_improved": iter_result.is_improved,
+                    "is_ai_improved": False,
                 })
 
             # Store result
@@ -647,6 +947,8 @@ async def _run_programming(
                 "total_iterations": len(all_iterations_data),
                 # Time blocks for frontend rendering
                 "time_blocks": profile.time_blocks or [],
+                # AI improvement response (if AI was used)
+                "ai_response": ai_response_data,
             }
             # Save result to database for persistence
             result_service = ResultService(session)
@@ -845,6 +1147,288 @@ async def generate_programming_ai(
         status_code=501,
         detail="AI programming generation not yet implemented"
     )
+
+
+@router.post("/improve")
+async def improve_programming_with_ai(
+    request: AIImprovementRequest,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """
+    Analyze programming results and provide AI-powered improvement suggestions.
+
+    Returns suggestions for improving the programming based on user feedback.
+    """
+    from app.services.ai_prompt_template import get_ai_improvement_prompt, SYSTEM_PROMPT
+    from app.adapters.ollama_adapter import OllamaAdapter
+
+    # Get the result
+    result = _results.get(request.result_id)
+    if not result:
+        # Try to load from database
+        result_service = ResultService(session)
+        result = await result_service.get_result_data(request.result_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Result not found")
+
+    # Get programs from the specified iteration or best
+    all_iterations = result.get("all_iterations", [])
+    if request.iteration_index is not None and 0 <= request.iteration_index < len(all_iterations):
+        current_programs = all_iterations[request.iteration_index].get("programs", [])
+    else:
+        current_programs = result.get("programs", [])
+
+    # Format programs for AI (convert from API format to AI format)
+    programs_for_ai = []
+    for prog in current_programs:
+        score_data = prog.get("score", {})
+        programs_for_ai.append({
+            "title": prog.get("title", ""),
+            "type": prog.get("type", "movie"),
+            "duration_min": prog.get("duration_min", 0),
+            "genres": prog.get("genres", []),
+            "keywords": prog.get("keywords", []),
+            "collections": prog.get("collections", []),
+            "studios": prog.get("studios", []),
+            "year": prog.get("year"),
+            "content_rating": prog.get("content_rating"),
+            "tmdb_rating": prog.get("tmdb_rating"),
+            "block_name": prog.get("block_name", ""),
+            "score": score_data.get("total", 0) if isinstance(score_data, dict) else 0,
+            "forbidden_violated": score_data.get("forbidden_violated", False) if isinstance(score_data, dict) else False,
+        })
+
+    # Format iterations for AI
+    all_iter_data = []
+    for iter_result in all_iterations:
+        iter_programs = []
+        for prog in iter_result.get("programs", []):
+            score_data = prog.get("score", {})
+            iter_programs.append({
+                "title": prog.get("title", ""),
+                "type": prog.get("type", "movie"),
+                "duration_min": prog.get("duration_min", 0),
+                "genres": prog.get("genres", []),
+                "keywords": prog.get("keywords", []),
+                "collections": prog.get("collections", []),
+                "studios": prog.get("studios", []),
+                "year": prog.get("year"),
+                "content_rating": prog.get("content_rating"),
+                "tmdb_rating": prog.get("tmdb_rating"),
+                "score": score_data.get("total", 0) if isinstance(score_data, dict) else 0,
+                "block_name": prog.get("block_name", ""),
+                "forbidden_violated": score_data.get("forbidden_violated", False) if isinstance(score_data, dict) else False,
+            })
+        all_iter_data.append({
+            "iteration": iter_result.get("iteration", 0),
+            "programs": iter_programs,
+            "average_score": iter_result.get("average_score", 0),
+        })
+
+    # Get Ollama configuration
+    config_service = ServiceConfigService(session)
+    ollama_config = await config_service.get_service("ollama")
+
+    if not ollama_config or not ollama_config.url:
+        raise HTTPException(status_code=400, detail="Ollama not configured")
+
+    # Determine model to use
+    model = request.model
+    if not model:
+        # Try to get default model from config or use a sensible default
+        model = "qwen3:14b"
+
+    # Create adapter and generate suggestions
+    adapter = OllamaAdapter(ollama_config.url)
+
+    try:
+        # Build the improvement prompt using the proper function
+        prompt = get_ai_improvement_prompt(
+            current_programs=programs_for_ai,
+            user_feedback=request.prompt,
+            all_iterations=all_iter_data,
+        )
+
+        logger.info(f"AI improvement prompt length: {len(prompt)} chars, {len(programs_for_ai)} current programs, {len(all_iter_data)} iterations")
+
+        logger.info(f"Generating AI improvement suggestions with model '{model}'")
+
+        # Generate response
+        response = await adapter.generate(
+            model=model,
+            prompt=prompt,
+            system=SYSTEM_PROMPT,
+            temperature=request.temperature,
+            format_json=False,  # qwen3 compatibility
+        )
+
+        if not response:
+            raise HTTPException(status_code=500, detail="AI generation failed - no response")
+
+        # Try to parse JSON from response
+        import json
+        try:
+            # Try direct parse
+            suggestions = json.loads(response)
+        except json.JSONDecodeError:
+            # Try to extract JSON from response
+            start = response.find("{")
+            end = response.rfind("}") + 1
+            if start != -1 and end > start:
+                try:
+                    suggestions = json.loads(response[start:end])
+                except json.JSONDecodeError:
+                    # Return raw response as fallback
+                    suggestions = {
+                        "analysis": response,
+                        "suggestions": [],
+                        "summary": "Unable to parse AI response as JSON",
+                        "raw_response": response
+                    }
+            else:
+                suggestions = {
+                    "analysis": response,
+                    "suggestions": [],
+                    "summary": "Unable to parse AI response as JSON",
+                    "raw_response": response
+                }
+
+        return {
+            "success": True,
+            "result_id": request.result_id,
+            "model": model,
+            "suggestions": suggestions,
+        }
+
+    except Exception as e:
+        logger.error(f"AI improvement failed: {e}")
+        raise HTTPException(status_code=500, detail=f"AI improvement failed: {str(e)}")
+    finally:
+        await adapter.close()
+
+
+@router.post("/apply-ai-modification/{result_id}")
+async def apply_ai_modification(
+    result_id: str,
+    request: ApplyAIModificationRequest,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """
+    Apply a single AI modification by replacing a program with an alternative from other iterations.
+
+    This finds the program with original_title and replaces it with the program
+    that has replacement_title from the available iterations.
+    """
+    logger.info(f"[AI Modification] Applying: '{request.original_title}' -> '{request.replacement_title}'")
+
+    # Get the result
+    result = _results.get(result_id)
+    if not result:
+        # Try to load from database
+        result_service = ResultService(session)
+        result = await result_service.get_result_data(result_id)
+        if not result:
+            logger.error(f"[AI Modification] Result not found: {result_id}")
+            raise HTTPException(status_code=404, detail="Result not found")
+
+    all_iterations = result.get("all_iterations", [])
+    programs = result.get("programs", [])
+
+    # Log available programs for debugging
+    current_titles = [p.get("title", "") for p in programs]
+    logger.info(f"[AI Modification] Current programs ({len(current_titles)}): {current_titles}")
+
+    # Find the program to replace
+    program_idx = None
+    original_program = None
+    for idx, prog in enumerate(programs):
+        if prog.get("title") == request.original_title:
+            program_idx = idx
+            original_program = prog
+            break
+
+    if program_idx is None:
+        # Log the error with available titles
+        logger.error(f"[AI Modification] Original '{request.original_title}' NOT FOUND in current programs")
+        logger.error(f"[AI Modification] Available titles: {current_titles}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Programme '{request.original_title}' introuvable dans la programmation actuelle. L'IA a peut-être confondu les listes. Programmes disponibles: {', '.join(current_titles[:5])}..."
+        )
+
+    # Find the replacement program from all iterations
+    replacement_program = None
+    all_alternative_titles = set()
+    for iter_result in all_iterations:
+        for prog in iter_result.get("programs", []):
+            title = prog.get("title", "")
+            all_alternative_titles.add(title)
+            if title == request.replacement_title:
+                replacement_program = prog
+                break
+        if replacement_program:
+            break
+
+    logger.info(f"[AI Modification] Alternative titles available: {len(all_alternative_titles)}")
+
+    if not replacement_program:
+        logger.error(f"[AI Modification] Replacement '{request.replacement_title}' NOT FOUND in alternatives")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Programme de remplacement '{request.replacement_title}' introuvable dans les alternatives"
+        )
+
+    # Create the replacement program with original timing but new content
+    new_program = {
+        **replacement_program,
+        "id": str(uuid4()),
+        "start_time": original_program.get("start_time"),
+        "end_time": original_program.get("end_time"),
+        "block_name": original_program.get("block_name"),
+        "is_replacement": True,
+        "replacement_reason": "ai_improved",
+        "replaced_title": request.original_title,
+        "is_ai_improved": True,
+    }
+
+    # Replace the program
+    programs[program_idx] = new_program
+
+    # Recalculate totals
+    total_score = sum(p.get("score", {}).get("total", 0) for p in programs)
+    avg_score = total_score / len(programs) if programs else 0
+
+    result["programs"] = programs
+    result["total_score"] = total_score
+    result["average_score"] = avg_score
+
+    # Also update the first iteration (best) which should match programs
+    if all_iterations:
+        all_iterations[0]["programs"] = programs
+        all_iterations[0]["total_score"] = total_score
+        all_iterations[0]["average_score"] = avg_score
+
+    # Update in-memory cache
+    _results[result_id] = result
+
+    # Update in database
+    result_service = ResultService(session)
+    await result_service.save_result(
+        result_id=result_id,
+        result_type="programming",
+        data=result,
+        channel_id=result.get("channel_id"),
+        profile_id=result.get("profile_id"),
+    )
+
+    logger.info(f"Applied AI modification: replaced '{request.original_title}' with '{request.replacement_title}'")
+
+    return {
+        "success": True,
+        "message": f"Replaced '{request.original_title}' with '{request.replacement_title}'",
+        "new_average_score": avg_score,
+        "updated_program": new_program,
+    }
 
 
 @router.post("/apply/{result_id}")

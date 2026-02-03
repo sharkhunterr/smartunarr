@@ -4,7 +4,7 @@
  */
 import React, { useState } from 'react'
 import clsx from 'clsx'
-import { Film, Tv, Star, Ban, AlertTriangle, ChevronDown, ChevronUp, RefreshCw, Zap } from 'lucide-react'
+import { Film, Tv, Star, Ban, AlertTriangle, ChevronDown, ChevronUp, RefreshCw, Zap, Sparkles } from 'lucide-react'
 import type {
   ProgramItem,
   BlockCriteria,
@@ -853,6 +853,14 @@ export function ScoresTable({
                             ) : (
                               <Zap className="w-2.5 h-2.5" />
                             )}
+                          </span>
+                        )}
+                        {prog.is_ai_improved && (
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium flex-shrink-0 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
+                            title="Modifié par IA"
+                          >
+                            <Sparkles className="w-2.5 h-2.5" />
                           </span>
                         )}
                       </div>

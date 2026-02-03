@@ -86,7 +86,20 @@
     "improved": "Mejorado",
     "apply": "Aplicar",
     "emptyState": "Haz clic en Configuracion para iniciar una programacion",
-    "steps": "Pasos"
+    "steps": "Pasos",
+    "aiButton": "IA",
+    "aiSend": "Enviar",
+    "aiOriginal": "Original",
+    "aiReplacement": "Reemplazado por",
+    "aiResponse": "Respuesta IA",
+    "aiAnalysis": "Analisis",
+    "aiProposedChanges": "Cambios propuestos",
+    "aiApplyAll": "Aplicar todo",
+    "aiApplyOne": "Aplicar",
+    "aiNoChanges": "Sin cambios propuestos",
+    "aiReplace": "Reemplazar",
+    "aiProcessing": "Procesando...",
+    "aiEnterPrompt": "Ingrese un prompt"
   },
   "scoring": {
     "title": "Puntuacion de programa",

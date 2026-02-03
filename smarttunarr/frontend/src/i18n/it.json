@@ -86,7 +86,20 @@
     "improved": "Migliorato",
     "apply": "Applica",
     "emptyState": "Clicca su Configurazione per avviare una programmazione",
-    "steps": "Passaggi"
+    "steps": "Passaggi",
+    "aiButton": "IA",
+    "aiSend": "Invia",
+    "aiOriginal": "Originale",
+    "aiReplacement": "Sostituito con",
+    "aiResponse": "Risposta IA",
+    "aiAnalysis": "Analisi",
+    "aiProposedChanges": "Modifiche proposte",
+    "aiApplyAll": "Applica tutto",
+    "aiApplyOne": "Applica",
+    "aiNoChanges": "Nessuna modifica proposta",
+    "aiReplace": "Sostituisci",
+    "aiProcessing": "Elaborazione...",
+    "aiEnterPrompt": "Inserisci un prompt"
   },
   "scoring": {
     "title": "Valutazione programma",

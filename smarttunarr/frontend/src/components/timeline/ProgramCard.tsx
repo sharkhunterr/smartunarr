@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Film, Tv, Clock, Star, AlertTriangle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Film, Tv, Clock, Star, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Sparkles, RefreshCw, Zap } from 'lucide-react'
 import clsx from 'clsx'
 import type { ProgramItem } from '@/types'
 
@@ -53,6 +53,31 @@ export function ProgramCard({ program, showScore = false, compact = false }: Pro
         <span className="flex-1 truncate text-sm text-gray-900 dark:text-white">
           {program.title}
         </span>
+        {program.is_ai_improved && (
+          <span
+            className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium flex-shrink-0 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
+            title="Modifié par IA"
+          >
+            <Sparkles className="w-2.5 h-2.5" />
+          </span>
+        )}
+        {program.is_replacement && (
+          <span
+            className={clsx(
+              'inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium flex-shrink-0',
+              program.replacement_reason === 'forbidden'
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+            )}
+            title={program.replaced_title ? `Remplace: ${program.replaced_title}` : 'Contenu de remplacement'}
+          >
+            {program.replacement_reason === 'forbidden' ? (
+              <RefreshCw className="w-2.5 h-2.5" />
+            ) : (
+              <Zap className="w-2.5 h-2.5" />
+            )}
+          </span>
+        )}
         <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
           {formatTime(program.start_time)}
         </span>
@@ -97,9 +122,36 @@ export function ProgramCard({ program, showScore = false, compact = false }: Pro
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-medium text-gray-900 dark:text-white truncate">
-              {program.title}
-            </h3>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                {program.title}
+              </h3>
+              {program.is_replacement && (
+                <span
+                  className={clsx(
+                    'inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium flex-shrink-0',
+                    program.replacement_reason === 'forbidden'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                  )}
+                  title={program.replaced_title ? `Remplace: ${program.replaced_title}` : 'Contenu de remplacement'}
+                >
+                  {program.replacement_reason === 'forbidden' ? (
+                    <RefreshCw className="w-2.5 h-2.5" />
+                  ) : (
+                    <Zap className="w-2.5 h-2.5" />
+                  )}
+                </span>
+              )}
+              {program.is_ai_improved && (
+                <span
+                  className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium flex-shrink-0 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
+                  title="Modifié par IA"
+                >
+                  <Sparkles className="w-2.5 h-2.5" />
+                </span>
+              )}
+            </div>
             {showScore && program.score && (
               <div className="flex items-center gap-1">
                 {hasViolations && (

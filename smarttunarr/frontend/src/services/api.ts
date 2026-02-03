@@ -15,7 +15,9 @@ import type {
   JobResponse,
   AIGenerateProfileRequest,
   AIGenerateProfileResponse,
-  AIModelsResponse
+  AIModelsResponse,
+  AIImprovementRequest,
+  AIImprovementResponse
 } from '@/types'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
@@ -232,6 +234,24 @@ export const programmingApi = {
 
   getResult: async (resultId: string): Promise<ProgramResult> => {
     const response = await client.get(`/programming/results/${resultId}`)
+    return response.data
+  },
+
+  improveWithAI: async (request: AIImprovementRequest): Promise<AIImprovementResponse> => {
+    const response = await client.post('/programming/improve', request)
+    return response.data
+  },
+
+  applyAIModification: async (resultId: string, originalTitle: string, replacementTitle: string): Promise<{
+    success: boolean
+    message: string
+    new_average_score: number
+    updated_program: Record<string, unknown>
+  }> => {
+    const response = await client.post(`/programming/apply-ai-modification/${resultId}`, {
+      original_title: originalTitle,
+      replacement_title: replacementTitle
+    })
     return response.data
   }
 }
