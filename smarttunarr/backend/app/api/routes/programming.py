@@ -1012,6 +1012,8 @@ async def _run_programming(
                             "title": prog.content.get("title", ""),
                             "duration_ms": prog.content.get("duration_ms", 0),
                             "type": prog.content.get("type", "movie"),
+                            "year": prog.content.get("year"),
+                            "content_rating": prog.content_meta.get("content_rating") if prog.content_meta else None,
                         })
 
                     # Send to Tunarr
@@ -1461,10 +1463,12 @@ async def apply_programming(
         for prog in result["programs"]:
             tunarr_programs.append({
                 "start": prog["start_time"],
-                "duration": int(prog["duration_min"] * 60 * 1000),  # ms
+                "duration_ms": int(prog["duration_min"] * 60 * 1000),  # ms
                 "title": prog["title"],
                 "type": prog["type"],
-                "plexKey": prog.get("plex_key"),
+                "plex_key": prog.get("plex_key"),
+                "year": prog.get("year"),
+                "content_rating": prog.get("content_rating"),
             })
 
         # Update channel in Tunarr

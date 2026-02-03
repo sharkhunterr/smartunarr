@@ -128,31 +128,47 @@ class TunarrAdapter:
         tunarr_programs = []
         for idx, p in enumerate(programs):
             plex_key = p.get("content_plex_key") or p.get("plex_key", "")
-            unique_id = f"plex|{plex_server_name}|{plex_key}"
+
+            # Extract numeric rating_key from plex_key
+            # /library/metadata/834170 -> 834170
+            if plex_key.startswith("/library/metadata/"):
+                rating_key = plex_key.split("/")[-1]
+            elif plex_key.startswith("/"):
+                rating_key = plex_key.split("/")[-1]
+            else:
+                rating_key = plex_key
+
+            unique_id = f"plex|{plex_server_name}|{rating_key}"
+
+            # Map content type to subtype
+            content_type = p.get("type", "movie")
+            subtype = "movie" if content_type == "movie" else "episode"
 
             program = {
                 "type": "content",
                 "externalSourceType": "plex",
                 "externalSourceId": plex_server_id,
                 "externalSourceName": plex_server_name,
-                "externalKey": plex_key,
+                "externalKey": rating_key,  # Use numeric rating_key, not full path
                 "duration": p.get("duration_ms", 0),
                 "title": p.get("title", ""),
-                "subtype": "movie",
+                "subtype": subtype,
                 "persisted": False,
                 "uniqueId": unique_id,
                 "id": unique_id,
                 "originalIndex": idx,
                 "startTimeOffset": 0,  # Will be recalculated
-                "externalIds": [
-                    {
-                        "source": "plex",
-                        "id": plex_key,
-                        "sourceId": plex_server_name,
-                        "type": "multi",
-                    }
-                ],
+                "externalIds": [],  # Let Tunarr populate this
             }
+
+            # Add optional fields if available
+            if p.get("content_rating"):
+                program["rating"] = p.get("content_rating")
+            if p.get("summary"):
+                program["summary"] = p.get("summary")
+            if p.get("year"):
+                # Use year with placeholder month/day if no full date available
+                program["date"] = f"{p.get('year')}-01-01"
 
             tunarr_programs.append(program)
 
