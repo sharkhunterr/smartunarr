@@ -113,16 +113,16 @@ validate:backend:
   script:
     - echo "Validation du backend Python..."
     # Génération des rapports de linting
-    - poetry run ruff check app/ --output-format=json > ruff-report.json || true
-    - poetry run ruff check app/ --output-format=text > ruff-report.txt || true
+    - poetry run ruff check app/ tests/ --output-format=json > ruff-report.json || true
+    - poetry run ruff check app/ tests/ --output-format=text > ruff-report.txt || true
     # Auto-fix des erreurs (safe fixes seulement)
-    - poetry run ruff check app/ --fix
-    # Application de Black
-    - poetry run black app/
+    - poetry run ruff check app/ tests/ --fix
+    # Application du formatage avec ruff
+    - poetry run ruff format app/ tests/
     # Vérification finale après les corrections
     - echo "Vérification après auto-fix..."
-    - poetry run ruff check app/ || echo "⚠️ Des erreurs subsistent après auto-fix"
-    - poetry run black --check app/ || echo "⚠️ Des erreurs de formatage subsistent"
+    - poetry run ruff check app/ tests/ || echo "⚠️ Des erreurs subsistent après auto-fix"
+    - poetry run ruff format --check app/ tests/ || echo "⚠️ Des erreurs de formatage subsistent"
   artifacts:
     when: always
     paths:
@@ -217,11 +217,10 @@ build:docker:
         --tag ${DOCKER_IMAGE}:${CI_COMMIT_REF_SLUG} \
         --file docker/Dockerfile \
         .
-    - docker save ${DOCKER_IMAGE}:${CI_COMMIT_SHA} > image.tar
-  artifacts:
-    paths:
-      - image.tar
-    expire_in: 1 day
+    # Push to GitLab registry for subsequent jobs
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker tag ${DOCKER_IMAGE}:${CI_COMMIT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+    - docker push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
   rules:
     - if: '$ENABLE_DOCKER_BUILD == "true"'
 
@@ -232,7 +231,9 @@ test:docker:health:
   stage: test-docker
   <<: *docker_template
   script:
-    - docker load < image.tar
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker pull ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+    - docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
     - echo "Test de santé du conteneur..."
     - |
       docker run -d --name test-container -p 3000:3000 -p 4273:4273 ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
@@ -270,7 +271,9 @@ test:docker:security:
   stage: test-docker
   <<: *docker_template
   script:
-    - docker load < image.tar
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker pull ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+    - docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
     - echo "Scan de sécurité de l'image..."
     - docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
   allow_failure: true
@@ -281,7 +284,9 @@ test:docker:size:
   stage: test-docker
   <<: *docker_template
   script:
-    - docker load < image.tar
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker pull ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+    - docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
     - echo "Vérification de la taille de l'image..."
     - |
       SIZE=$(docker images ${DOCKER_IMAGE}:${CI_COMMIT_SHA} --format "{{.Size}}")
@@ -296,17 +301,15 @@ publish:gitlab-registry:
   stage: publish
   <<: *docker_template
   script:
-    - docker load < image.tar
-    - echo "Publication sur GitLab Registry..."
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker tag ${DOCKER_IMAGE}:${CI_COMMIT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
-    - docker tag ${DOCKER_IMAGE}:${CI_COMMIT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
-    - docker push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+    - docker pull ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+    - echo "Publication des tags sur GitLab Registry..."
+    - docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
     - docker push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
     - |
       if [ -n "$CI_COMMIT_TAG" ]; then
-        docker tag ${DOCKER_IMAGE}:${CI_COMMIT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}
-        docker tag ${DOCKER_IMAGE}:${CI_COMMIT_SHA} ${CI_REGISTRY_IMAGE}:latest
+        docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}
+        docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${CI_REGISTRY_IMAGE}:latest
         docker push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}
         docker push ${CI_REGISTRY_IMAGE}:latest
       fi
@@ -330,7 +333,11 @@ deploy:
     # Publication Docker Hub
     - |
       if [ "$DOCKER_HUB_ENABLED" = "true" ]; then
-        docker load < image.tar
+        echo "Récupération de l'image depuis GitLab Registry..."
+        echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+        docker pull ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+        docker tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA} ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
+
         echo "Publication sur Docker Hub..."
         echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
 
