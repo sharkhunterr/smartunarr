@@ -1,0 +1,7 @@
+# Production configuration
+# Uses pre-built image from Docker Hub
+
+services:
+  smartunarr:
+    image: sharkhunterr/smartunarr:latest
+    build: !reset null

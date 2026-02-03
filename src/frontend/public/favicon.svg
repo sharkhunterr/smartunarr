@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- TV Frame -->
+  <rect x="2" y="4" width="28" height="20" rx="3" stroke="#3B82F6" stroke-width="2" fill="none" />
+
+  <!-- Screen inner border -->
+  <rect x="5" y="7" width="22" height="14" rx="1" stroke="#60A5FA" stroke-width="1" fill="none" opacity="0.5" />
+
+  <!-- Programming blocks row 1 -->
+  <rect x="7" y="9" width="5" height="3" rx="0.5" fill="#10B981" />
+  <rect x="13" y="9" width="7" height="3" rx="0.5" fill="#F59E0B" />
+  <rect x="21" y="9" width="4" height="3" rx="0.5" fill="#EF4444" />
+
+  <!-- Programming blocks row 2 -->
+  <rect x="7" y="13" width="8" height="3" rx="0.5" fill="#8B5CF6" />
+  <rect x="16" y="13" width="9" height="3" rx="0.5" fill="#3B82F6" />
+
+  <!-- Programming blocks row 3 -->
+  <rect x="7" y="17" width="4" height="2" rx="0.5" fill="#EC4899" />
+  <rect x="12" y="17" width="6" height="2" rx="0.5" fill="#06B6D4" />
+  <rect x="19" y="17" width="6" height="2" rx="0.5" fill="#F97316" />
+
+  <!-- Stand -->
+  <path d="M12 24 L12 26 L10 28 L22 28 L20 26 L20 24" stroke="#3B82F6" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

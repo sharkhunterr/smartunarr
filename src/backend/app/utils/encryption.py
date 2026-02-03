@@ -24,7 +24,7 @@ def _get_fernet() -> Fernet:
         secret_key = settings.secret_key.encode()
 
         # Derive a key from the secret
-        salt = b"smarttunarr_salt"  # In production, use a proper random salt
+        salt = b"smartunarr_salt"  # In production, use a proper random salt
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,

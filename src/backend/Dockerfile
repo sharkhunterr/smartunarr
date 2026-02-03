@@ -1,4 +1,4 @@
-# SmartTunarr Backend Dockerfile
+# SmarTunarr Backend Dockerfile
 FROM python:3.11-slim
 
 # Set environment variables

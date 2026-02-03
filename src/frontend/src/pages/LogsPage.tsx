@@ -251,7 +251,7 @@ export function LogsPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `smarttunarr-logs-${new Date().toISOString().split('T')[0]}.txt`
+    a.download = `smartunarr-logs-${new Date().toISOString().split('T')[0]}.txt`
     a.click()
     URL.revokeObjectURL(url)
   }

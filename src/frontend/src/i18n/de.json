@@ -541,10 +541,10 @@
     },
     "about": {
       "section": "Uber",
-      "title": "SmartTunarr",
+      "title": "SmarTunarr",
       "version": "Version",
       "build": "Build",
-      "description": "SmartTunarr ist ein intelligentes Programmierungstool fur Tunarr, das JSON-Profile und KI verwendet, um optimierte Programme zu generieren."
+      "description": "SmarTunarr ist ein intelligentes Programmierungstool fur Tunarr, das JSON-Profile und KI verwendet, um optimierte Programme zu generieren."
     }
   },
   "timeline": {

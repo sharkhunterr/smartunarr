@@ -1,6 +1,6 @@
-# SmartTunarr Deployment Guide
+# SmarTunarr Deployment Guide
 
-This guide covers deploying SmartTunarr in various environments.
+This guide covers deploying SmarTunarr in various environments.
 
 ## Table of Contents
 
@@ -25,8 +25,8 @@ This guide covers deploying SmartTunarr in various environments.
 
 ```bash
 # Clone repository
-git clone https://github.com/your-repo/smarttunarr.git
-cd smarttunarr
+git clone https://github.com/your-repo/smartunarr.git
+cd smartunarr
 
 # Create environment file
 cp backend/.env.example .env
@@ -55,7 +55,7 @@ services:
     restart: always
     environment:
       - SECRET_KEY=${SECRET_KEY}  # Use strong key!
-      - DATABASE_URL=sqlite:///./data/smarttunarr.db
+      - DATABASE_URL=sqlite:///./data/smartunarr.db
       - LOG_LEVEL=INFO
     volumes:
       - ./data:/app/data
@@ -81,7 +81,7 @@ services:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `SECRET_KEY` | Encryption key for credentials | Required |
-| `DATABASE_URL` | SQLite database path | `sqlite:///./data/smarttunarr.db` |
+| `DATABASE_URL` | SQLite database path | `sqlite:///./data/smartunarr.db` |
 | `LOG_LEVEL` | Logging level | `INFO` |
 | `CORS_ORIGINS` | Allowed origins | `http://localhost:3000` |
 
@@ -151,19 +151,19 @@ npm run build
 
 ### Systemd Service
 
-Create `/etc/systemd/system/smarttunarr.service`:
+Create `/etc/systemd/system/smartunarr.service`:
 
 ```ini
 [Unit]
-Description=SmartTunarr Backend
+Description=SmarTunarr Backend
 After=network.target
 
 [Service]
 Type=simple
-User=smarttunarr
-WorkingDirectory=/opt/smarttunarr/backend
-Environment="PATH=/opt/smarttunarr/backend/venv/bin"
-ExecStart=/opt/smarttunarr/backend/venv/bin/gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 127.0.0.1:8080
+User=smartunarr
+WorkingDirectory=/opt/smartunarr/backend
+Environment="PATH=/opt/smartunarr/backend/venv/bin"
+ExecStart=/opt/smartunarr/backend/venv/bin/gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker -b 127.0.0.1:8080
 Restart=always
 RestartSec=10
 
@@ -175,8 +175,8 @@ Enable and start:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable smarttunarr
-sudo systemctl start smarttunarr
+sudo systemctl enable smartunarr
+sudo systemctl start smartunarr
 ```
 
 ## Configuration
@@ -206,7 +206,7 @@ curl -fsSL https://ollama.com/install.sh | sh
 # Pull recommended model
 ollama pull llama3.1:8b
 
-# Configure in SmartTunarr
+# Configure in SmarTunarr
 curl -X PUT http://localhost:8080/api/v1/services/ollama \
   -H "Content-Type: application/json" \
   -d '{"url": "http://localhost:11434"}'
@@ -217,13 +217,13 @@ curl -X PUT http://localhost:8080/api/v1/services/ollama \
 ### Nginx
 
 ```nginx
-upstream smarttunarr_backend {
+upstream smartunarr_backend {
     server 127.0.0.1:8080;
 }
 
 server {
     listen 80;
-    server_name smarttunarr.example.com;
+    server_name smartunarr.example.com;
 
     # Redirect to HTTPS
     return 301 https://$server_name$request_uri;
@@ -231,20 +231,20 @@ server {
 
 server {
     listen 443 ssl http2;
-    server_name smarttunarr.example.com;
+    server_name smartunarr.example.com;
 
-    ssl_certificate /etc/letsencrypt/live/smarttunarr.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/smarttunarr.example.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/smartunarr.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/smartunarr.example.com/privkey.pem;
 
     # Frontend
     location / {
-        root /opt/smarttunarr/frontend/dist;
+        root /opt/smartunarr/frontend/dist;
         try_files $uri $uri/ /index.html;
     }
 
     # API
     location /api/ {
-        proxy_pass http://smarttunarr_backend;
+        proxy_pass http://smartunarr_backend;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -254,7 +254,7 @@ server {
 
     # WebSocket
     location /api/v1/ws/ {
-        proxy_pass http://smarttunarr_backend;
+        proxy_pass http://smartunarr_backend;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -269,9 +269,9 @@ server {
 # traefik.yml labels
 labels:
   - "traefik.enable=true"
-  - "traefik.http.routers.smarttunarr.rule=Host(`smarttunarr.example.com`)"
-  - "traefik.http.routers.smarttunarr.tls=true"
-  - "traefik.http.routers.smarttunarr.tls.certresolver=letsencrypt"
+  - "traefik.http.routers.smartunarr.rule=Host(`smartunarr.example.com`)"
+  - "traefik.http.routers.smartunarr.tls=true"
+  - "traefik.http.routers.smartunarr.tls.certresolver=letsencrypt"
 ```
 
 ## Database Management
@@ -280,11 +280,11 @@ labels:
 
 ```bash
 # SQLite backup
-sqlite3 /app/data/smarttunarr.db ".backup '/backup/smarttunarr-$(date +%Y%m%d).db'"
+sqlite3 /app/data/smartunarr.db ".backup '/backup/smartunarr-$(date +%Y%m%d).db'"
 
 # Docker backup
-docker exec smarttunarr-backend sqlite3 /app/data/smarttunarr.db ".backup '/app/data/backup.db'"
-docker cp smarttunarr-backend:/app/data/backup.db ./backup.db
+docker exec smartunarr-backend sqlite3 /app/data/smartunarr.db ".backup '/app/data/backup.db'"
+docker cp smartunarr-backend:/app/data/backup.db ./backup.db
 ```
 
 ### Restore
@@ -294,7 +294,7 @@ docker cp smarttunarr-backend:/app/data/backup.db ./backup.db
 docker-compose stop backend
 
 # Replace database
-cp backup.db /path/to/data/smarttunarr.db
+cp backup.db /path/to/data/smartunarr.db
 
 # Start application
 docker-compose start backend
@@ -307,10 +307,10 @@ docker-compose start backend
 curl -X POST http://localhost:8080/api/v1/admin/create-indexes
 
 # Vacuum database (optimize)
-sqlite3 /app/data/smarttunarr.db "VACUUM"
+sqlite3 /app/data/smartunarr.db "VACUUM"
 
 # Analyze tables (update statistics)
-sqlite3 /app/data/smarttunarr.db "ANALYZE"
+sqlite3 /app/data/smartunarr.db "ANALYZE"
 ```
 
 ## Monitoring
@@ -332,7 +332,7 @@ curl http://localhost:8080/api/v1/health
 docker-compose logs -f backend
 
 # Application logs
-tail -f /app/data/logs/smarttunarr.log
+tail -f /app/data/logs/smartunarr.log
 ```
 
 ### Metrics
@@ -354,7 +354,7 @@ The application exposes basic metrics at `/api/v1/metrics`:
 curl -H "X-Plex-Token: YOUR_TOKEN" http://plex:32400/identity
 
 # Check network connectivity
-docker exec smarttunarr-backend ping plex
+docker exec smartunarr-backend ping plex
 ```
 
 **Tunarr connection fails:**
@@ -368,19 +368,19 @@ curl http://tunarr:8000/api/version
 **Database locked:**
 ```bash
 # Check for multiple connections
-lsof /app/data/smarttunarr.db
+lsof /app/data/smartunarr.db
 
 # Enable WAL mode (automatic in new databases)
-sqlite3 /app/data/smarttunarr.db "PRAGMA journal_mode=WAL"
+sqlite3 /app/data/smartunarr.db "PRAGMA journal_mode=WAL"
 ```
 
 **Corrupt database:**
 ```bash
 # Check integrity
-sqlite3 /app/data/smarttunarr.db "PRAGMA integrity_check"
+sqlite3 /app/data/smartunarr.db "PRAGMA integrity_check"
 
 # Recover data
-sqlite3 /app/data/smarttunarr.db ".recover" | sqlite3 /app/data/recovered.db
+sqlite3 /app/data/smartunarr.db ".recover" | sqlite3 /app/data/recovered.db
 ```
 
 ### Performance Issues
@@ -397,7 +397,7 @@ curl http://localhost:8080/api/v1/admin/index-recommendations
 **Memory usage:**
 ```bash
 # Check container memory
-docker stats smarttunarr-backend
+docker stats smartunarr-backend
 
 # Reduce cache size in .env
 CACHE_MAX_SIZE=500

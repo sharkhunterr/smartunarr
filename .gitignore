@@ -47,3 +47,7 @@ src/frontend/dist/
 
 # Project specific
 old/
+
+# Claude Code
+.claude/
+specs/

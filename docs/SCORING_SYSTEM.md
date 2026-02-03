@@ -1,8 +1,8 @@
-# SmartTunarr - Systeme de Scoring v7
+# SmarTunarr - Systeme de Scoring v7
 
 ## Vue d'ensemble
 
-Le systeme de scoring de SmartTunarr v7 utilise **9 criteres ponderes** pour evaluer la pertinence d'un contenu dans un bloc horaire. Chaque critere:
+Le systeme de scoring de SmarTunarr v7 utilise **9 criteres ponderes** pour evaluer la pertinence d'un contenu dans un bloc horaire. Chaque critere:
 
 1. Produit un **score de base** entre 0 et 100
 2. Applique optionnellement des **regles M/F/P** (Mandatory/Forbidden/Preferred)

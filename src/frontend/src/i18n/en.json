@@ -557,10 +557,10 @@
     },
     "about": {
       "section": "About",
-      "title": "SmartTunarr",
+      "title": "SmarTunarr",
       "version": "Version",
       "build": "Build",
-      "description": "SmartTunarr is a smart programming tool for Tunarr, using JSON profiles and AI to generate optimized schedules."
+      "description": "SmarTunarr is a smart programming tool for Tunarr, using JSON profiles and AI to generate optimized schedules."
     }
   },
   "timeline": {

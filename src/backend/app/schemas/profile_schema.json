@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://smarttunarr.local/schemas/profile/v5.0",
-  "title": "SmartTunarr Programming Profile",
+  "$id": "https://smartunarr.local/schemas/profile/v5.0",
+  "title": "SmarTunarr Programming Profile",
   "description": "JSON Schema for programming profile validation v5.0",
   "type": "object",
   "required": ["name", "version", "libraries", "time_blocks", "scoring_weights"],

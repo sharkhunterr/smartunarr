@@ -255,7 +255,7 @@ function DefaultsSection() {
 
   useEffect(() => {
     // Load defaults from localStorage
-    const stored = localStorage.getItem('smarttunarr_defaults')
+    const stored = localStorage.getItem('smartunarr_defaults')
     if (stored) {
       try {
         setDefaults(JSON.parse(stored))
@@ -267,7 +267,7 @@ function DefaultsSection() {
 
   const handleSave = async () => {
     setSaving(true)
-    localStorage.setItem('smarttunarr_defaults', JSON.stringify(defaults))
+    localStorage.setItem('smartunarr_defaults', JSON.stringify(defaults))
 
     // Apply log retention cleanup if not set to forever
     if (defaults.logRetentionDays > 0) {
@@ -948,7 +948,7 @@ function AboutSection() {
             {t('settings.about.description')}
           </p>
           <a
-            href="https://github.com/smarttunarr/smarttunarr"
+            href="https://github.com/smartunarr/smartunarr"
             target="_blank"
             rel="noopener noreferrer"
             className="mt-2 inline-flex items-center text-xs sm:text-sm text-primary-600 dark:text-primary-400 hover:underline"

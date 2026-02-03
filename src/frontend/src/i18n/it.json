@@ -539,10 +539,10 @@
     },
     "about": {
       "section": "Informazioni",
-      "title": "SmartTunarr",
+      "title": "SmarTunarr",
       "version": "Versione",
       "build": "Build",
-      "description": "SmartTunarr e uno strumento di programmazione intelligente per Tunarr, che utilizza profili JSON e IA per generare programmi ottimizzati."
+      "description": "SmarTunarr e uno strumento di programmazione intelligente per Tunarr, che utilizza profili JSON e IA per generare programmi ottimizzati."
     }
   },
   "timeline": {

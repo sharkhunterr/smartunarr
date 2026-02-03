@@ -18,14 +18,14 @@ class Settings(BaseSettings):
     )
 
     # Application
-    app_name: str = "SmartTunarr"
+    app_name: str = "SmarTunarr"
     app_version: str = "0.1.0"
     debug: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
     # Database
     database_url: str = Field(
-        default="sqlite+aiosqlite:///./smarttunarr.db",
+        default="sqlite+aiosqlite:///./smartunarr.db",
         description="SQLite database URL with async driver",
     )
 

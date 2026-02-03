@@ -1,17 +1,74 @@
 {
-  "name": "smarttunarr",
+  "name": "smartunarr",
   "version": "0.1.0",
-  "description": "Intelligent TV Channel Programming for Tunarr",
+  "description": "SmarTunarr - Smart TV Channel Programming with AI-powered scheduling",
   "scripts": {
-    "dev": "./scripts/dev.sh",
-    "stop": "./scripts/stop.sh",
-    "dev:back": "./scripts/dev-back.sh",
-    "dev:front": "./scripts/dev-front.sh",
-    "stop:back": "./scripts/stop-back.sh",
-    "stop:front": "./scripts/stop-front.sh",
-    "logs": "tail -f /tmp/smarttunarr-backend.log",
-    "logs:back": "tail -f /tmp/smarttunarr-backend.log",
-    "logs:front": "tail -f /tmp/smarttunarr-frontend.log"
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd src/frontend && npm run dev",
+    "dev:backend": "cd src/backend && . venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 4273 --reload",
+    "dev:docker": "docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up --build",
+    "docker": "docker compose -f docker/docker-compose.yml up --build",
+    "start": "docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d",
+    "stop": "docker compose -f docker/docker-compose.yml down",
+    "logs": "docker compose -f docker/docker-compose.yml logs -f",
+    "setup": "bash scripts/setup-backend.sh && cd src/frontend && npm ci",
+    "test": "npm run test:back && npm run test:front",
+    "test:back": "bash scripts/run-backend-tests.sh",
+    "test:front": "cd src/frontend && npm test",
+    "lint": "npm run lint:back && npm run lint:front",
+    "lint:back": "bash scripts/run-backend-lint.sh",
+    "lint:front": "cd src/frontend && npm run lint",
+    "fix": "npm run fix:back && npm run fix:front",
+    "fix:back": "bash scripts/run-backend-fix.sh",
+    "fix:front": "cd src/frontend && npm run lint -- --fix",
+    "reports": "bash scripts/generate-reports.sh",
+    "ci:simulate": "npm run lint && npm run test",
+    "install:all": "bash scripts/setup-backend.sh && cd src/frontend && npm ci",
+    "clean": "rm -rf src/backend/htmlcov src/backend/.coverage src/backend/coverage.xml src/backend/junit.xml src/backend/.pytest_cache src/backend/.ruff_cache src/frontend/dist reports",
+    "release": "node scripts/release.js",
+    "release:patch": "node scripts/release.js patch",
+    "release:minor": "node scripts/release.js minor",
+    "release:major": "node scripts/release.js major",
+    "release:github": "node scripts/release.js --github",
+    "release:deploy": "node scripts/release.js --deploy",
+    "release:full": "node scripts/release.js --github --deploy",
+    "release:dry": "node scripts/release.js --dry-run",
+    "push": "node scripts/push.js",
+    "push:github": "node scripts/push.js --github",
+    "push:all": "node scripts/push.js --all",
+    "push:tags": "node scripts/push.js --tags-only",
+    "push:notags": "node scripts/push.js --no-tags",
+    "docker:build": "node scripts/docker-deploy.js",
+    "docker:deploy": "node scripts/docker-deploy.js --push",
+    "docker:deploy:multi": "node scripts/docker-deploy.js --push --multi-platform"
   },
-  "private": true
+  "config": {
+    "projectName": "smartunarr",
+    "projectType": "fullstack",
+    "dockerImage": "sharkhunterr/smartunarr",
+    "dockerRegistry": "docker.io",
+    "githubRepo": "sharkhunterr/smartunarr",
+    "enableGithubDeploy": true
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "standard-version": "^9.5.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sharkhunterr/smartunarr"
+  },
+  "keywords": [
+    "tunarr",
+    "plex",
+    "tv",
+    "programming",
+    "scheduling",
+    "docker"
+  ],
+  "author": "",
+  "license": "MIT"
 }
