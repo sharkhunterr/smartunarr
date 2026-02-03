@@ -4,15 +4,15 @@
 
 ---
 
-# v0.2.0
+# v0.1.7
 
-**Title:** `v0.2.0 - Initial Release: Smart TV Channel Programming for Tunarr`
+**Title:** `v0.1.7 - Initial Release: Smart TV Channel Programming for Tunarr`
 
 **Release Notes (copier ci-dessous):**
 
 ---
 
-## 🎉 What's New in v0.2.0
+## 🎉 What's New in v0.1.7
 
 **Welcome to SmarTunarr!** The first release of our intelligent TV channel programming system for Tunarr. Built entirely with AI-assisted development using Claude Code.
 
@@ -177,7 +177,7 @@ Special thanks to:
 
 ---
 
-**Full Changelog**: https://github.com/sharkhunterr/smartunarr/commits/v0.2.0
+**Full Changelog**: https://github.com/sharkhunterr/smartunarr/commits/v0.1.7
 
 ---
 ---
