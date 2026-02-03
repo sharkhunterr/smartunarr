@@ -8,13 +8,13 @@ cd "$(dirname "$0")/../src/backend"
 run_fix() {
     if command -v poetry &> /dev/null; then
         echo "🔧 Correction avec Poetry..."
-        poetry run ruff check src/ --fix --unsafe-fixes
-        poetry run black src/
+        poetry run ruff check app/ tests/ --fix --unsafe-fixes
+        poetry run ruff format app/ tests/
     elif [ -f ".venv/bin/activate" ]; then
         echo "🔧 Correction avec venv..."
         source .venv/bin/activate
-        ruff check src/ --fix --unsafe-fixes
-        black src/
+        ruff check app/ tests/ --fix --unsafe-fixes
+        ruff format app/ tests/
     else
         echo "❌ Erreur: Ni Poetry ni environnement virtuel trouvé"
         echo ""

@@ -131,17 +131,23 @@ class RatingCriterion(BaseCriterion):
 
                     # Check forbidden first (highest priority)
                     if rating_category.lower() in forbidden:
-                        penalty = rating_rules.get("forbidden_penalty", mfp_policy.forbidden_detected_penalty)
+                        penalty = rating_rules.get(
+                            "forbidden_penalty", mfp_policy.forbidden_detected_penalty
+                        )
                         rule_violation = RuleViolation("forbidden", [rating_category], penalty)
                         score += penalty
                     # Check mandatory (content category must be IN the mandatory list)
                     elif mandatory and rating_category.lower() not in mandatory:
-                        penalty = rating_rules.get("mandatory_penalty", mfp_policy.mandatory_missed_penalty)
+                        penalty = rating_rules.get(
+                            "mandatory_penalty", mfp_policy.mandatory_missed_penalty
+                        )
                         rule_violation = RuleViolation("mandatory", mandatory, penalty)
                         score += penalty
                     # Check preferred (bonus if in preferred list)
                     elif rating_category.lower() in preferred:
-                        bonus = rating_rules.get("preferred_bonus", mfp_policy.preferred_matched_bonus)
+                        bonus = rating_rules.get(
+                            "preferred_bonus", mfp_policy.preferred_matched_bonus
+                        )
                         rule_violation = RuleViolation("preferred", [rating_category], bonus)
                         score += bonus
                     # If mandatory is defined and category matches, give bonus

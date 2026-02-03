@@ -17,6 +17,7 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 class CancelJobResponse(BaseModel):
     """Response for job cancellation."""
+
     success: bool
     message: str
 
@@ -106,8 +107,7 @@ async def cancel_job(job_id: str) -> CancelJobResponse:
         if not job:
             raise HTTPException(status_code=404, detail="Job not found")
         return CancelJobResponse(
-            success=False,
-            message=f"Cannot cancel job in {job.status.value} status"
+            success=False, message=f"Cannot cancel job in {job.status.value} status"
         )
 
 

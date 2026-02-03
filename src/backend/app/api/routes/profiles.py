@@ -106,10 +106,7 @@ async def export_profile(
     filename = f"profile_{profile.name.lower().replace(' ', '_')}.json"
 
     return JSONResponse(
-        content=profile_data,
-        headers={
-            "Content-Disposition": f'attachment; filename="{filename}"'
-        }
+        content=profile_data, headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 
 

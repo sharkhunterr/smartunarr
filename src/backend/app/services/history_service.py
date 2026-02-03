@@ -261,9 +261,7 @@ class HistoryService:
 
         cutoff = datetime.utcnow() - timedelta(days=days)
 
-        query = select(HistoryEntry).where(
-            HistoryEntry.started_at < cutoff
-        )
+        query = select(HistoryEntry).where(HistoryEntry.started_at < cutoff)
         result = await self.session.execute(query)
         entries = result.scalars().all()
 
@@ -301,6 +299,7 @@ class HistoryService:
             "error_message": entry.error_message,
             "duration_seconds": (
                 (entry.completed_at - entry.started_at).total_seconds()
-                if entry.completed_at else None
+                if entry.completed_at
+                else None
             ),
         }

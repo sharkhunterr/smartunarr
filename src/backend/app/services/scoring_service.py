@@ -92,9 +92,7 @@ class ScoringService:
 
         # Load programs with content
         programs_query = (
-            select(Program)
-            .where(Program.channel_id == channel_id)
-            .order_by(Program.position)
+            select(Program).where(Program.channel_id == channel_id).order_by(Program.position)
         )
         result = await self.session.execute(programs_query)
         programs = result.scalars().all()
@@ -180,35 +178,41 @@ class ScoringService:
                 scoring_context,
             )
 
-            program_scores.append(ProgramScore(
-                program_id=program.id,
-                content_id=content.id,
-                title=content.title,
-                start_time=program.start_time,
-                end_time=program.end_time,
-                block_name=program.block_name or "Unknown",
-                position=program.position,
-                score=score,
-            ))
+            program_scores.append(
+                ProgramScore(
+                    program_id=program.id,
+                    content_id=content.id,
+                    title=content.title,
+                    start_time=program.start_time,
+                    end_time=program.end_time,
+                    block_name=program.block_name or "Unknown",
+                    position=program.position,
+                    score=score,
+                )
+            )
 
             total_score += score.total_score
 
             # Collect violations and penalties
             if score.forbidden_violations:
                 for violation in score.forbidden_violations:
-                    all_violations.append({
-                        "program_id": program.id,
-                        "content_title": content.title,
-                        **violation,
-                    })
+                    all_violations.append(
+                        {
+                            "program_id": program.id,
+                            "content_title": content.title,
+                            **violation,
+                        }
+                    )
 
             if score.mandatory_penalties:
                 for penalty in score.mandatory_penalties:
-                    all_penalties.append({
-                        "program_id": program.id,
-                        "content_title": content.title,
-                        **penalty,
-                    })
+                    all_penalties.append(
+                        {
+                            "program_id": program.id,
+                            "content_title": content.title,
+                            **penalty,
+                        }
+                    )
 
         average_score = total_score / len(program_scores) if program_scores else 0.0
 
@@ -272,15 +276,17 @@ class ScoringService:
         violations = []
 
         for violation in analysis.forbidden_violations:
-            violations.append({
-                "type": "forbidden",
-                "severity": "critical",
-                "program_id": violation.get("program_id"),
-                "content_title": violation.get("content_title"),
-                "rule": violation.get("rule"),
-                "value": violation.get("value"),
-                "message": violation.get("message"),
-            })
+            violations.append(
+                {
+                    "type": "forbidden",
+                    "severity": "critical",
+                    "program_id": violation.get("program_id"),
+                    "content_title": violation.get("content_title"),
+                    "rule": violation.get("rule"),
+                    "value": violation.get("value"),
+                    "message": violation.get("message"),
+                }
+            )
 
         return violations
 
@@ -300,17 +306,19 @@ class ScoringService:
         penalties = []
 
         for penalty in analysis.mandatory_penalties:
-            penalties.append({
-                "type": "mandatory",
-                "severity": "warning",
-                "program_id": penalty.get("program_id"),
-                "content_title": penalty.get("content_title"),
-                "rule": penalty.get("rule"),
-                "required": penalty.get("required"),
-                "actual": penalty.get("actual"),
-                "penalty_amount": penalty.get("penalty", 0),
-                "message": penalty.get("message"),
-            })
+            penalties.append(
+                {
+                    "type": "mandatory",
+                    "severity": "warning",
+                    "program_id": penalty.get("program_id"),
+                    "content_title": penalty.get("content_title"),
+                    "rule": penalty.get("rule"),
+                    "required": penalty.get("required"),
+                    "actual": penalty.get("actual"),
+                    "penalty_amount": penalty.get("penalty", 0),
+                    "message": penalty.get("message"),
+                }
+            )
 
         return penalties
 
@@ -339,15 +347,43 @@ class ScoringService:
                 # Update existing
                 existing_result.profile_id = analysis.profile_id
                 existing_result.total_score = score.total_score
-                existing_result.type_score = criterion_results.get("type", {}).score if "type" in criterion_results else 0
-                existing_result.duration_score = criterion_results.get("duration", {}).score if "duration" in criterion_results else 0
-                existing_result.genre_score = criterion_results.get("genre", {}).score if "genre" in criterion_results else 0
-                existing_result.timing_score = criterion_results.get("timing", {}).score if "timing" in criterion_results else 0
-                existing_result.strategy_score = criterion_results.get("strategy", {}).score if "strategy" in criterion_results else 0
-                existing_result.age_score = criterion_results.get("age", {}).score if "age" in criterion_results else 0
-                existing_result.rating_score = criterion_results.get("rating", {}).score if "rating" in criterion_results else 0
-                existing_result.filter_score = criterion_results.get("filter", {}).score if "filter" in criterion_results else 0
-                existing_result.bonus_score = criterion_results.get("bonus", {}).score if "bonus" in criterion_results else 0
+                existing_result.type_score = (
+                    criterion_results.get("type", {}).score if "type" in criterion_results else 0
+                )
+                existing_result.duration_score = (
+                    criterion_results.get("duration", {}).score
+                    if "duration" in criterion_results
+                    else 0
+                )
+                existing_result.genre_score = (
+                    criterion_results.get("genre", {}).score if "genre" in criterion_results else 0
+                )
+                existing_result.timing_score = (
+                    criterion_results.get("timing", {}).score
+                    if "timing" in criterion_results
+                    else 0
+                )
+                existing_result.strategy_score = (
+                    criterion_results.get("strategy", {}).score
+                    if "strategy" in criterion_results
+                    else 0
+                )
+                existing_result.age_score = (
+                    criterion_results.get("age", {}).score if "age" in criterion_results else 0
+                )
+                existing_result.rating_score = (
+                    criterion_results.get("rating", {}).score
+                    if "rating" in criterion_results
+                    else 0
+                )
+                existing_result.filter_score = (
+                    criterion_results.get("filter", {}).score
+                    if "filter" in criterion_results
+                    else 0
+                )
+                existing_result.bonus_score = (
+                    criterion_results.get("bonus", {}).score if "bonus" in criterion_results else 0
+                )
                 existing_result.forbidden_violations = score.forbidden_violations
                 existing_result.mandatory_penalties = score.mandatory_penalties
                 existing_result.scored_at = analysis.analyzed_at
@@ -357,15 +393,33 @@ class ScoringService:
                     program_id=program_score.program_id,
                     profile_id=analysis.profile_id,
                     total_score=score.total_score,
-                    type_score=criterion_results.get("type").score if "type" in criterion_results else 0,
-                    duration_score=criterion_results.get("duration").score if "duration" in criterion_results else 0,
-                    genre_score=criterion_results.get("genre").score if "genre" in criterion_results else 0,
-                    timing_score=criterion_results.get("timing").score if "timing" in criterion_results else 0,
-                    strategy_score=criterion_results.get("strategy").score if "strategy" in criterion_results else 0,
-                    age_score=criterion_results.get("age").score if "age" in criterion_results else 0,
-                    rating_score=criterion_results.get("rating").score if "rating" in criterion_results else 0,
-                    filter_score=criterion_results.get("filter").score if "filter" in criterion_results else 0,
-                    bonus_score=criterion_results.get("bonus").score if "bonus" in criterion_results else 0,
+                    type_score=criterion_results.get("type").score
+                    if "type" in criterion_results
+                    else 0,
+                    duration_score=criterion_results.get("duration").score
+                    if "duration" in criterion_results
+                    else 0,
+                    genre_score=criterion_results.get("genre").score
+                    if "genre" in criterion_results
+                    else 0,
+                    timing_score=criterion_results.get("timing").score
+                    if "timing" in criterion_results
+                    else 0,
+                    strategy_score=criterion_results.get("strategy").score
+                    if "strategy" in criterion_results
+                    else 0,
+                    age_score=criterion_results.get("age").score
+                    if "age" in criterion_results
+                    else 0,
+                    rating_score=criterion_results.get("rating").score
+                    if "rating" in criterion_results
+                    else 0,
+                    filter_score=criterion_results.get("filter").score
+                    if "filter" in criterion_results
+                    else 0,
+                    bonus_score=criterion_results.get("bonus").score
+                    if "bonus" in criterion_results
+                    else 0,
                     forbidden_violations=score.forbidden_violations,
                     mandatory_penalties=score.mandatory_penalties,
                     scored_at=analysis.analyzed_at,
@@ -390,25 +444,27 @@ class ScoringService:
 
         for ps in analysis.program_scores:
             criteria = ps.score.criterion_results
-            line = ",".join([
-                str(ps.position),
-                f'"{ps.title}"',
-                ps.start_time.isoformat(),
-                ps.end_time.isoformat(),
-                ps.block_name,
-                f"{ps.score.total_score:.2f}",
-                f"{criteria.get('type', {}).score if 'type' in criteria else 0:.2f}",
-                f"{criteria.get('duration', {}).score if 'duration' in criteria else 0:.2f}",
-                f"{criteria.get('genre', {}).score if 'genre' in criteria else 0:.2f}",
-                f"{criteria.get('timing', {}).score if 'timing' in criteria else 0:.2f}",
-                f"{criteria.get('strategy', {}).score if 'strategy' in criteria else 0:.2f}",
-                f"{criteria.get('age', {}).score if 'age' in criteria else 0:.2f}",
-                f"{criteria.get('rating', {}).score if 'rating' in criteria else 0:.2f}",
-                f"{criteria.get('filter', {}).score if 'filter' in criteria else 0:.2f}",
-                f"{criteria.get('bonus', {}).score if 'bonus' in criteria else 0:.2f}",
-                str(len(ps.score.forbidden_violations)),
-                str(len(ps.score.mandatory_penalties)),
-            ])
+            line = ",".join(
+                [
+                    str(ps.position),
+                    f'"{ps.title}"',
+                    ps.start_time.isoformat(),
+                    ps.end_time.isoformat(),
+                    ps.block_name,
+                    f"{ps.score.total_score:.2f}",
+                    f"{criteria.get('type', {}).score if 'type' in criteria else 0:.2f}",
+                    f"{criteria.get('duration', {}).score if 'duration' in criteria else 0:.2f}",
+                    f"{criteria.get('genre', {}).score if 'genre' in criteria else 0:.2f}",
+                    f"{criteria.get('timing', {}).score if 'timing' in criteria else 0:.2f}",
+                    f"{criteria.get('strategy', {}).score if 'strategy' in criteria else 0:.2f}",
+                    f"{criteria.get('age', {}).score if 'age' in criteria else 0:.2f}",
+                    f"{criteria.get('rating', {}).score if 'rating' in criteria else 0:.2f}",
+                    f"{criteria.get('filter', {}).score if 'filter' in criteria else 0:.2f}",
+                    f"{criteria.get('bonus', {}).score if 'bonus' in criteria else 0:.2f}",
+                    str(len(ps.score.forbidden_violations)),
+                    str(len(ps.score.mandatory_penalties)),
+                ]
+            )
             lines.append(line)
 
         return "\n".join(lines)

@@ -154,7 +154,9 @@ FORMAT DES HEURES: "HH:MM" (format 24h, ex: "20:00", "06:30")
 """
 
 
-def get_generation_prompt(user_request: str, available_libraries: list[dict[str, Any]] | None = None) -> str:
+def get_generation_prompt(
+    user_request: str, available_libraries: list[dict[str, Any]] | None = None
+) -> str:
     """
     Build the prompt for profile generation.
 
@@ -167,9 +169,11 @@ def get_generation_prompt(user_request: str, available_libraries: list[dict[str,
     """
     libraries_info = ""
     if available_libraries:
-        libraries_info = "\n\nBIBLIOTHÈQUES PLEX DISPONIBLES (utilise ces IDs dans le champ 'libraries'):\n"
+        libraries_info = (
+            "\n\nBIBLIOTHÈQUES PLEX DISPONIBLES (utilise ces IDs dans le champ 'libraries'):\n"
+        )
         for lib in available_libraries:
-            lib_type = lib.get('type', 'movie')
+            lib_type = lib.get("type", "movie")
             libraries_info += f'  {{"id": "{lib.get("id")}", "name": "{lib.get("name")}", "type": "{lib_type}", "weight": 1.0, "enabled": true}}\n'
 
     return f"""Génère un profil de programmation TV au format JSON basé sur cette demande:
@@ -314,29 +318,35 @@ def get_improvement_prompt(
     # Summarize current programs for the prompt
     programs_summary = []
     for prog in current_programs[:50]:  # Limit to avoid too long prompts
-        programs_summary.append({
-            "title": prog.get("title", ""),
-            "type": prog.get("type", "movie"),
-            "score": prog.get("score", {}).get("total", 0) if prog.get("score") else 0,
-            "genres": prog.get("genres", [])[:3],  # Limit genres
-            "start_time": prog.get("start_time", "")[:16],  # Just date+hour:min
-            "duration_min": round(prog.get("duration_min", 0)),
-            "block": prog.get("block_name", ""),
-            "forbidden_violated": prog.get("score", {}).get("forbidden_violated", False) if prog.get("score") else False,
-        })
+        programs_summary.append(
+            {
+                "title": prog.get("title", ""),
+                "type": prog.get("type", "movie"),
+                "score": prog.get("score", {}).get("total", 0) if prog.get("score") else 0,
+                "genres": prog.get("genres", [])[:3],  # Limit genres
+                "start_time": prog.get("start_time", "")[:16],  # Just date+hour:min
+                "duration_min": round(prog.get("duration_min", 0)),
+                "block": prog.get("block_name", ""),
+                "forbidden_violated": prog.get("score", {}).get("forbidden_violated", False)
+                if prog.get("score")
+                else False,
+            }
+        )
 
     # Build iteration summary if available
     iterations_info = ""
     if all_iterations and len(all_iterations) > 1:
         iterations_summary = []
         for it in all_iterations[:10]:  # Show top 10 iterations
-            iterations_summary.append({
-                "iteration": it.get("iteration", 0),
-                "score": round(it.get("average_score", 0), 1),
-                "programs": it.get("program_count", 0),
-                "is_optimized": it.get("is_optimized", False),
-                "is_improved": it.get("is_improved", False),
-            })
+            iterations_summary.append(
+                {
+                    "iteration": it.get("iteration", 0),
+                    "score": round(it.get("average_score", 0), 1),
+                    "programs": it.get("program_count", 0),
+                    "is_optimized": it.get("is_optimized", False),
+                    "is_improved": it.get("is_improved", False),
+                }
+            )
         iterations_info = f"""
 TOUTES LES ITÉRATIONS DISPONIBLES (triées par score décroissant):
 {json.dumps(iterations_summary, indent=2, ensure_ascii=False)}
@@ -385,7 +395,7 @@ def get_ai_improvement_prompt(
     # Format current programs simply
     current_list = []
     for prog in current_programs:
-        title = prog.get('title', '')
+        title = prog.get("title", "")
         block = prog.get("block_name", "")
         studios = ", ".join(prog.get("studios", [])) if prog.get("studios") else ""
         current_list.append(f'"{title}" - {block}' + (f" - Studios: {studios}" if studios else ""))
@@ -401,7 +411,9 @@ def get_ai_improvement_prompt(
                 if title and title not in current_titles and title not in seen:
                     seen.add(title)
                     studios = ", ".join(prog.get("studios", [])) if prog.get("studios") else ""
-                    alternatives.append(f'"{title}"' + (f" - Studios: {studios}" if studios else ""))
+                    alternatives.append(
+                        f'"{title}"' + (f" - Studios: {studios}" if studios else "")
+                    )
 
     return f"""PROGRAMMATION ACTUELLE:
 {chr(10).join(current_list)}

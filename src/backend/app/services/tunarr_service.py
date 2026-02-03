@@ -130,9 +130,7 @@ class TunarrService:
         Returns:
             True if successful
         """
-        return await self.adapter.update_channel_start_time(
-            channel_id, start_time_ms, duration_ms
-        )
+        return await self.adapter.update_channel_start_time(channel_id, start_time_ms, duration_ms)
 
     async def close(self) -> None:
         """Close the adapter connection."""

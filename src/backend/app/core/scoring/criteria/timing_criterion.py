@@ -51,9 +51,10 @@ class TimingCriterion(BaseCriterion):
         """
         if dt is None:
             return None
-        if hasattr(dt, 'tzinfo') and dt.tzinfo is not None:
+        if hasattr(dt, "tzinfo") and dt.tzinfo is not None:
             # Convert to local time, then strip timezone
             from app.core.blocks.time_block_manager import _get_local_timezone
+
             local_tz = _get_local_timezone()
             local_dt = dt.astimezone(local_tz)
             return local_dt.replace(tzinfo=None)
@@ -133,9 +134,9 @@ class TimingCriterion(BaseCriterion):
 
         # Anchor points for the curve
         score_at_0 = 100.0
-        score_at_p = 85.0   # End of preferred zone
-        score_at_m = 50.0   # End of mandatory zone
-        score_at_f = 5.0    # Just before forbidden
+        score_at_p = 85.0  # End of preferred zone
+        score_at_m = 50.0  # End of mandatory zone
+        score_at_f = 5.0  # Just before forbidden
         score_beyond_f = 0.0
 
         # Zone 1: 0 to P (preferred zone) - small decrease
@@ -313,7 +314,7 @@ class TimingCriterion(BaseCriterion):
                     rule_violation = RuleViolation(
                         "preferred",
                         [f"{offset_type}:{offset_minutes:.0f}min ≤ {preferred_max:.0f}min"],
-                        bonus
+                        bonus,
                     )
                     score += bonus
 
@@ -323,7 +324,7 @@ class TimingCriterion(BaseCriterion):
                     rule_violation = RuleViolation(
                         "mandatory",
                         [f"{offset_type}:{offset_minutes:.0f}min ≤ {mandatory_max:.0f}min"],
-                        bonus
+                        bonus,
                     )
                     score += bonus
 
@@ -333,20 +334,24 @@ class TimingCriterion(BaseCriterion):
                 elif mandatory_max is not None and offset_minutes > mandatory_max:
                     if forbidden_max is not None and offset_minutes > forbidden_max:
                         # Zone 4: Beyond explicitly set forbidden threshold → heavy penalty + exclusion
-                        penalty = timing_rules.get("forbidden_penalty", mfp_policy.forbidden_detected_penalty)
+                        penalty = timing_rules.get(
+                            "forbidden_penalty", mfp_policy.forbidden_detected_penalty
+                        )
                         rule_violation = RuleViolation(
                             "forbidden",
                             [f"{offset_type}:{offset_minutes:.0f}min > {forbidden_max:.0f}min"],
-                            penalty
+                            penalty,
                         )
                         score += penalty
                     else:
                         # Beyond mandatory but no explicit forbidden threshold → mandatory penalty only
-                        penalty = timing_rules.get("mandatory_penalty", mfp_policy.mandatory_missed_penalty)
+                        penalty = timing_rules.get(
+                            "mandatory_penalty", mfp_policy.mandatory_missed_penalty
+                        )
                         rule_violation = RuleViolation(
                             "mandatory",
                             [f"{offset_type}:{offset_minutes:.0f}min > {mandatory_max:.0f}min"],
-                            penalty
+                            penalty,
                         )
                         score += penalty
 
@@ -440,10 +445,14 @@ class TimingCriterion(BaseCriterion):
 
         # If context doesn't have timing, try to get from content
         if not current_time:
-            current_time = self._normalize_tz(self._parse_content_datetime(content.get("start_time")))
+            current_time = self._normalize_tz(
+                self._parse_content_datetime(content.get("start_time"))
+            )
 
         if not content_end_time:
-            content_end_time = self._normalize_tz(self._parse_content_datetime(content.get("end_time")))
+            content_end_time = self._normalize_tz(
+                self._parse_content_datetime(content.get("end_time"))
+            )
 
         # Calculate content end from duration if not available
         if current_time and not content_end_time:
@@ -564,24 +573,16 @@ class TimingCriterion(BaseCriterion):
             # Single program in block: both late start and overflow matter equally
             # Weight: 45% late start + 45% overflow + 10% time-of-day
             final_score = (
-                (late_start_score * 0.45) +
-                (overflow_score * 0.45) +
-                (time_of_day_score * 0.10)
+                (late_start_score * 0.45) + (overflow_score * 0.45) + (time_of_day_score * 0.10)
             )
         elif is_first:
             # First in block: only late start matters for timing
             # Weight: 80% late start + 20% time-of-day
-            final_score = (
-                (late_start_score * 0.80) +
-                (time_of_day_score * 0.20)
-            )
+            final_score = (late_start_score * 0.80) + (time_of_day_score * 0.20)
         else:  # is_last
             # Last in block: only overflow matters for timing
             # Weight: 80% overflow + 20% time-of-day
-            final_score = (
-                (overflow_score * 0.80) +
-                (time_of_day_score * 0.20)
-            )
+            final_score = (overflow_score * 0.80) + (time_of_day_score * 0.20)
 
         details["final_score"] = max(0.0, min(100.0, final_score))
 

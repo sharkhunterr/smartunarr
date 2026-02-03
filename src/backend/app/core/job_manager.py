@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class JobType(str, Enum):
     """Types of background jobs."""
+
     PROGRAMMING = "programming"
     SCORING = "scoring"
     SYNC = "sync"
@@ -23,6 +24,7 @@ class JobType(str, Enum):
 
 class JobStatus(str, Enum):
     """Job status values."""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -33,6 +35,7 @@ class JobStatus(str, Enum):
 @dataclass
 class ProgressStep:
     """A progress step for display."""
+
     id: str
     label: str
     status: str  # pending, running, completed, failed
@@ -50,6 +53,7 @@ class ProgressStep:
 @dataclass
 class Job:
     """Represents a background job."""
+
     id: str
     type: JobType
     status: JobStatus
@@ -179,10 +183,12 @@ class JobManager:
         async with self._lock:
             self._jobs[job_id] = job
 
-        await self.broadcast({
-            "type": "job_created",
-            "job": job.to_dict(),
-        })
+        await self.broadcast(
+            {
+                "type": "job_created",
+                "job": job.to_dict(),
+            }
+        )
 
         logger.info(f"Created job {job_id}: {title}")
         return job_id
@@ -196,10 +202,12 @@ class JobManager:
                 job.started_at = datetime.utcnow()
 
         if job:
-            await self.broadcast({
-                "type": "job_started",
-                "job": job.to_dict(),
-            })
+            await self.broadcast(
+                {
+                    "type": "job_started",
+                    "job": job.to_dict(),
+                }
+            )
             logger.info(f"Started job {job_id}")
 
     async def update_job_progress(
@@ -259,10 +267,12 @@ class JobManager:
                     job.steps = kwargs["steps"]
 
         if job:
-            await self.broadcast({
-                "type": "job_progress",
-                "job": job.to_dict(),
-            })
+            await self.broadcast(
+                {
+                    "type": "job_progress",
+                    "job": job.to_dict(),
+                }
+            )
 
     async def set_job_steps(self, job_id: str, steps: list[ProgressStep]) -> None:
         """Set the progress steps for a job."""
@@ -272,10 +282,12 @@ class JobManager:
                 job.steps = steps
 
         if job:
-            await self.broadcast({
-                "type": "job_progress",
-                "job": job.to_dict(),
-            })
+            await self.broadcast(
+                {
+                    "type": "job_progress",
+                    "job": job.to_dict(),
+                }
+            )
 
     async def update_step_status(
         self,
@@ -296,10 +308,12 @@ class JobManager:
                         break
 
         if job:
-            await self.broadcast({
-                "type": "job_progress",
-                "job": job.to_dict(),
-            })
+            await self.broadcast(
+                {
+                    "type": "job_progress",
+                    "job": job.to_dict(),
+                }
+            )
 
     async def complete_job(
         self,
@@ -320,10 +334,12 @@ class JobManager:
                     job.best_score = best_score
 
         if job:
-            await self.broadcast({
-                "type": "job_completed",
-                "job": job.to_dict(),
-            })
+            await self.broadcast(
+                {
+                    "type": "job_completed",
+                    "job": job.to_dict(),
+                }
+            )
             logger.info(f"Completed job {job_id}")
 
     async def fail_job(self, job_id: str, error_message: str) -> None:
@@ -336,10 +352,12 @@ class JobManager:
                 job.error_message = error_message
 
         if job:
-            await self.broadcast({
-                "type": "job_failed",
-                "job": job.to_dict(),
-            })
+            await self.broadcast(
+                {
+                    "type": "job_failed",
+                    "job": job.to_dict(),
+                }
+            )
             logger.error(f"Failed job {job_id}: {error_message}")
 
     async def cancel_job(self, job_id: str) -> bool:
@@ -350,10 +368,12 @@ class JobManager:
                 job.status = JobStatus.CANCELLED
                 job.completed_at = datetime.utcnow()
 
-                await self.broadcast({
-                    "type": "job_cancelled",
-                    "job": job.to_dict(),
-                })
+                await self.broadcast(
+                    {
+                        "type": "job_cancelled",
+                        "job": job.to_dict(),
+                    }
+                )
                 logger.info(f"Cancelled job {job_id}")
                 return True
 
@@ -368,7 +388,8 @@ class JobManager:
         """Get all active (pending or running) jobs."""
         async with self._lock:
             return [
-                job for job in self._jobs.values()
+                job
+                for job in self._jobs.values()
                 if job.status in [JobStatus.PENDING, JobStatus.RUNNING]
             ]
 
@@ -389,7 +410,8 @@ class JobManager:
 
         async with self._lock:
             jobs_to_remove = [
-                job_id for job_id, job in self._jobs.items()
+                job_id
+                for job_id, job in self._jobs.items()
                 if job.completed_at and job.completed_at < cutoff
             ]
             for job_id in jobs_to_remove:
@@ -408,8 +430,7 @@ class JobManager:
 
         async with self._lock:
             jobs_to_remove = [
-                job_id for job_id, job in self._jobs.items()
-                if job.status in terminal_statuses
+                job_id for job_id, job in self._jobs.items() if job.status in terminal_statuses
             ]
             for job_id in jobs_to_remove:
                 del self._jobs[job_id]
@@ -421,10 +442,12 @@ class JobManager:
         # Broadcast updated state to all clients
         async with self._lock:
             remaining_jobs = [job.to_dict() for job in self._jobs.values()]
-        await self.broadcast({
-            "type": "jobs_state",
-            "jobs": remaining_jobs,
-        })
+        await self.broadcast(
+            {
+                "type": "jobs_state",
+                "jobs": remaining_jobs,
+            }
+        )
 
         return removed
 

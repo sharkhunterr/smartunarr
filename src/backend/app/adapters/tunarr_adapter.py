@@ -84,7 +84,9 @@ class TunarrAdapter:
         response.raise_for_status()
         return response.json()
 
-    async def get_channel_programming(self, channel_id: str) -> dict[str, Any] | list[dict[str, Any]]:
+    async def get_channel_programming(
+        self, channel_id: str
+    ) -> dict[str, Any] | list[dict[str, Any]]:
         """Get current programming for a channel.
 
         Uses /programming endpoint which returns the ordered lineup with programs dict.

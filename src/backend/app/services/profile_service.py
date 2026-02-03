@@ -42,9 +42,7 @@ class ProfileService:
         query = select(Profile).options(selectinload(Profile.labels))
 
         if label:
-            query = query.join(ProfileLabel).where(
-                ProfileLabel.label.ilike(f"%{label}%")
-            )
+            query = query.join(ProfileLabel).where(ProfileLabel.label.ilike(f"%{label}%"))
 
         query = query.order_by(Profile.name).limit(limit).offset(offset)
         result = await self.session.execute(query)
@@ -61,9 +59,7 @@ class ProfileService:
             Profile or None if not found
         """
         query = (
-            select(Profile)
-            .options(selectinload(Profile.labels))
-            .where(Profile.id == profile_id)
+            select(Profile).options(selectinload(Profile.labels)).where(Profile.id == profile_id)
         )
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
@@ -78,11 +74,7 @@ class ProfileService:
         Returns:
             Profile or None if not found
         """
-        query = (
-            select(Profile)
-            .options(selectinload(Profile.labels))
-            .where(Profile.name == name)
-        )
+        query = select(Profile).options(selectinload(Profile.labels)).where(Profile.name == name)
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
@@ -112,11 +104,15 @@ class ProfileService:
             libraries=[lib.model_dump() for lib in data.libraries],
             time_blocks=[block.model_dump() for block in data.time_blocks],
             mandatory_forbidden_criteria=data.mandatory_forbidden_criteria.model_dump(),
-            enhanced_criteria=data.enhanced_criteria.model_dump() if data.enhanced_criteria else None,
+            enhanced_criteria=data.enhanced_criteria.model_dump()
+            if data.enhanced_criteria
+            else None,
             strategies=data.strategies.model_dump() if data.strategies else None,
             scoring_weights=data.scoring_weights.model_dump(),
             mfp_policy=data.mfp_policy.model_dump() if data.mfp_policy else None,
-            criterion_multipliers=data.criterion_multipliers.model_dump() if data.criterion_multipliers else None,
+            criterion_multipliers=data.criterion_multipliers.model_dump()
+            if data.criterion_multipliers
+            else None,
             default_iterations=data.default_iterations,
             default_randomness=data.default_randomness,
         )

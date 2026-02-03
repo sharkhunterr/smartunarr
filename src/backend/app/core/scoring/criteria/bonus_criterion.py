@@ -38,7 +38,9 @@ class BonusCriterion(BaseCriterion):
     ) -> float:
         """Calculate contextual bonus score."""
         mfp_policy = self.get_mfp_policy(profile, block)
-        score, _, _, _ = self._calculate_with_bonuses(content, content_meta, profile, block, context, mfp_policy)
+        score, _, _, _ = self._calculate_with_bonuses(
+            content, content_meta, profile, block, context, mfp_policy
+        )
         return score
 
     def _get_scaled_bonus(self, base_multiplier: float, mfp_policy: MFPPolicyConfig) -> float:
@@ -93,13 +95,27 @@ class BonusCriterion(BaseCriterion):
         if block:
             bonus_rules = block.get("criteria", {}).get("bonus_rules")
 
-        forbidden_categories = [v.lower() for v in (bonus_rules.get("forbidden_values") or [])] if bonus_rules else []
-        preferred_categories = [v.lower() for v in (bonus_rules.get("preferred_values") or [])] if bonus_rules else []
-        mandatory_categories = [v.lower() for v in (bonus_rules.get("mandatory_values") or [])] if bonus_rules else []
+        forbidden_categories = (
+            [v.lower() for v in (bonus_rules.get("forbidden_values") or [])] if bonus_rules else []
+        )
+        preferred_categories = (
+            [v.lower() for v in (bonus_rules.get("preferred_values") or [])] if bonus_rules else []
+        )
+        mandatory_categories = (
+            [v.lower() for v in (bonus_rules.get("mandatory_values") or [])] if bonus_rules else []
+        )
 
         # Get penalties/bonuses from rules or MFP policy
-        forbidden_penalty = bonus_rules.get("forbidden_penalty", policy.forbidden_detected_penalty) if bonus_rules else policy.forbidden_detected_penalty
-        preferred_bonus = bonus_rules.get("preferred_bonus", policy.preferred_matched_bonus) if bonus_rules else policy.preferred_matched_bonus
+        forbidden_penalty = (
+            bonus_rules.get("forbidden_penalty", policy.forbidden_detected_penalty)
+            if bonus_rules
+            else policy.forbidden_detected_penalty
+        )
+        preferred_bonus = (
+            bonus_rules.get("preferred_bonus", policy.preferred_matched_bonus)
+            if bonus_rules
+            else policy.preferred_matched_bonus
+        )
 
         # Helper to check category match
         def is_forbidden(categories: list[str]) -> bool:
@@ -129,7 +145,9 @@ class BonusCriterion(BaseCriterion):
             if age <= 2:
                 if recent_forbidden:
                     # Recent content is forbidden - mark for penalty
-                    forbidden_detected.extend([c for c in self.CATEGORY_RECENT if c in forbidden_categories])
+                    forbidden_detected.extend(
+                        [c for c in self.CATEGORY_RECENT if c in forbidden_categories]
+                    )
                 else:
                     # Very recent release: apply preferred_bonus if preferred, otherwise base bonus
                     if recent_preferred:
@@ -141,7 +159,9 @@ class BonusCriterion(BaseCriterion):
                     bonus_categories_earned.extend(self.CATEGORY_RECENT)
             elif age <= 5:
                 if recent_forbidden:
-                    forbidden_detected.extend([c for c in self.CATEGORY_RECENT if c in forbidden_categories])
+                    forbidden_detected.extend(
+                        [c for c in self.CATEGORY_RECENT if c in forbidden_categories]
+                    )
                 else:
                     # Fairly recent: apply full preferred_bonus if preferred, otherwise smaller base bonus
                     if recent_preferred:
@@ -154,7 +174,9 @@ class BonusCriterion(BaseCriterion):
             elif age > 20:
                 if old_forbidden:
                     # Old content is forbidden - mark for penalty
-                    forbidden_detected.extend([c for c in self.CATEGORY_OLD if c in forbidden_categories])
+                    forbidden_detected.extend(
+                        [c for c in self.CATEGORY_OLD if c in forbidden_categories]
+                    )
                 elif old_preferred:
                     # Old content is preferred - apply full preferred_bonus
                     bonus = preferred_bonus
@@ -211,7 +233,10 @@ class BonusCriterion(BaseCriterion):
                 bonus = preferred_bonus
             else:
                 # Base bonus: scaled by number of collections
-                bonus = min(self._get_scaled_bonus(0.3, policy), len(collections) * self._get_scaled_bonus(0.15, policy))
+                bonus = min(
+                    self._get_scaled_bonus(0.3, policy),
+                    len(collections) * self._get_scaled_bonus(0.15, policy),
+                )
             score += bonus
             coll_names = ", ".join(collections[:2])
             bonuses_applied.append(f"Collection ({coll_names}): +{bonus:.0f}")
@@ -292,7 +317,9 @@ class BonusCriterion(BaseCriterion):
         collections_config = enhanced.get("collections_franchises", {})
         if collections_config.get("enabled", False):
             content_collections = [c.lower() for c in (content_meta.get("collections") or [])]
-            preferred_collections = [c.lower() for c in collections_config.get("preferred_collections", [])]
+            preferred_collections = [
+                c.lower() for c in collections_config.get("preferred_collections", [])
+            ]
 
             for coll in content_collections:
                 if any(pref in coll or coll in pref for pref in preferred_collections):
@@ -332,7 +359,9 @@ class BonusCriterion(BaseCriterion):
         # Use forbidden_detected list built during category evaluation
         if forbidden_detected:
             score += forbidden_penalty
-            bonuses_applied.append(f"Catégorie interdite ({', '.join(forbidden_detected)}): {forbidden_penalty:.0f}")
+            bonuses_applied.append(
+                f"Catégorie interdite ({', '.join(forbidden_detected)}): {forbidden_penalty:.0f}"
+            )
             rule_violation = RuleViolation("forbidden", forbidden_detected, forbidden_penalty)
 
         # Check mandatory categories (if no forbidden violation)
@@ -340,9 +369,15 @@ class BonusCriterion(BaseCriterion):
             earned_lower = [c.lower() for c in bonus_categories_earned]
             missing_mandatory = [m for m in mandatory_categories if m not in earned_lower]
             if missing_mandatory:
-                penalty = bonus_rules.get("mandatory_penalty", policy.mandatory_missed_penalty) if bonus_rules else policy.mandatory_missed_penalty
+                penalty = (
+                    bonus_rules.get("mandatory_penalty", policy.mandatory_missed_penalty)
+                    if bonus_rules
+                    else policy.mandatory_missed_penalty
+                )
                 score += penalty
-                bonuses_applied.append(f"Bonus requis manquant ({', '.join(missing_mandatory)}): {penalty:.0f}")
+                bonuses_applied.append(
+                    f"Bonus requis manquant ({', '.join(missing_mandatory)}): {penalty:.0f}"
+                )
                 rule_violation = RuleViolation("mandatory", missing_mandatory, penalty)
 
         # Check preferred categories match (for reporting, bonus already applied above)
@@ -350,7 +385,11 @@ class BonusCriterion(BaseCriterion):
             earned_lower = [c.lower() for c in bonus_categories_earned]
             matched_preferred = [p for p in preferred_categories if p in earned_lower]
             if matched_preferred:
-                bonus = bonus_rules.get("preferred_bonus", policy.preferred_matched_bonus) if bonus_rules else policy.preferred_matched_bonus
+                bonus = (
+                    bonus_rules.get("preferred_bonus", policy.preferred_matched_bonus)
+                    if bonus_rules
+                    else policy.preferred_matched_bonus
+                )
                 rule_violation = RuleViolation("preferred", matched_preferred, bonus)
 
         return max(0.0, min(100.0, score)), bonuses_applied, bonus_categories_earned, rule_violation

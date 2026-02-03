@@ -32,7 +32,9 @@ class ScoringResult:
     bonuses_applied: list[str] = field(default_factory=list)
     keyword_multiplier: float = 1.0
     keyword_match: str | None = None  # "exclude", "include", or None
-    criterion_rule_violations: dict[str, dict[str, Any]] = field(default_factory=dict)  # Per-criterion rules
+    criterion_rule_violations: dict[str, dict[str, Any]] = field(
+        default_factory=dict
+    )  # Per-criterion rules
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -224,30 +226,36 @@ class ScoringEngine:
         forbidden_ids = forbidden.get("content_ids", [])
         content_id = content.get("plex_key", "")
         if content_id in forbidden_ids:
-            violations.append({
-                "rule": "forbidden_content_id",
-                "value": content_id,
-                "message": f"Content ID {content_id} is forbidden",
-            })
+            violations.append(
+                {
+                    "rule": "forbidden_content_id",
+                    "value": content_id,
+                    "message": f"Content ID {content_id} is forbidden",
+                }
+            )
 
         # Check forbidden types
         forbidden_types = [t.lower() for t in forbidden.get("types", [])]
         if content_type in forbidden_types:
-            violations.append({
-                "rule": "forbidden_type",
-                "value": content_type,
-                "message": f"Content type '{content_type}' is forbidden",
-            })
+            violations.append(
+                {
+                    "rule": "forbidden_type",
+                    "value": content_type,
+                    "message": f"Content type '{content_type}' is forbidden",
+                }
+            )
 
         # Check forbidden keywords in title
         forbidden_keywords = [k.lower() for k in forbidden.get("keywords", [])]
         for keyword in forbidden_keywords:
             if keyword in content_title:
-                violations.append({
-                    "rule": "forbidden_keyword_in_title",
-                    "value": keyword,
-                    "message": f"Title contains forbidden keyword '{keyword}'",
-                })
+                violations.append(
+                    {
+                        "rule": "forbidden_keyword_in_title",
+                        "value": keyword,
+                        "message": f"Title contains forbidden keyword '{keyword}'",
+                    }
+                )
 
         # Check forbidden genres (global)
         if content_meta:
@@ -255,11 +263,13 @@ class ScoringEngine:
             forbidden_genres = [g.lower() for g in forbidden.get("genres", [])]
             for genre in content_genres:
                 if genre in forbidden_genres:
-                    violations.append({
-                        "rule": "forbidden_genre",
-                        "value": genre,
-                        "message": f"Content has forbidden genre '{genre}'",
-                    })
+                    violations.append(
+                        {
+                            "rule": "forbidden_genre",
+                            "value": genre,
+                            "message": f"Content has forbidden genre '{genre}'",
+                        }
+                    )
 
         # Check block-level forbidden genres
         if block and content_meta:
@@ -275,11 +285,13 @@ class ScoringEngine:
                             for v in violations
                         )
                         if not existing:
-                            violations.append({
-                                "rule": "forbidden_genre_block",
-                                "value": genre,
-                                "message": f"Content has genre '{genre}' forbidden in time block",
-                            })
+                            violations.append(
+                                {
+                                    "rule": "forbidden_genre_block",
+                                    "value": genre,
+                                    "message": f"Content has genre '{genre}' forbidden in time block",
+                                }
+                            )
 
         return violations
 
@@ -300,13 +312,15 @@ class ScoringEngine:
         if min_duration_min:
             duration_min = content.get("duration_ms", 0) / 60000
             if duration_min < min_duration_min:
-                penalties.append({
-                    "rule": "mandatory_min_duration",
-                    "required": min_duration_min,
-                    "actual": duration_min,
-                    "penalty": 15.0,
-                    "message": f"Duration {duration_min:.1f}min below minimum {min_duration_min}min",
-                })
+                penalties.append(
+                    {
+                        "rule": "mandatory_min_duration",
+                        "required": min_duration_min,
+                        "actual": duration_min,
+                        "penalty": 15.0,
+                        "message": f"Duration {duration_min:.1f}min below minimum {min_duration_min}min",
+                    }
+                )
 
         # Check minimum TMDB rating
         min_rating = mandatory.get("min_tmdb_rating")
@@ -317,13 +331,15 @@ class ScoringEngine:
             except (TypeError, ValueError):
                 tmdb_rating = 0.0
             if tmdb_rating < min_rating:
-                penalties.append({
-                    "rule": "mandatory_min_rating",
-                    "required": min_rating,
-                    "actual": tmdb_rating,
-                    "penalty": 10.0,
-                    "message": f"TMDB rating {tmdb_rating} below minimum {min_rating}",
-                })
+                penalties.append(
+                    {
+                        "rule": "mandatory_min_rating",
+                        "required": min_rating,
+                        "actual": tmdb_rating,
+                        "penalty": 10.0,
+                        "message": f"TMDB rating {tmdb_rating} below minimum {min_rating}",
+                    }
+                )
 
         # Check required genres (must have at least one)
         required_genres = mandatory.get("required_genres", [])
@@ -331,13 +347,15 @@ class ScoringEngine:
             content_genres = [g.lower() for g in content_meta.get("genres", [])]
             required_lower = [g.lower() for g in required_genres]
             if not any(g in content_genres for g in required_lower):
-                penalties.append({
-                    "rule": "mandatory_genre_missing",
-                    "required": required_genres,
-                    "actual": content_genres,
-                    "penalty": 20.0,
-                    "message": f"Missing required genre from {required_genres}",
-                })
+                penalties.append(
+                    {
+                        "rule": "mandatory_genre_missing",
+                        "required": required_genres,
+                        "actual": content_genres,
+                        "penalty": 20.0,
+                        "message": f"Missing required genre from {required_genres}",
+                    }
+                )
 
         return penalties
 
@@ -403,7 +421,4 @@ class ScoringEngine:
         block: dict[str, Any] | None = None,
     ) -> list[ScoringResult]:
         """Score multiple content items efficiently."""
-        return [
-            self.score(content, meta, profile, block)
-            for content, meta in contents
-        ]
+        return [self.score(content, meta, profile, block) for content, meta in contents]

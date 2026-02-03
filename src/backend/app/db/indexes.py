@@ -11,45 +11,111 @@ logger = logging.getLogger(__name__)
 INDEXES = {
     "profiles": [
         ("idx_profiles_name", "CREATE INDEX IF NOT EXISTS idx_profiles_name ON profiles(name)"),
-        ("idx_profiles_created_at", "CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON profiles(created_at DESC)"),
-        ("idx_profiles_updated_at", "CREATE INDEX IF NOT EXISTS idx_profiles_updated_at ON profiles(updated_at DESC)"),
+        (
+            "idx_profiles_created_at",
+            "CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON profiles(created_at DESC)",
+        ),
+        (
+            "idx_profiles_updated_at",
+            "CREATE INDEX IF NOT EXISTS idx_profiles_updated_at ON profiles(updated_at DESC)",
+        ),
     ],
     "contents": [
-        ("idx_contents_plex_key", "CREATE INDEX IF NOT EXISTS idx_contents_plex_key ON contents(plex_key)"),
+        (
+            "idx_contents_plex_key",
+            "CREATE INDEX IF NOT EXISTS idx_contents_plex_key ON contents(plex_key)",
+        ),
         ("idx_contents_type", "CREATE INDEX IF NOT EXISTS idx_contents_type ON contents(type)"),
         ("idx_contents_title", "CREATE INDEX IF NOT EXISTS idx_contents_title ON contents(title)"),
-        ("idx_contents_library_id", "CREATE INDEX IF NOT EXISTS idx_contents_library_id ON contents(library_id)"),
+        (
+            "idx_contents_library_id",
+            "CREATE INDEX IF NOT EXISTS idx_contents_library_id ON contents(library_id)",
+        ),
     ],
     "content_meta": [
-        ("idx_content_meta_content_id", "CREATE INDEX IF NOT EXISTS idx_content_meta_content_id ON content_meta(content_id)"),
-        ("idx_content_meta_tmdb_id", "CREATE INDEX IF NOT EXISTS idx_content_meta_tmdb_id ON content_meta(tmdb_id)"),
+        (
+            "idx_content_meta_content_id",
+            "CREATE INDEX IF NOT EXISTS idx_content_meta_content_id ON content_meta(content_id)",
+        ),
+        (
+            "idx_content_meta_tmdb_id",
+            "CREATE INDEX IF NOT EXISTS idx_content_meta_tmdb_id ON content_meta(tmdb_id)",
+        ),
     ],
     "channels": [
-        ("idx_channels_tunarr_id", "CREATE INDEX IF NOT EXISTS idx_channels_tunarr_id ON channels(tunarr_id)"),
+        (
+            "idx_channels_tunarr_id",
+            "CREATE INDEX IF NOT EXISTS idx_channels_tunarr_id ON channels(tunarr_id)",
+        ),
         ("idx_channels_name", "CREATE INDEX IF NOT EXISTS idx_channels_name ON channels(name)"),
     ],
     "programs": [
-        ("idx_programs_channel_id", "CREATE INDEX IF NOT EXISTS idx_programs_channel_id ON programs(channel_id)"),
-        ("idx_programs_content_id", "CREATE INDEX IF NOT EXISTS idx_programs_content_id ON programs(content_id)"),
-        ("idx_programs_start_time", "CREATE INDEX IF NOT EXISTS idx_programs_start_time ON programs(start_time)"),
-        ("idx_programs_channel_start", "CREATE INDEX IF NOT EXISTS idx_programs_channel_start ON programs(channel_id, start_time)"),
+        (
+            "idx_programs_channel_id",
+            "CREATE INDEX IF NOT EXISTS idx_programs_channel_id ON programs(channel_id)",
+        ),
+        (
+            "idx_programs_content_id",
+            "CREATE INDEX IF NOT EXISTS idx_programs_content_id ON programs(content_id)",
+        ),
+        (
+            "idx_programs_start_time",
+            "CREATE INDEX IF NOT EXISTS idx_programs_start_time ON programs(start_time)",
+        ),
+        (
+            "idx_programs_channel_start",
+            "CREATE INDEX IF NOT EXISTS idx_programs_channel_start ON programs(channel_id, start_time)",
+        ),
     ],
     "scoring_results": [
-        ("idx_scoring_channel_id", "CREATE INDEX IF NOT EXISTS idx_scoring_channel_id ON scoring_results(channel_id)"),
-        ("idx_scoring_profile_id", "CREATE INDEX IF NOT EXISTS idx_scoring_profile_id ON scoring_results(profile_id)"),
-        ("idx_scoring_program_id", "CREATE INDEX IF NOT EXISTS idx_scoring_program_id ON scoring_results(program_id)"),
-        ("idx_scoring_total_score", "CREATE INDEX IF NOT EXISTS idx_scoring_total_score ON scoring_results(total_score DESC)"),
+        (
+            "idx_scoring_channel_id",
+            "CREATE INDEX IF NOT EXISTS idx_scoring_channel_id ON scoring_results(channel_id)",
+        ),
+        (
+            "idx_scoring_profile_id",
+            "CREATE INDEX IF NOT EXISTS idx_scoring_profile_id ON scoring_results(profile_id)",
+        ),
+        (
+            "idx_scoring_program_id",
+            "CREATE INDEX IF NOT EXISTS idx_scoring_program_id ON scoring_results(program_id)",
+        ),
+        (
+            "idx_scoring_total_score",
+            "CREATE INDEX IF NOT EXISTS idx_scoring_total_score ON scoring_results(total_score DESC)",
+        ),
     ],
     "history_entries": [
-        ("idx_history_type", "CREATE INDEX IF NOT EXISTS idx_history_type ON history_entries(type)"),
-        ("idx_history_status", "CREATE INDEX IF NOT EXISTS idx_history_status ON history_entries(status)"),
-        ("idx_history_channel_id", "CREATE INDEX IF NOT EXISTS idx_history_channel_id ON history_entries(channel_id)"),
-        ("idx_history_profile_id", "CREATE INDEX IF NOT EXISTS idx_history_profile_id ON history_entries(profile_id)"),
-        ("idx_history_started_at", "CREATE INDEX IF NOT EXISTS idx_history_started_at ON history_entries(started_at DESC)"),
-        ("idx_history_type_status", "CREATE INDEX IF NOT EXISTS idx_history_type_status ON history_entries(type, status)"),
+        (
+            "idx_history_type",
+            "CREATE INDEX IF NOT EXISTS idx_history_type ON history_entries(type)",
+        ),
+        (
+            "idx_history_status",
+            "CREATE INDEX IF NOT EXISTS idx_history_status ON history_entries(status)",
+        ),
+        (
+            "idx_history_channel_id",
+            "CREATE INDEX IF NOT EXISTS idx_history_channel_id ON history_entries(channel_id)",
+        ),
+        (
+            "idx_history_profile_id",
+            "CREATE INDEX IF NOT EXISTS idx_history_profile_id ON history_entries(profile_id)",
+        ),
+        (
+            "idx_history_started_at",
+            "CREATE INDEX IF NOT EXISTS idx_history_started_at ON history_entries(started_at DESC)",
+        ),
+        (
+            "idx_history_type_status",
+            "CREATE INDEX IF NOT EXISTS idx_history_type_status ON history_entries(type, status)",
+        ),
     ],
     "services": [
-        ("idx_services_service_type", "CREATE UNIQUE INDEX IF NOT EXISTS idx_services_service_type ON services(service_type)"),
+        (
+            "idx_services_service_type",
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_services_service_type ON services(service_type)",
+        ),
     ],
 }
 

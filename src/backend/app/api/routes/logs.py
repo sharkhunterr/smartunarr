@@ -35,12 +35,15 @@ class InMemoryLogHandler(logging.Handler):
                 "timestamp": datetime.fromtimestamp(record.created).isoformat(),
                 "level": level_map.get(record.levelno, "info"),
                 "message": record.getMessage(),
-                "source": record.name.replace("app.", "").split(".")[0] if record.name.startswith("app.") else record.name,
+                "source": record.name.replace("app.", "").split(".")[0]
+                if record.name.startswith("app.")
+                else record.name,
             }
 
             # Add exception info if present
             if record.exc_info:
                 import traceback
+
                 entry["message"] += "\n" + "".join(traceback.format_exception(*record.exc_info))
 
             _log_entries.append(entry)
@@ -99,7 +102,7 @@ async def get_logs(
 
     # Apply pagination
     total = len(logs)
-    logs = logs[offset:offset + limit]
+    logs = logs[offset : offset + limit]
 
     return {
         "logs": logs,
@@ -118,10 +121,13 @@ async def clear_logs() -> dict[str, str]:
 
 @router.delete("/cleanup")
 async def cleanup_logs(
-    retention_days: int = Query(30, ge=1, le=365, description="Delete logs older than this many days"),
+    retention_days: int = Query(
+        30, ge=1, le=365, description="Delete logs older than this many days"
+    ),
 ) -> dict[str, Any]:
     """Clean up logs older than the specified retention period."""
     from datetime import timedelta
+
     global _log_entries
 
     cutoff = datetime.utcnow() - timedelta(days=retention_days)
@@ -132,8 +138,7 @@ async def cleanup_logs(
 
     # Keep only logs newer than cutoff
     new_entries = deque(
-        (entry for entry in _log_entries if entry["timestamp"] >= cutoff_iso),
-        maxlen=MAX_LOGS
+        (entry for entry in _log_entries if entry["timestamp"] >= cutoff_iso), maxlen=MAX_LOGS
     )
 
     deleted_count = total_before - len(new_entries)

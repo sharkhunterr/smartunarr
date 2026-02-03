@@ -39,24 +39,12 @@ class CriterionMultipliers(BaseModel):
 class CriterionRules(BaseModel):
     """Optional rules for a scoring criterion (mandatory/forbidden/preferred)."""
 
-    mandatory_values: list[str] | None = Field(
-        None, description="Values that must be present"
-    )
-    mandatory_penalty: float = Field(
-        -50.0, description="Penalty if mandatory values missing"
-    )
-    forbidden_values: list[str] | None = Field(
-        None, description="Values that must not be present"
-    )
-    forbidden_penalty: float = Field(
-        -200.0, description="Penalty if forbidden values found"
-    )
-    preferred_values: list[str] | None = Field(
-        None, description="Values that give bonus points"
-    )
-    preferred_bonus: float = Field(
-        20.0, description="Bonus if preferred values found"
-    )
+    mandatory_values: list[str] | None = Field(None, description="Values that must be present")
+    mandatory_penalty: float = Field(-50.0, description="Penalty if mandatory values missing")
+    forbidden_values: list[str] | None = Field(None, description="Values that must not be present")
+    forbidden_penalty: float = Field(-200.0, description="Penalty if forbidden values found")
+    preferred_values: list[str] | None = Field(None, description="Values that give bonus points")
+    preferred_bonus: float = Field(20.0, description="Bonus if preferred values found")
 
 
 class TimingRules(BaseModel):
@@ -74,21 +62,15 @@ class TimingRules(BaseModel):
     preferred_max_minutes: float | None = Field(
         None, ge=0, description="Max minutes for preferred (bonus if <= this)"
     )
-    preferred_bonus: float = Field(
-        20.0, description="Bonus points if within preferred threshold"
-    )
+    preferred_bonus: float = Field(20.0, description="Bonus points if within preferred threshold")
     mandatory_max_minutes: float | None = Field(
         None, ge=0, description="Max minutes for mandatory (penalty if > this)"
     )
-    mandatory_penalty: float = Field(
-        -50.0, description="Penalty if exceeds mandatory threshold"
-    )
+    mandatory_penalty: float = Field(-50.0, description="Penalty if exceeds mandatory threshold")
     forbidden_max_minutes: float | None = Field(
         None, ge=0, description="Max minutes for forbidden (violation if > this)"
     )
-    forbidden_penalty: float = Field(
-        -200.0, description="Penalty if exceeds forbidden threshold"
-    )
+    forbidden_penalty: float = Field(-200.0, description="Penalty if exceeds forbidden threshold")
 
 
 class LibraryConfig(BaseModel):
@@ -119,13 +101,19 @@ class BlockCriteria(BaseModel):
     min_vote_count: int | None = Field(None, ge=0)
     max_release_age_years: int | None = Field(None, ge=0)
     # Keyword modifiers
-    exclude_keywords: list[str] = Field(default_factory=list, description="Keywords that penalize content (-50%)")
-    include_keywords: list[str] = Field(default_factory=list, description="Keywords that boost content (+10%)")
+    exclude_keywords: list[str] = Field(
+        default_factory=list, description="Keywords that penalize content (-50%)"
+    )
+    include_keywords: list[str] = Field(
+        default_factory=list, description="Keywords that boost content (+10%)"
+    )
     # Per-criterion rules (optional - if not defined, normal calculation applies)
     type_rules: CriterionRules | None = Field(None, description="Rules for type criterion")
     duration_rules: CriterionRules | None = Field(None, description="Rules for duration criterion")
     genre_rules: CriterionRules | None = Field(None, description="Rules for genre criterion")
-    timing_rules: TimingRules | None = Field(None, description="Timing rules based on overflow/late minutes")
+    timing_rules: TimingRules | None = Field(
+        None, description="Timing rules based on overflow/late minutes"
+    )
     strategy_rules: CriterionRules | None = Field(None, description="Rules for strategy criterion")
     age_rules: CriterionRules | None = Field(None, description="Rules for age criterion")
     rating_rules: CriterionRules | None = Field(None, description="Rules for rating criterion")
@@ -133,7 +121,9 @@ class BlockCriteria(BaseModel):
     bonus_rules: CriterionRules | None = Field(None, description="Rules for bonus criterion")
     # M/F/P policy and multipliers (override profile-level if defined)
     mfp_policy: MFPPolicy | None = Field(None, description="M/F/P point policy for this block")
-    criterion_multipliers: CriterionMultipliers | None = Field(None, description="Criterion score multipliers for this block")
+    criterion_multipliers: CriterionMultipliers | None = Field(
+        None, description="Criterion score multipliers for this block"
+    )
 
 
 class TimeBlock(BaseModel):
@@ -200,8 +190,12 @@ class MandatoryForbiddenCriteria(BaseModel):
     forbidden: ForbiddenRules = Field(default_factory=ForbiddenRules)
     preferred: PreferredRules = Field(default_factory=PreferredRules)
     # Profile-level keyword modifiers (applied when no block-level defined)
-    exclude_keywords: list[str] = Field(default_factory=list, description="Keywords that penalize content (-50%)")
-    include_keywords: list[str] = Field(default_factory=list, description="Keywords that boost content (+10%)")
+    exclude_keywords: list[str] = Field(
+        default_factory=list, description="Keywords that penalize content (-50%)"
+    )
+    include_keywords: list[str] = Field(
+        default_factory=list, description="Keywords that boost content (+10%)"
+    )
 
 
 # Enhanced Criteria v6 classes
@@ -413,8 +407,12 @@ class ProfileCreate(BaseModel):
     strategies: Strategies | None = Field(default_factory=Strategies)
     scoring_weights: ScoringWeights = Field(default_factory=ScoringWeights)
     # M/F/P policy and multipliers (profile-level defaults, can be overridden per block)
-    mfp_policy: MFPPolicy = Field(default_factory=MFPPolicy, description="Default M/F/P point policy")
-    criterion_multipliers: CriterionMultipliers = Field(default_factory=CriterionMultipliers, description="Default criterion multipliers")
+    mfp_policy: MFPPolicy = Field(
+        default_factory=MFPPolicy, description="Default M/F/P point policy"
+    )
+    criterion_multipliers: CriterionMultipliers = Field(
+        default_factory=CriterionMultipliers, description="Default criterion multipliers"
+    )
     default_iterations: int = Field(10, ge=1, le=100)
     default_randomness: float = Field(0.3, ge=0, le=1)
     labels: list[str] = Field(default_factory=list)

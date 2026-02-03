@@ -55,8 +55,12 @@ class FilterCriterion(BaseCriterion):
             # Also include from filter_rules if defined
             filter_rules = block_criteria.get("filter_rules", {})
             if filter_rules:
-                forbidden_keywords |= {k.lower() for k in (filter_rules.get("forbidden_values") or [])}
-                preferred_keywords |= {k.lower() for k in (filter_rules.get("preferred_values") or [])}
+                forbidden_keywords |= {
+                    k.lower() for k in (filter_rules.get("forbidden_values") or [])
+                }
+                preferred_keywords |= {
+                    k.lower() for k in (filter_rules.get("preferred_values") or [])
+                }
                 # MFP policy takes precedence, only use rule-specific values as fallback
                 # if MFP policy wasn't provided
                 if not mfp_policy:
@@ -80,7 +84,9 @@ class FilterCriterion(BaseCriterion):
             for content_kw in content_keywords:
                 for forbidden_kw in forbidden_keywords:
                     if forbidden_kw in content_kw:
-                        rule_violation = RuleViolation("forbidden", [forbidden_kw], forbidden_penalty)
+                        rule_violation = RuleViolation(
+                            "forbidden", [forbidden_kw], forbidden_penalty
+                        )
                         return 0.0, rule_violation, []
             # Check title for forbidden keywords
             for keyword in forbidden_keywords:
@@ -117,7 +123,9 @@ class FilterCriterion(BaseCriterion):
                 matched_keywords = list(matched_preferred)
                 # Base bonus for first match, then diminishing returns for additional matches
                 # First match gets full bonus, subsequent matches get 20% each (max 50 points total)
-                bonus = preferred_bonus + min(30.0, (len(matched_preferred) - 1) * (preferred_bonus * 0.2))
+                bonus = preferred_bonus + min(
+                    30.0, (len(matched_preferred) - 1) * (preferred_bonus * 0.2)
+                )
                 score += bonus
                 rule_violation = RuleViolation("preferred", matched_keywords, bonus)
 

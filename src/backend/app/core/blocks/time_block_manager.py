@@ -9,6 +9,7 @@ from typing import Any
 def _get_local_timezone() -> timezone:
     """Get the local timezone based on current DST status."""
     import time as time_module
+
     # Check if DST is currently in effect (not just if system recognizes DST)
     is_dst_now = time_module.localtime().tm_isdst > 0
     if is_dst_now:
@@ -203,12 +204,14 @@ class TimeBlockManager:
         slots = []
 
         for block, slot_start, slot_end in self.get_blocks_in_range(start_dt, end_dt):
-            slots.append({
-                "block": block.to_dict(),
-                "start": slot_start.isoformat(),
-                "end": slot_end.isoformat(),
-                "duration_minutes": int((slot_end - slot_start).total_seconds() / 60),
-            })
+            slots.append(
+                {
+                    "block": block.to_dict(),
+                    "start": slot_start.isoformat(),
+                    "end": slot_end.isoformat(),
+                    "duration_minutes": int((slot_end - slot_start).total_seconds() / 60),
+                }
+            )
 
         return slots
 

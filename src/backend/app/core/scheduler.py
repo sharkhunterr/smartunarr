@@ -129,18 +129,14 @@ class SchedulerManager:
                     # days is list of day indices (0=Monday, 6=Sunday)
                     if days:
                         day_of_week = ",".join(str(d) for d in days)
-                        return CronTrigger(
-                            hour=hour, minute=minute, day_of_week=day_of_week
-                        )
+                        return CronTrigger(hour=hour, minute=minute, day_of_week=day_of_week)
                     else:
                         # Default to Monday
                         return CronTrigger(hour=hour, minute=minute, day_of_week="0")
                 elif frequency == "specific_days":
                     if days:
                         day_of_week = ",".join(str(d) for d in days)
-                        return CronTrigger(
-                            hour=hour, minute=minute, day_of_week=day_of_week
-                        )
+                        return CronTrigger(hour=hour, minute=minute, day_of_week=day_of_week)
             except Exception as e:
                 logger.error(f"Invalid simple schedule config: {e}")
                 return None
@@ -168,9 +164,7 @@ class SchedulerManager:
                     return
 
                 # Update status to running
-                await service.update_execution_status(
-                    schedule_id, "running", None
-                )
+                await service.update_execution_status(schedule_id, "running", None)
                 await session.commit()
 
             # Execute based on type
@@ -187,11 +181,13 @@ class SchedulerManager:
             try:
                 async with async_session_maker() as session:
                     service = ScheduleService(session)
-                    job = self._scheduler.get_job(f"schedule_{schedule_id}") if self._scheduler else None
-                    next_run = job.next_run_time if job else None
-                    await service.update_execution_status(
-                        schedule_id, "failed", next_run
+                    job = (
+                        self._scheduler.get_job(f"schedule_{schedule_id}")
+                        if self._scheduler
+                        else None
                     )
+                    next_run = job.next_run_time if job else None
+                    await service.update_execution_status(schedule_id, "failed", next_run)
                     await session.commit()
             except Exception:
                 pass
@@ -238,9 +234,7 @@ class SchedulerManager:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
-                loop.run_until_complete(
-                    _run_programming(job_id, request, schedule_id=schedule.id)
-                )
+                loop.run_until_complete(_run_programming(job_id, request, schedule_id=schedule.id))
             finally:
                 loop.close()
 
@@ -256,7 +250,9 @@ class SchedulerManager:
 
         async with async_session_maker() as session:
             service = ScheduleService(session)
-            scheduler_job = self._scheduler.get_job(f"schedule_{schedule.id}") if self._scheduler else None
+            scheduler_job = (
+                self._scheduler.get_job(f"schedule_{schedule.id}") if self._scheduler else None
+            )
             next_run = scheduler_job.next_run_time if scheduler_job else None
             await service.update_execution_status(schedule.id, status, next_run)
             await session.commit()
@@ -292,9 +288,7 @@ class SchedulerManager:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
-                loop.run_until_complete(
-                    _run_scoring(job_id, request, schedule_id=schedule.id)
-                )
+                loop.run_until_complete(_run_scoring(job_id, request, schedule_id=schedule.id))
             finally:
                 loop.close()
 
@@ -310,14 +304,14 @@ class SchedulerManager:
 
         async with async_session_maker() as session:
             service = ScheduleService(session)
-            scheduler_job = self._scheduler.get_job(f"schedule_{schedule.id}") if self._scheduler else None
+            scheduler_job = (
+                self._scheduler.get_job(f"schedule_{schedule.id}") if self._scheduler else None
+            )
             next_run = scheduler_job.next_run_time if scheduler_job else None
             await service.update_execution_status(schedule.id, status, next_run)
             await session.commit()
 
-    async def _update_next_execution(
-        self, schedule_id: str, next_run: datetime
-    ) -> None:
+    async def _update_next_execution(self, schedule_id: str, next_run: datetime) -> None:
         """Update schedule's next_execution_at in database."""
         from app.db.database import async_session_maker
         from app.services.schedule_service import ScheduleService

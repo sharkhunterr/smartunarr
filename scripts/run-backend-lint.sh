@@ -8,13 +8,13 @@ cd "$(dirname "$0")/../src/backend"
 run_lint() {
     if command -v poetry &> /dev/null; then
         echo "🔍 Vérification avec Poetry..."
-        poetry run ruff check src/
-        poetry run black --check src/
+        poetry run ruff check app/ tests/
+        poetry run ruff format --check app/ tests/
     elif [ -f ".venv/bin/activate" ]; then
         echo "🔍 Vérification avec venv..."
         source .venv/bin/activate
-        ruff check src/
-        black --check src/
+        ruff check app/ tests/
+        ruff format --check app/ tests/
     else
         echo "❌ Erreur: Ni Poetry ni environnement virtuel trouvé"
         echo ""

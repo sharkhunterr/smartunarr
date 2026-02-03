@@ -55,10 +55,7 @@ class TMDBService:
         now = time.time()
 
         # Remove old request times
-        self._request_times = [
-            t for t in self._request_times
-            if now - t < self.rate_window
-        ]
+        self._request_times = [t for t in self._request_times if now - t < self.rate_window]
 
         # Wait if at limit
         if len(self._request_times) >= self.rate_limit:
@@ -321,7 +318,7 @@ class TMDBService:
         results = []
 
         for i in range(0, len(items), batch_size):
-            batch = items[i:i + batch_size]
+            batch = items[i : i + batch_size]
             tasks = [
                 self.enrich_content(
                     item.get("title", ""),

@@ -16,6 +16,7 @@ T = TypeVar("T")
 @dataclass
 class CacheEntry(Generic[T]):
     """A cached value with expiration."""
+
     value: T
     expires_at: datetime
     created_at: datetime = field(default_factory=datetime.utcnow)
@@ -203,11 +204,7 @@ class CacheService:
             Statistics dictionary
         """
         total_requests = self._stats["hits"] + self._stats["misses"]
-        hit_rate = (
-            self._stats["hits"] / total_requests * 100
-            if total_requests > 0
-            else 0
-        )
+        hit_rate = self._stats["hits"] / total_requests * 100 if total_requests > 0 else 0
 
         return {
             **self._stats,
@@ -238,10 +235,7 @@ class CacheService:
         """
         async with self._lock:
             now = datetime.utcnow()
-            expired_keys = [
-                k for k, v in self._cache.items()
-                if v.expires_at < now
-            ]
+            expired_keys = [k for k, v in self._cache.items() if v.expires_at < now]
             for key in expired_keys:
                 del self._cache[key]
 
@@ -292,6 +286,7 @@ def cached(
         async def get_user(user_id: str):
             ...
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -320,6 +315,7 @@ def cached(
             return result
 
         return wrapper
+
     return decorator
 
 

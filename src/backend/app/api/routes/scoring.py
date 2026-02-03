@@ -33,6 +33,7 @@ _scoring_results: dict[str, dict[str, Any]] = {}
 
 class ScoringRequest(BaseModel):
     """Request to analyze scoring."""
+
     channel_id: str
     profile_id: str
     cache_mode: str = "full"  # none, cache_only, full (cache + TMDB enrichment)
@@ -66,10 +67,12 @@ async def _run_scoring(
                 steps.append(ProgressStep("cache", "Recherche dans cache", "pending"))
             if use_tmdb:
                 steps.append(ProgressStep("tmdb", "Enrichissement TMDB", "pending"))
-            steps.extend([
-                ProgressStep("scoring", "Calcul des scores", "pending"),
-                ProgressStep("finalize", "Finalisation", "pending"),
-            ])
+            steps.extend(
+                [
+                    ProgressStep("scoring", "Calcul des scores", "pending"),
+                    ProgressStep("finalize", "Finalisation", "pending"),
+                ]
+            )
             await job_manager.set_job_steps(job_id, steps)
             await job_manager.update_job_progress(job_id, 5, "Chargement configuration...")
 
@@ -130,7 +133,9 @@ async def _run_scoring(
 
             # Get channel programs from Tunarr
             await job_manager.update_step_status(job_id, "channel", "running")
-            await job_manager.update_job_progress(job_id, 15, "Récupération des programmes Tunarr...")
+            await job_manager.update_job_progress(
+                job_id, 15, "Récupération des programmes Tunarr..."
+            )
 
             channel = await tunarr.get_channel(request.channel_id)
             if not channel:
@@ -151,7 +156,9 @@ async def _run_scoring(
                 if not lineup:
                     raise ValueError("No lineup found in Tunarr response")
 
-                logger.info(f"Tunarr lineup: {len(lineup)} entries, programs dict: {len(programs_dict)} entries")
+                logger.info(
+                    f"Tunarr lineup: {len(lineup)} entries, programs dict: {len(programs_dict)} entries"
+                )
 
                 # Get channel's programming start time (like old code did)
                 from datetime import timedelta
@@ -166,12 +173,18 @@ async def _run_scoring(
                             current_time = datetime.fromtimestamp(channel_start_time / 1000, tz=UTC)
                         elif isinstance(channel_start_time, str):
                             if channel_start_time.replace(".", "").isdigit():
-                                current_time = datetime.fromtimestamp(float(channel_start_time) / 1000, tz=UTC)
+                                current_time = datetime.fromtimestamp(
+                                    float(channel_start_time) / 1000, tz=UTC
+                                )
                             else:
-                                current_time = datetime.fromisoformat(channel_start_time.replace("Z", "+00:00"))
+                                current_time = datetime.fromisoformat(
+                                    channel_start_time.replace("Z", "+00:00")
+                                )
                         logger.info(f"Channel startTime: {channel_start_time} -> {current_time}")
                     except Exception as e:
-                        logger.warning(f"Failed to parse channel startTime {channel_start_time}: {e}")
+                        logger.warning(
+                            f"Failed to parse channel startTime {channel_start_time}: {e}"
+                        )
 
                 # Fallback: try startTimeOffsets from programming response
                 start_time_offsets = programs_response.get("startTimeOffsets", [])
@@ -217,7 +230,9 @@ async def _run_scoring(
                                 start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
                                 local_start = start_dt.astimezone()
                                 start_time = local_start.isoformat()
-                                end_time = (local_start + timedelta(milliseconds=duration_ms)).isoformat()
+                                end_time = (
+                                    local_start + timedelta(milliseconds=duration_ms)
+                                ).isoformat()
                             except Exception:
                                 pass
 
@@ -233,25 +248,36 @@ async def _run_scoring(
 
                     # Debug first few programs
                     if i < 3:
-                        logger.info(f"Program {i}: title={merged_program.get('title')}, start={start_time}, type={merged_program.get('type')}, keys={list(merged_program.keys())[:10]}")
+                        logger.info(
+                            f"Program {i}: title={merged_program.get('title')}, start={start_time}, type={merged_program.get('type')}, keys={list(merged_program.keys())[:10]}"
+                        )
             else:
                 # Response is a list - calculate start/end times from channel startTime
                 programs_data = programs_response if programs_response else []
                 if programs_data:
                     from datetime import timedelta
+
                     channel_start_time = channel.get("startTime")
                     current_time = None
                     if channel_start_time:
                         try:
                             if isinstance(channel_start_time, (int, float)):
-                                current_time = datetime.fromtimestamp(channel_start_time / 1000, tz=UTC)
+                                current_time = datetime.fromtimestamp(
+                                    channel_start_time / 1000, tz=UTC
+                                )
                             elif isinstance(channel_start_time, str):
                                 if channel_start_time.replace(".", "").isdigit():
-                                    current_time = datetime.fromtimestamp(float(channel_start_time) / 1000, tz=UTC)
+                                    current_time = datetime.fromtimestamp(
+                                        float(channel_start_time) / 1000, tz=UTC
+                                    )
                                 else:
-                                    current_time = datetime.fromisoformat(channel_start_time.replace("Z", "+00:00"))
+                                    current_time = datetime.fromisoformat(
+                                        channel_start_time.replace("Z", "+00:00")
+                                    )
                         except Exception as e:
-                            logger.warning(f"Failed to parse channel startTime {channel_start_time}: {e}")
+                            logger.warning(
+                                f"Failed to parse channel startTime {channel_start_time}: {e}"
+                            )
 
                     # Add start/end times to each program
                     for prog in programs_data:
@@ -302,8 +328,7 @@ async def _run_scoring(
 
                     if i % 20 == 0:
                         await job_manager.update_step_status(
-                            job_id, "cache", "running",
-                            f"{i}/{len(programs_data)} vérifiés"
+                            job_id, "cache", "running", f"{i}/{len(programs_data)} vérifiés"
                         )
 
                 cache_detail = f"{enriched_count}/{len(programs_data)} trouvés dans cache"
@@ -327,7 +352,9 @@ async def _run_scoring(
                 # Log first item for debugging
                 if not_in_cache:
                     first_prog = not_in_cache[0][1]
-                    logger.info(f"First program to enrich: title={first_prog.get('title')}, type={first_prog.get('type')}, year={first_prog.get('year')}, keys={list(first_prog.keys())[:15]}")
+                    logger.info(
+                        f"First program to enrich: title={first_prog.get('title')}, type={first_prog.get('type')}, year={first_prog.get('year')}, keys={list(first_prog.keys())[:15]}"
+                    )
 
                 for idx, (_prog_idx, prog) in enumerate(not_in_cache):
                     title = prog.get("title", "")
@@ -348,12 +375,12 @@ async def _run_scoring(
 
                     if idx % 5 == 0:
                         await job_manager.update_step_status(
-                            job_id, "tmdb", "running",
-                            f"{idx}/{len(not_in_cache)} enrichis"
+                            job_id, "tmdb", "running", f"{idx}/{len(not_in_cache)} enrichis"
                         )
                         await job_manager.update_job_progress(
-                            job_id, 35 + (idx / len(not_in_cache)) * 15,
-                            f"Enrichissement TMDB: {idx}/{len(not_in_cache)}..."
+                            job_id,
+                            35 + (idx / len(not_in_cache)) * 15,
+                            f"Enrichissement TMDB: {idx}/{len(not_in_cache)}...",
                         )
 
                     try:
@@ -378,7 +405,9 @@ async def _run_scoring(
                             tmdb_enriched += 1
 
                             # Save to cache for future "cache only" requests
-                            plex_key = prog.get("externalKey", prog.get("plexKey", prog.get("id", "")))
+                            plex_key = prog.get(
+                                "externalKey", prog.get("plexKey", prog.get("id", ""))
+                            )
                             if plex_key:
                                 content_data = {
                                     "title": title,
@@ -391,10 +420,14 @@ async def _run_scoring(
                                 )
 
                             if idx < 3:  # Log first 3 enrichments
-                                logger.info(f"TMDB enriched & cached: {title} -> genres={enriched.get('genres')}, rating={enriched.get('tmdb_rating')}")
+                                logger.info(
+                                    f"TMDB enriched & cached: {title} -> genres={enriched.get('genres')}, rating={enriched.get('tmdb_rating')}"
+                                )
                         else:
                             if idx < 3:
-                                logger.warning(f"TMDB returned no data for: {title} (type={prog_type}, year={year})")
+                                logger.warning(
+                                    f"TMDB returned no data for: {title} (type={prog_type}, year={year})"
+                                )
                     except Exception as e:
                         logger.warning(f"TMDB enrichment failed for {title}: {e}")
 
@@ -421,8 +454,15 @@ async def _run_scoring(
             penalties_applied: list[str] = []
             bonuses_applied: list[str] = []
             score_distribution: dict[str, float] = {
-                "type": 0, "duration": 0, "genre": 0, "timing": 0,
-                "strategy": 0, "age": 0, "rating": 0, "filter": 0, "bonus": 0
+                "type": 0,
+                "duration": 0,
+                "genre": 0,
+                "timing": 0,
+                "strategy": 0,
+                "age": 0,
+                "rating": 0,
+                "filter": 0,
+                "bonus": 0,
             }
 
             # Pre-compute block assignments to determine first/last in block
@@ -440,8 +480,7 @@ async def _run_scoring(
                 progress = 40 + (i / len(programs_data)) * 50
                 if i % 10 == 0:
                     await job_manager.update_step_status(
-                        job_id, "scoring", "running",
-                        f"{i}/{len(programs_data)} scorés"
+                        job_id, "scoring", "running", f"{i}/{len(programs_data)} scorés"
                     )
                     await job_manager.update_job_progress(
                         job_id, progress, f"Calcul des scores: {i}/{len(programs_data)}..."
@@ -470,7 +509,9 @@ async def _run_scoring(
                                 content_year = None
                     content = {
                         "id": prog.get("id", ""),
-                        "plex_key": prog.get("externalKey", prog.get("plexKey", prog.get("id", ""))),
+                        "plex_key": prog.get(
+                            "externalKey", prog.get("plexKey", prog.get("id", ""))
+                        ),
                         "title": prog.get("title", "Unknown"),
                         "type": content_type,
                         "duration_ms": prog.get("duration", 0),
@@ -494,8 +535,16 @@ async def _run_scoring(
 
                 # Determine if first/last in block
                 current_block_name = block.get("name") if block else None
-                prev_block_name = block_assignments[i - 1].get("name") if i > 0 and block_assignments[i - 1] else None
-                next_block_name = block_assignments[i + 1].get("name") if i < len(block_assignments) - 1 and block_assignments[i + 1] else None
+                prev_block_name = (
+                    block_assignments[i - 1].get("name")
+                    if i > 0 and block_assignments[i - 1]
+                    else None
+                )
+                next_block_name = (
+                    block_assignments[i + 1].get("name")
+                    if i < len(block_assignments) - 1 and block_assignments[i + 1]
+                    else None
+                )
 
                 is_first_in_block = current_block_name and current_block_name != prev_block_name
                 is_last_in_block = current_block_name and current_block_name != next_block_name
@@ -531,39 +580,57 @@ async def _run_scoring(
                                 # Program is in "before midnight" part (e.g., 23:30 in 23:00-07:00)
                                 # block_start = same day, block_end = next day
                                 block_start_dt = datetime(
-                                    base_date.year, base_date.month, base_date.day,
-                                    block_start_h, block_start_m,
-                                    tzinfo=local_prog_start.tzinfo
+                                    base_date.year,
+                                    base_date.month,
+                                    base_date.day,
+                                    block_start_h,
+                                    block_start_m,
+                                    tzinfo=local_prog_start.tzinfo,
                                 )
                                 block_end_dt = datetime(
-                                    base_date.year, base_date.month, base_date.day,
-                                    block_end_h, block_end_m,
-                                    tzinfo=local_prog_start.tzinfo
+                                    base_date.year,
+                                    base_date.month,
+                                    base_date.day,
+                                    block_end_h,
+                                    block_end_m,
+                                    tzinfo=local_prog_start.tzinfo,
                                 ) + timedelta(days=1)
                             else:
                                 # Program is in "after midnight" part (e.g., 05:47 in 23:00-07:00)
                                 # block_start = previous day, block_end = same day
                                 block_start_dt = datetime(
-                                    base_date.year, base_date.month, base_date.day,
-                                    block_start_h, block_start_m,
-                                    tzinfo=local_prog_start.tzinfo
+                                    base_date.year,
+                                    base_date.month,
+                                    base_date.day,
+                                    block_start_h,
+                                    block_start_m,
+                                    tzinfo=local_prog_start.tzinfo,
                                 ) - timedelta(days=1)
                                 block_end_dt = datetime(
-                                    base_date.year, base_date.month, base_date.day,
-                                    block_end_h, block_end_m,
-                                    tzinfo=local_prog_start.tzinfo
+                                    base_date.year,
+                                    base_date.month,
+                                    base_date.day,
+                                    block_end_h,
+                                    block_end_m,
+                                    tzinfo=local_prog_start.tzinfo,
                                 )
                         else:
                             # Normal daytime block
                             block_start_dt = datetime(
-                                base_date.year, base_date.month, base_date.day,
-                                block_start_h, block_start_m,
-                                tzinfo=local_prog_start.tzinfo
+                                base_date.year,
+                                base_date.month,
+                                base_date.day,
+                                block_start_h,
+                                block_start_m,
+                                tzinfo=local_prog_start.tzinfo,
                             )
                             block_end_dt = datetime(
-                                base_date.year, base_date.month, base_date.day,
-                                block_end_h, block_end_m,
-                                tzinfo=local_prog_start.tzinfo
+                                base_date.year,
+                                base_date.month,
+                                base_date.day,
+                                block_end_h,
+                                block_end_m,
+                                tzinfo=local_prog_start.tzinfo,
                             )
 
                         context = ScoringContext(
@@ -574,7 +641,9 @@ async def _run_scoring(
                             is_last_in_block=is_last_in_block,
                         )
                     except Exception as e:
-                        logger.warning(f"Failed to create ScoringContext for {prog.get('title')}: {e}")
+                        logger.warning(
+                            f"Failed to create ScoringContext for {prog.get('title')}: {e}"
+                        )
 
                 # Ensure content has timing info for overflow calculation
                 # (cached content doesn't have start_time/end_time, add from program data)
@@ -585,12 +654,14 @@ async def _run_scoring(
                 }
 
                 # Score the program
-                score_result = scoring_engine.score(content_with_timing, meta, profile_dict, block, context)
+                score_result = scoring_engine.score(
+                    content_with_timing, meta, profile_dict, block, context
+                )
 
                 # Track violations
                 if score_result.forbidden_violations:
                     violations_count += len(score_result.forbidden_violations)
-                    content_title = content.get('title', 'Unknown')
+                    content_title = content.get("title", "Unknown")
                     block_name = block.get("name") if block else "None"
                     logger.warning(
                         f"[FORBIDDEN SCORED] '{content_title}' (block: {block_name}, score: {score_result.total_score}) - "
@@ -617,56 +688,66 @@ async def _run_scoring(
 
                 # Build program result with full scoring details (same format as programming)
                 # Use skipped flag to return None for skipped criteria (e.g., timing for middle programs)
-                scored_programs.append({
-                    "id": str(uuid4()),
-                    "title": content.get("title", "Unknown"),
-                    "type": content.get("type", "movie"),
-                    "start_time": start_time,
-                    "end_time": prog.get("end", ""),
-                    "duration_min": content.get("duration_ms", 0) / 60000,
-                    "genres": meta.get("genres", []) if meta else [],
-                    "keywords": meta.get("keywords", []) if meta else [],
-                    "year": content.get("year"),
-                    "tmdb_rating": meta.get("tmdb_rating") if meta else None,
-                    "content_rating": meta.get("age_rating") or meta.get("content_rating") if meta else None,
-                    "plex_key": content.get("plex_key", ""),
-                    "block_name": block.get("name") if block else None,
-                    "score": {
-                        "total": score_result.total_score,
-                        "breakdown": {
-                            name: (res.score if not res.skipped else None)
-                            for name, res in score_result.criterion_results.items()
+                scored_programs.append(
+                    {
+                        "id": str(uuid4()),
+                        "title": content.get("title", "Unknown"),
+                        "type": content.get("type", "movie"),
+                        "start_time": start_time,
+                        "end_time": prog.get("end", ""),
+                        "duration_min": content.get("duration_ms", 0) / 60000,
+                        "genres": meta.get("genres", []) if meta else [],
+                        "keywords": meta.get("keywords", []) if meta else [],
+                        "year": content.get("year"),
+                        "tmdb_rating": meta.get("tmdb_rating") if meta else None,
+                        "content_rating": meta.get("age_rating") or meta.get("content_rating")
+                        if meta
+                        else None,
+                        "plex_key": content.get("plex_key", ""),
+                        "block_name": block.get("name") if block else None,
+                        "score": {
+                            "total": score_result.total_score,
+                            "breakdown": {
+                                name: (res.score if not res.skipped else None)
+                                for name, res in score_result.criterion_results.items()
+                            },
+                            "criteria": {
+                                name: {
+                                    "score": res.score if not res.skipped else None,
+                                    "weight": res.weight,
+                                    "weighted_score": res.weighted_score,
+                                    "multiplier": res.multiplier,
+                                    "multiplied_weighted_score": res.multiplied_weighted_score,
+                                    "skipped": res.skipped,
+                                    "details": res.details,  # Include criterion-specific details
+                                    "rule_violation": {
+                                        "rule_type": res.rule_violation.rule_type,
+                                        "values": res.rule_violation.values,
+                                        "penalty_or_bonus": res.rule_violation.penalty_or_bonus,
+                                    }
+                                    if res.rule_violation
+                                    else None,
+                                }
+                                for name, res in score_result.criterion_results.items()
+                            },
+                            "penalties": [
+                                p.get("message", "") for p in score_result.mandatory_penalties
+                            ],
+                            "bonuses": score_result.bonuses_applied,
+                            "mandatory_met": len(score_result.mandatory_penalties) == 0,
+                            "forbidden_violated": len(score_result.forbidden_violations) > 0,
+                            "forbidden_details": score_result.forbidden_violations,
+                            "mandatory_details": score_result.mandatory_penalties,
+                            "keyword_multiplier": score_result.keyword_multiplier,
+                            "keyword_match": score_result.keyword_match,
+                            "criterion_rule_violations": score_result.criterion_rule_violations,
                         },
-                        "criteria": {
-                            name: {
-                                "score": res.score if not res.skipped else None,
-                                "weight": res.weight,
-                                "weighted_score": res.weighted_score,
-                                "multiplier": res.multiplier,
-                                "multiplied_weighted_score": res.multiplied_weighted_score,
-                                "skipped": res.skipped,
-                                "details": res.details,  # Include criterion-specific details
-                                "rule_violation": {
-                                    "rule_type": res.rule_violation.rule_type,
-                                    "values": res.rule_violation.values,
-                                    "penalty_or_bonus": res.rule_violation.penalty_or_bonus,
-                                } if res.rule_violation else None,
-                            }
-                            for name, res in score_result.criterion_results.items()
-                        },
-                        "penalties": [p.get("message", "") for p in score_result.mandatory_penalties],
-                        "bonuses": score_result.bonuses_applied,
-                        "mandatory_met": len(score_result.mandatory_penalties) == 0,
-                        "forbidden_violated": len(score_result.forbidden_violations) > 0,
-                        "forbidden_details": score_result.forbidden_violations,
-                        "mandatory_details": score_result.mandatory_penalties,
-                        "keyword_multiplier": score_result.keyword_multiplier,
-                        "keyword_match": score_result.keyword_match,
-                        "criterion_rule_violations": score_result.criterion_rule_violations,
-                    },
-                })
+                    }
+                )
 
-            await job_manager.update_step_status(job_id, "scoring", "completed", f"{len(programs_data)} programmes scorés")
+            await job_manager.update_step_status(
+                job_id, "scoring", "completed", f"{len(programs_data)} programmes scorés"
+            )
 
             # Finalize
             await job_manager.update_step_status(job_id, "finalize", "running")
@@ -735,16 +816,19 @@ async def _run_scoring(
                 best_score=average_score,
             )
 
-            logger.info(f"Scoring completed: {len(scored_programs)} programs, avg {average_score:.2f}")
+            logger.info(
+                f"Scoring completed: {len(scored_programs)} programs, avg {average_score:.2f}"
+            )
 
     except Exception as e:
         logger.error(f"Scoring failed: {e}")
         import traceback
+
         logger.error(f"Traceback: {traceback.format_exc()}")
         await job_manager.fail_job(job_id, str(e))
         # Try to mark history entry as failed if it was created
         try:
-            if 'history_entry' in dir() and 'history_service' in dir():
+            if "history_entry" in dir() and "history_service" in dir():
                 await history_service.mark_failed(history_entry.id, str(e))
         except Exception:
             pass  # Best effort
@@ -883,24 +967,26 @@ async def export_scoring_csv(
     for prog in result["programs"]:
         score = prog["score"]
         breakdown = score.get("breakdown", {})
-        line = ",".join([
-            f'"{prog["title"]}"',
-            prog["type"],
-            prog["start_time"],
-            f'{prog["duration_min"]:.1f}',
-            f'{score["total"]:.2f}',
-            f'{breakdown.get("type", 0):.2f}',
-            f'{breakdown.get("duration", 0):.2f}',
-            f'{breakdown.get("genre", 0):.2f}',
-            f'{breakdown.get("timing", 0):.2f}',
-            f'{breakdown.get("strategy", 0):.2f}',
-            f'{breakdown.get("age", 0):.2f}',
-            f'{breakdown.get("rating", 0):.2f}',
-            f'{breakdown.get("filter", 0):.2f}',
-            f'{breakdown.get("bonus", 0):.2f}',
-            str(score["mandatory_met"]),
-            str(score["forbidden_violated"]),
-        ])
+        line = ",".join(
+            [
+                f'"{prog["title"]}"',
+                prog["type"],
+                prog["start_time"],
+                f"{prog['duration_min']:.1f}",
+                f"{score['total']:.2f}",
+                f"{breakdown.get('type', 0):.2f}",
+                f"{breakdown.get('duration', 0):.2f}",
+                f"{breakdown.get('genre', 0):.2f}",
+                f"{breakdown.get('timing', 0):.2f}",
+                f"{breakdown.get('strategy', 0):.2f}",
+                f"{breakdown.get('age', 0):.2f}",
+                f"{breakdown.get('rating', 0):.2f}",
+                f"{breakdown.get('filter', 0):.2f}",
+                f"{breakdown.get('bonus', 0):.2f}",
+                str(score["mandatory_met"]),
+                str(score["forbidden_violated"]),
+            ]
+        )
         lines.append(line)
 
     csv_content = "\n".join(lines)
@@ -908,9 +994,7 @@ async def export_scoring_csv(
     return PlainTextResponse(
         content=csv_content,
         media_type="text/csv",
-        headers={
-            "Content-Disposition": f'attachment; filename="scoring-{result_id}.csv"'
-        },
+        headers={"Content-Disposition": f'attachment; filename="scoring-{result_id}.csv"'},
     )
 
 

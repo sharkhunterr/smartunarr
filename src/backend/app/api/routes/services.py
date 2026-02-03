@@ -24,6 +24,7 @@ ServiceType = Literal["plex", "tunarr", "tmdb", "ollama"]
 
 class ServiceConfigUpdate(BaseModel):
     """Service configuration update schema."""
+
     url: str | None = None
     username: str | None = None
     password: str | None = None
@@ -33,6 +34,7 @@ class ServiceConfigUpdate(BaseModel):
 
 class ServiceConfigResponse(BaseModel):
     """Service configuration response schema."""
+
     service_type: str
     url: str | None = None
     username: str | None = None
@@ -43,6 +45,7 @@ class ServiceConfigResponse(BaseModel):
 
 class ConnectionTestResponse(BaseModel):
     """Connection test response schema."""
+
     success: bool
     message: str
 
@@ -62,25 +65,29 @@ async def list_services(
     result = []
 
     for config in configs:
-        result.append({
-            "service_type": config.type,
-            "url": config.url,
-            "username": config.username,
-            "has_token": bool(config.token),
-            "has_api_key": bool(config.api_key),
-            "is_configured": True,
-        })
+        result.append(
+            {
+                "service_type": config.type,
+                "url": config.url,
+                "username": config.username,
+                "has_token": bool(config.token),
+                "has_api_key": bool(config.api_key),
+                "is_configured": True,
+            }
+        )
 
     # Add unconfigured services
     for service_type in all_services - configured_types:
-        result.append({
-            "service_type": service_type,
-            "url": None,
-            "username": None,
-            "has_token": False,
-            "has_api_key": False,
-            "is_configured": False,
-        })
+        result.append(
+            {
+                "service_type": service_type,
+                "url": None,
+                "username": None,
+                "has_token": False,
+                "has_api_key": False,
+                "is_configured": False,
+            }
+        )
 
     return result
 
@@ -202,6 +209,7 @@ async def test_service(
 
             # Simple test for Ollama
             import httpx
+
             async with httpx.AsyncClient() as client:
                 try:
                     response = await client.get(f"{config.url}/api/tags", timeout=10.0)
@@ -210,9 +218,12 @@ async def test_service(
                         models = data.get("models", [])
                         return {
                             "success": True,
-                            "message": f"Connected to Ollama ({len(models)} models available)"
+                            "message": f"Connected to Ollama ({len(models)} models available)",
                         }
-                    return {"success": False, "message": f"Ollama returned status {response.status_code}"}
+                    return {
+                        "success": False,
+                        "message": f"Ollama returned status {response.status_code}",
+                    }
                 except Exception as e:
                     return {"success": False, "message": f"Connection failed: {str(e)}"}
 
@@ -337,6 +348,7 @@ async def get_ollama_models(
         raise HTTPException(status_code=400, detail="Ollama not configured")
 
     import httpx
+
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(f"{config.url}/api/tags", timeout=10.0)
@@ -345,7 +357,7 @@ async def get_ollama_models(
                 return data.get("models", [])
             raise HTTPException(
                 status_code=response.status_code,
-                detail=f"Ollama returned status {response.status_code}"
+                detail=f"Ollama returned status {response.status_code}",
             )
         except httpx.RequestError as e:
             raise HTTPException(status_code=500, detail=f"Connection failed: {str(e)}")
@@ -441,9 +453,15 @@ async def get_cache_stats(
         # Track enrichment (only count as enriched if tmdb_id is set)
         if content.meta and content.meta.tmdb_id:
             lib["enriched_items"] += 1
-            if lib["oldest_enrichment"] is None or content.meta.enriched_at < lib["oldest_enrichment"]:
+            if (
+                lib["oldest_enrichment"] is None
+                or content.meta.enriched_at < lib["oldest_enrichment"]
+            ):
                 lib["oldest_enrichment"] = content.meta.enriched_at
-            if lib["newest_enrichment"] is None or content.meta.enriched_at > lib["newest_enrichment"]:
+            if (
+                lib["newest_enrichment"] is None
+                or content.meta.enriched_at > lib["newest_enrichment"]
+            ):
                 lib["newest_enrichment"] = content.meta.enriched_at
 
     # Convert datetimes to ISO strings
@@ -498,7 +516,9 @@ async def clear_library_cache(
 
     await session.commit()
 
-    logger.info(f"Cleared cache for library {library_id}: {content_count} contents, {meta_count} metadata")
+    logger.info(
+        f"Cleared cache for library {library_id}: {content_count} contents, {meta_count} metadata"
+    )
 
     return {
         "success": True,
@@ -542,7 +562,8 @@ async def force_tmdb_enrichment(
 
     # Filter to unenriched content (no meta, no enriched_at, or enriched but no tmdb_id)
     unenriched = [
-        c for c in contents
+        c
+        for c in contents
         if not c.meta  # No metadata record
         or not c.meta.enriched_at  # Never attempted
         or not c.meta.tmdb_id  # Attempted but TMDB didn't find it

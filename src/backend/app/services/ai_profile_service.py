@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class GenerationAttempt:
     """Record of a generation attempt."""
+
     attempt_number: int
     prompt: str
     response: str | None
@@ -34,6 +35,7 @@ class GenerationAttempt:
 @dataclass
 class GenerationResult:
     """Result of profile generation."""
+
     success: bool
     profile: dict[str, Any] | None
     attempts: list[GenerationAttempt]
@@ -95,7 +97,9 @@ class AIProfileService:
         current_errors: list[str] = []
 
         for attempt_num in range(1, self.MAX_ATTEMPTS + 1):
-            logger.info(f"Generation attempt {attempt_num}/{self.MAX_ATTEMPTS} with model '{self.model}'")
+            logger.info(
+                f"Generation attempt {attempt_num}/{self.MAX_ATTEMPTS} with model '{self.model}'"
+            )
 
             # Build prompt based on attempt
             if attempt_num == 1:
@@ -153,7 +157,9 @@ class AIProfileService:
                     success=False,
                 )
                 attempts.append(attempt)
-                current_errors = ["La réponse n'est pas un JSON valide. Assure-toi de générer uniquement du JSON."]
+                current_errors = [
+                    "La réponse n'est pas un JSON valide. Assure-toi de générer uniquement du JSON."
+                ]
                 continue
 
             # Validate profile
@@ -378,7 +384,17 @@ class AIProfileService:
             if not isinstance(profile["scoring_weights"], dict):
                 errors.append("scoring_weights must be an object")
             else:
-                valid_weights = {"type", "duration", "genre", "timing", "strategy", "age", "rating", "filter", "bonus"}
+                valid_weights = {
+                    "type",
+                    "duration",
+                    "genre",
+                    "timing",
+                    "strategy",
+                    "age",
+                    "rating",
+                    "filter",
+                    "bonus",
+                }
                 for key, value in profile["scoring_weights"].items():
                     if key not in valid_weights:
                         errors.append(f"Invalid scoring weight key: {key}")
@@ -429,18 +445,31 @@ class AIProfileService:
         """Validate a forbidden/mandatory rule."""
         errors = []
 
-        valid_fields = {"genre", "content_type", "age_rating", "tmdb_rating", "year", "studio", "keyword", "duration"}
+        valid_fields = {
+            "genre",
+            "content_type",
+            "age_rating",
+            "tmdb_rating",
+            "year",
+            "studio",
+            "keyword",
+            "duration",
+        }
         valid_operators = {"equals", "not_equals", "contains", "not_contains", ">=", "<=", ">", "<"}
 
         if not rule.get("field"):
             errors.append(f"{prefix}: missing field")
         elif rule["field"] not in valid_fields:
-            errors.append(f"{prefix}: invalid field '{rule['field']}', must be one of {valid_fields}")
+            errors.append(
+                f"{prefix}: invalid field '{rule['field']}', must be one of {valid_fields}"
+            )
 
         if not rule.get("operator"):
             errors.append(f"{prefix}: missing operator")
         elif rule["operator"] not in valid_operators:
-            errors.append(f"{prefix}: invalid operator '{rule['operator']}', must be one of {valid_operators}")
+            errors.append(
+                f"{prefix}: invalid operator '{rule['operator']}', must be one of {valid_operators}"
+            )
 
         if "value" not in rule:
             errors.append(f"{prefix}: missing value")

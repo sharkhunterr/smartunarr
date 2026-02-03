@@ -121,7 +121,7 @@ class AgeCriterion(BaseCriterion):
             return cls.AGE_RATINGS[normalized]
 
         # Try to extract numeric age (e.g., "rated 16" -> 16)
-        match = re.search(r'\b(\d{1,2})\b', normalized)
+        match = re.search(r"\b(\d{1,2})\b", normalized)
         if match:
             age = int(match.group(1))
             if age <= 6:

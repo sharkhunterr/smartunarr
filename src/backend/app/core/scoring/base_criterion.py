@@ -124,20 +124,36 @@ class BaseCriterion(ABC):
             block_policy = block_criteria.get("mfp_policy", {})
             if block_policy:
                 return MFPPolicyConfig(
-                    mandatory_matched_bonus=block_policy.get("mandatory_matched_bonus", DEFAULT_MFP_POLICY.mandatory_matched_bonus),
-                    mandatory_missed_penalty=block_policy.get("mandatory_missed_penalty", DEFAULT_MFP_POLICY.mandatory_missed_penalty),
-                    forbidden_detected_penalty=block_policy.get("forbidden_detected_penalty", DEFAULT_MFP_POLICY.forbidden_detected_penalty),
-                    preferred_matched_bonus=block_policy.get("preferred_matched_bonus", DEFAULT_MFP_POLICY.preferred_matched_bonus),
+                    mandatory_matched_bonus=block_policy.get(
+                        "mandatory_matched_bonus", DEFAULT_MFP_POLICY.mandatory_matched_bonus
+                    ),
+                    mandatory_missed_penalty=block_policy.get(
+                        "mandatory_missed_penalty", DEFAULT_MFP_POLICY.mandatory_missed_penalty
+                    ),
+                    forbidden_detected_penalty=block_policy.get(
+                        "forbidden_detected_penalty", DEFAULT_MFP_POLICY.forbidden_detected_penalty
+                    ),
+                    preferred_matched_bonus=block_policy.get(
+                        "preferred_matched_bonus", DEFAULT_MFP_POLICY.preferred_matched_bonus
+                    ),
                 )
 
         # Fall back to profile-level policy
         profile_policy = profile.get("mfp_policy", {})
         if profile_policy:
             return MFPPolicyConfig(
-                mandatory_matched_bonus=profile_policy.get("mandatory_matched_bonus", DEFAULT_MFP_POLICY.mandatory_matched_bonus),
-                mandatory_missed_penalty=profile_policy.get("mandatory_missed_penalty", DEFAULT_MFP_POLICY.mandatory_missed_penalty),
-                forbidden_detected_penalty=profile_policy.get("forbidden_detected_penalty", DEFAULT_MFP_POLICY.forbidden_detected_penalty),
-                preferred_matched_bonus=profile_policy.get("preferred_matched_bonus", DEFAULT_MFP_POLICY.preferred_matched_bonus),
+                mandatory_matched_bonus=profile_policy.get(
+                    "mandatory_matched_bonus", DEFAULT_MFP_POLICY.mandatory_matched_bonus
+                ),
+                mandatory_missed_penalty=profile_policy.get(
+                    "mandatory_missed_penalty", DEFAULT_MFP_POLICY.mandatory_missed_penalty
+                ),
+                forbidden_detected_penalty=profile_policy.get(
+                    "forbidden_detected_penalty", DEFAULT_MFP_POLICY.forbidden_detected_penalty
+                ),
+                preferred_matched_bonus=profile_policy.get(
+                    "preferred_matched_bonus", DEFAULT_MFP_POLICY.preferred_matched_bonus
+                ),
             )
 
         return DEFAULT_MFP_POLICY

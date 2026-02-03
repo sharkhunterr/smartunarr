@@ -48,19 +48,23 @@ async def websocket_jobs_endpoint(websocket: WebSocket) -> None:
                 job_id = data.get("jobId")
                 if job_id:
                     success = await manager.cancel_job(job_id)
-                    await websocket.send_json({
-                        "type": "cancel_response",
-                        "jobId": job_id,
-                        "success": success,
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "cancel_response",
+                            "jobId": job_id,
+                            "success": success,
+                        }
+                    )
 
             elif message_type == "get_jobs":
                 # Client requesting current jobs state
                 jobs = await manager.get_recent_jobs(20)
-                await websocket.send_json({
-                    "type": "jobs_state",
-                    "jobs": [job.to_dict() for job in jobs],
-                })
+                await websocket.send_json(
+                    {
+                        "type": "jobs_state",
+                        "jobs": [job.to_dict() for job in jobs],
+                    }
+                )
 
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected normally")

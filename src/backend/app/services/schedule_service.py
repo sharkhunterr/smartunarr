@@ -202,9 +202,7 @@ class ScheduleService:
         logger.info(f"Deleted schedule: {schedule.name} ({schedule_id})")
         return True
 
-    async def toggle_schedule(
-        self, schedule_id: str, enabled: bool
-    ) -> Schedule | None:
+    async def toggle_schedule(self, schedule_id: str, enabled: bool) -> Schedule | None:
         """
         Toggle schedule enabled status.
 
@@ -270,15 +268,11 @@ class ScheduleService:
             "execution_params": schedule.execution_params,
             "enabled": schedule.enabled,
             "last_execution_at": (
-                schedule.last_execution_at.isoformat()
-                if schedule.last_execution_at
-                else None
+                schedule.last_execution_at.isoformat() if schedule.last_execution_at else None
             ),
             "last_execution_status": schedule.last_execution_status,
             "next_execution_at": (
-                schedule.next_execution_at.isoformat()
-                if schedule.next_execution_at
-                else None
+                schedule.next_execution_at.isoformat() if schedule.next_execution_at else None
             ),
             "created_at": schedule.created_at.isoformat(),
             "updated_at": schedule.updated_at.isoformat(),

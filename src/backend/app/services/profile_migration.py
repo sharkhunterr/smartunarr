@@ -141,9 +141,19 @@ class ProfileMigration:
                 },
                 "seasonal_bonuses": {
                     "enabled": False,
-                    "christmas": {"months": [11, 12], "keywords": [], "genres": [], "bonus_points": 5},
+                    "christmas": {
+                        "months": [11, 12],
+                        "keywords": [],
+                        "genres": [],
+                        "bonus_points": 5,
+                    },
                     "halloween": {"months": [10], "keywords": [], "genres": [], "bonus_points": 5},
-                    "summer": {"months": [6, 7, 8], "keywords": [], "genres": [], "bonus_points": 3},
+                    "summer": {
+                        "months": [6, 7, 8],
+                        "keywords": [],
+                        "genres": [],
+                        "bonus_points": 3,
+                    },
                 },
                 "prime_time_bonus": {
                     "enabled": False,
@@ -208,8 +218,12 @@ class ProfileMigration:
             "mandatory_forbidden_criteria": cls._migrate_criteria(profile_data),
             "strategies": cls._migrate_strategies(profile_data),
             "scoring_weights": cls._migrate_weights(profile_data),
-            "default_iterations": profile_data.get("iterations", profile_data.get("default_iterations", 10)),
-            "default_randomness": profile_data.get("randomness", profile_data.get("default_randomness", 0.3)),
+            "default_iterations": profile_data.get(
+                "iterations", profile_data.get("default_iterations", 10)
+            ),
+            "default_randomness": profile_data.get(
+                "randomness", profile_data.get("default_randomness", 0.3)
+            ),
             "labels": profile_data.get("labels", profile_data.get("tags", [])),
         }
 
@@ -220,12 +234,14 @@ class ProfileMigration:
         """Migrate library configurations."""
         migrated = []
         for lib in libraries:
-            migrated.append({
-                "id": str(lib.get("id", lib.get("library_id", ""))),
-                "name": lib.get("name", lib.get("library_name", "Unknown")),
-                "type": lib.get("type", lib.get("content_type")),
-                "weight": lib.get("weight", lib.get("selection_weight", 50)),
-            })
+            migrated.append(
+                {
+                    "id": str(lib.get("id", lib.get("library_id", ""))),
+                    "name": lib.get("name", lib.get("library_name", "Unknown")),
+                    "type": lib.get("type", lib.get("content_type")),
+                    "weight": lib.get("weight", lib.get("selection_weight", 50)),
+                }
+            )
         return migrated
 
     @classmethod
@@ -246,15 +262,27 @@ class ProfileMigration:
                 new_block["criteria"] = {
                     "preferred_types": criteria.get("preferred_types", criteria.get("types", [])),
                     "allowed_types": criteria.get("allowed_types", []),
-                    "excluded_types": criteria.get("excluded_types", criteria.get("exclude_types", [])),
-                    "preferred_genres": criteria.get("preferred_genres", criteria.get("genres", [])),
+                    "excluded_types": criteria.get(
+                        "excluded_types", criteria.get("exclude_types", [])
+                    ),
+                    "preferred_genres": criteria.get(
+                        "preferred_genres", criteria.get("genres", [])
+                    ),
                     "allowed_genres": criteria.get("allowed_genres", []),
-                    "forbidden_genres": criteria.get("forbidden_genres", criteria.get("exclude_genres", [])),
-                    "min_duration_min": criteria.get("min_duration_min", criteria.get("min_duration")),
-                    "max_duration_min": criteria.get("max_duration_min", criteria.get("max_duration")),
+                    "forbidden_genres": criteria.get(
+                        "forbidden_genres", criteria.get("exclude_genres", [])
+                    ),
+                    "min_duration_min": criteria.get(
+                        "min_duration_min", criteria.get("min_duration")
+                    ),
+                    "max_duration_min": criteria.get(
+                        "max_duration_min", criteria.get("max_duration")
+                    ),
                     "max_age_rating": criteria.get("max_age_rating", criteria.get("max_rating")),
                     "min_tmdb_rating": criteria.get("min_tmdb_rating", criteria.get("min_score")),
-                    "preferred_tmdb_rating": criteria.get("preferred_tmdb_rating", criteria.get("preferred_score")),
+                    "preferred_tmdb_rating": criteria.get(
+                        "preferred_tmdb_rating", criteria.get("preferred_score")
+                    ),
                 }
 
             migrated.append(new_block)
@@ -277,7 +305,9 @@ class ProfileMigration:
         return {
             "mandatory": {
                 "content_ids": mandatory.get("content_ids", mandatory.get("required_content", [])),
-                "min_duration_min": mandatory.get("min_duration_min", mandatory.get("min_duration")),
+                "min_duration_min": mandatory.get(
+                    "min_duration_min", mandatory.get("min_duration")
+                ),
                 "min_tmdb_rating": mandatory.get("min_tmdb_rating", mandatory.get("min_rating")),
                 "required_genres": mandatory.get("required_genres", mandatory.get("genres", [])),
             },
@@ -295,29 +325,38 @@ class ProfileMigration:
         strategies = profile_data.get("strategies", profile_data.get("options", {}))
 
         return {
-            "maintain_sequence": strategies.get("maintain_sequence", strategies.get("keep_order", False)),
-            "maximize_variety": strategies.get("maximize_variety", strategies.get("variety", False)),
+            "maintain_sequence": strategies.get(
+                "maintain_sequence", strategies.get("keep_order", False)
+            ),
+            "maximize_variety": strategies.get(
+                "maximize_variety", strategies.get("variety", False)
+            ),
             "marathon_mode": strategies.get("marathon_mode", strategies.get("marathon", False)),
             "filler_insertion": {
-                "enabled": strategies.get("filler_insertion", {}).get("enabled",
-                          strategies.get("use_filler", False)),
-                "types": strategies.get("filler_insertion", {}).get("types",
-                        strategies.get("filler_types", ["trailer"])),
+                "enabled": strategies.get("filler_insertion", {}).get(
+                    "enabled", strategies.get("use_filler", False)
+                ),
+                "types": strategies.get("filler_insertion", {}).get(
+                    "types", strategies.get("filler_types", ["trailer"])
+                ),
                 "max_duration_min": strategies.get("filler_insertion", {}).get("max_duration_min"),
             },
             "bonuses": {
-                "holiday_bonus": strategies.get("bonuses", {}).get("holiday_bonus",
-                               strategies.get("holiday_mode", False)),
-                "recent_release_bonus": strategies.get("bonuses", {}).get("recent_release_bonus", False),
+                "holiday_bonus": strategies.get("bonuses", {}).get(
+                    "holiday_bonus", strategies.get("holiday_mode", False)
+                ),
+                "recent_release_bonus": strategies.get("bonuses", {}).get(
+                    "recent_release_bonus", False
+                ),
             },
         }
 
     @classmethod
     def _migrate_weights(cls, profile_data: dict[str, Any]) -> dict[str, float]:
         """Migrate scoring weights."""
-        weights = profile_data.get("scoring_weights",
-                 profile_data.get("weights",
-                 profile_data.get("scoring", {})))
+        weights = profile_data.get(
+            "scoring_weights", profile_data.get("weights", profile_data.get("scoring", {}))
+        )
 
         return {
             "type": weights.get("type", weights.get("content_type", 15)),

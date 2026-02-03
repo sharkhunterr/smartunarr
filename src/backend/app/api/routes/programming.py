@@ -35,6 +35,7 @@ _results: dict[str, dict[str, Any]] = {}
 
 class ProgrammingRequest(BaseModel):
     """Request to generate programming."""
+
     channel_id: str
     profile_id: str
     iterations: int = 10
@@ -53,6 +54,7 @@ class ProgrammingRequest(BaseModel):
 
 class AIProgrammingRequest(BaseModel):
     """Request to generate programming with AI."""
+
     channel_id: str
     prompt: str
     model: str | None = None
@@ -69,6 +71,7 @@ class AIProgrammingRequest(BaseModel):
 
 class AIImprovementRequest(BaseModel):
     """Request to improve programming with AI feedback."""
+
     result_id: str
     prompt: str
     model: str | None = None
@@ -78,6 +81,7 @@ class AIImprovementRequest(BaseModel):
 
 class ApplyAIModificationRequest(BaseModel):
     """Request to apply a single AI modification to a programming result."""
+
     original_title: str
     replacement_title: str
 
@@ -116,7 +120,9 @@ async def _run_programming(
             use_tmdb = cache_mode in ("tmdb_only", "full", "enrich_cache")
             enrich_existing = cache_mode == "enrich_cache"
 
-            logger.info(f"[DEBUG] cache_mode={cache_mode}, use_cache={use_cache}, use_tmdb={use_tmdb}, enrich_existing={enrich_existing}")
+            logger.info(
+                f"[DEBUG] cache_mode={cache_mode}, use_cache={use_cache}, use_tmdb={use_tmdb}, enrich_existing={enrich_existing}"
+            )
 
             steps = [
                 ProgressStep("config", "Chargement configuration", "running"),
@@ -126,7 +132,9 @@ async def _run_programming(
             if use_cache:
                 steps.append(ProgressStep("cache_read", "Lecture du cache", "pending"))
             if enrich_existing:
-                steps.append(ProgressStep("enrich_existing", "Enrichissement cache existant", "pending"))
+                steps.append(
+                    ProgressStep("enrich_existing", "Enrichissement cache existant", "pending")
+                )
 
             steps.append(ProgressStep("plex", "Récupération Plex", "pending"))
 
@@ -140,10 +148,14 @@ async def _run_programming(
             steps.append(ProgressStep("generation", "Génération programmation", "pending"))
 
             if request.improve_best:
-                steps.append(ProgressStep("improve", "Amélioration (meilleurs programmes)", "pending"))
+                steps.append(
+                    ProgressStep("improve", "Amélioration (meilleurs programmes)", "pending")
+                )
 
             if request.replace_forbidden:
-                steps.append(ProgressStep("optimize", "Optimisation (remplacement interdits)", "pending"))
+                steps.append(
+                    ProgressStep("optimize", "Optimisation (remplacement interdits)", "pending")
+                )
 
             if request.ai_improve and request.ai_prompt:
                 steps.append(ProgressStep("ai_improve", "Amélioration IA", "pending"))
@@ -195,7 +207,9 @@ async def _run_programming(
             libraries = profile_dict.get("libraries", [])
             total_libraries = len(libraries)
 
-            profile_detail = f"{profile.name} • {num_blocks} blocs • {total_libraries} bibliothèques"
+            profile_detail = (
+                f"{profile.name} • {num_blocks} blocs • {total_libraries} bibliothèques"
+            )
             await job_manager.update_step_status(job_id, "profile", "completed", profile_detail)
 
             # Create history entry at the START of processing
@@ -237,7 +251,9 @@ async def _run_programming(
                         all_contents.extend(cached)
 
                 cache_detail = f"{cached_count} contenus en cache"
-                await job_manager.update_step_status(job_id, "cache_read", "completed", cache_detail)
+                await job_manager.update_step_status(
+                    job_id, "cache_read", "completed", cache_detail
+                )
                 logger.info(f"Found {cached_count} cached contents")
 
             # Step: Enrich existing cached items missing TMDB data
@@ -246,20 +262,25 @@ async def _run_programming(
 
                 # Find items missing TMDB data (budget is a good indicator)
                 items_to_enrich = [
-                    (content, meta, idx) for idx, (content, meta) in enumerate(all_contents)
+                    (content, meta, idx)
+                    for idx, (content, meta) in enumerate(all_contents)
                     if meta and meta.get("budget") is None and meta.get("vote_count", 0) > 0
                 ]
                 # Also include items with no vote_count (never enriched)
-                items_to_enrich.extend([
-                    (content, meta, idx) for idx, (content, meta) in enumerate(all_contents)
-                    if meta and meta.get("vote_count", 0) == 0
-                ])
+                items_to_enrich.extend(
+                    [
+                        (content, meta, idx)
+                        for idx, (content, meta) in enumerate(all_contents)
+                        if meta and meta.get("vote_count", 0) == 0
+                    ]
+                )
                 # Limit to avoid too many API calls
                 items_to_enrich = items_to_enrich[:200]
 
                 if items_to_enrich:
                     await job_manager.update_job_progress(
-                        job_id, 12,
+                        job_id,
+                        12,
                         f"Enrichissement: 0/{len(items_to_enrich)} contenus existants...",
                     )
 
@@ -267,11 +288,14 @@ async def _run_programming(
                     for i, (content, meta, _original_idx) in enumerate(items_to_enrich):
                         if i % 10 == 0:
                             await job_manager.update_step_status(
-                                job_id, "enrich_existing", "running",
-                                f"{i}/{len(items_to_enrich)} enrichis"
+                                job_id,
+                                "enrich_existing",
+                                "running",
+                                f"{i}/{len(items_to_enrich)} enrichis",
                             )
                             await job_manager.update_job_progress(
-                                job_id, 12 + (i / len(items_to_enrich)) * 8,
+                                job_id,
+                                12 + (i / len(items_to_enrich)) * 8,
                                 f"Enrichissement cache: {i}/{len(items_to_enrich)}...",
                             )
 
@@ -285,28 +309,43 @@ async def _run_programming(
                                 # Update meta with enriched data
                                 if meta:
                                     meta["genres"] = enriched.get("genres", meta.get("genres", []))
-                                    meta["tmdb_rating"] = enriched.get("tmdb_rating") or meta.get("tmdb_rating")
-                                    meta["vote_count"] = enriched.get("vote_count") or meta.get("vote_count", 0)
-                                    meta["keywords"] = enriched.get("keywords", meta.get("keywords", []))
-                                    meta["collections"] = enriched.get("collections", meta.get("collections", []))
-                                    meta["studios"] = enriched.get("studios", meta.get("studios", []))
+                                    meta["tmdb_rating"] = enriched.get("tmdb_rating") or meta.get(
+                                        "tmdb_rating"
+                                    )
+                                    meta["vote_count"] = enriched.get("vote_count") or meta.get(
+                                        "vote_count", 0
+                                    )
+                                    meta["keywords"] = enriched.get(
+                                        "keywords", meta.get("keywords", [])
+                                    )
+                                    meta["collections"] = enriched.get(
+                                        "collections", meta.get("collections", [])
+                                    )
+                                    meta["studios"] = enriched.get(
+                                        "studios", meta.get("studios", [])
+                                    )
                                     meta["budget"] = enriched.get("budget")
                                     meta["revenue"] = enriched.get("revenue")
 
                                     # Update in database
                                     await enrichment_service.update_content_meta(
-                                        content.get("plex_key", ""),
-                                        meta
+                                        content.get("plex_key", ""), meta
                                     )
                                     enriched_count += 1
                         except Exception as e:
-                            logger.warning(f"TMDB enrichment failed for cached {content.get('title')}: {e}")
+                            logger.warning(
+                                f"TMDB enrichment failed for cached {content.get('title')}: {e}"
+                            )
 
                     enrich_detail = f"{enriched_count}/{len(items_to_enrich)} contenus enrichis"
-                    await job_manager.update_step_status(job_id, "enrich_existing", "completed", enrich_detail)
+                    await job_manager.update_step_status(
+                        job_id, "enrich_existing", "completed", enrich_detail
+                    )
                     logger.info(f"Enriched {enriched_count} existing cached items")
                 else:
-                    await job_manager.update_step_status(job_id, "enrich_existing", "completed", "Tout est déjà enrichi")
+                    await job_manager.update_step_status(
+                        job_id, "enrich_existing", "completed", "Tout est déjà enrichi"
+                    )
 
             # Step: Fetch from Plex
             await job_manager.update_step_status(job_id, "plex", "running")
@@ -332,8 +371,7 @@ async def _run_programming(
                     total_libraries=total_libraries,
                 )
                 await job_manager.update_step_status(
-                    job_id, "plex", "running",
-                    f"{lib_idx + 1}/{total_libraries} - {lib_name}"
+                    job_id, "plex", "running", f"{lib_idx + 1}/{total_libraries} - {lib_name}"
                 )
 
                 try:
@@ -341,10 +379,7 @@ async def _run_programming(
                     logger.info(f"Library {lib_id} ({lib_name}): fetched {len(items)} items")
 
                     # Filter out already cached items
-                    new_items = [
-                        item for item in items
-                        if item.get("plex_key") not in cached_keys
-                    ]
+                    new_items = [item for item in items if item.get("plex_key") not in cached_keys]
                     plex_items.extend(new_items)
                 except Exception as e:
                     logger.warning(f"Failed to fetch library {lib_id}: {e}")
@@ -357,7 +392,8 @@ async def _run_programming(
                 await job_manager.update_step_status(job_id, "tmdb", "running")
                 items_to_enrich = min(len(plex_items), 100)  # Limit to avoid too many API calls
                 await job_manager.update_job_progress(
-                    job_id, 30,
+                    job_id,
+                    30,
                     f"Enrichissement TMDB: 0/{items_to_enrich}...",
                 )
 
@@ -365,11 +401,11 @@ async def _run_programming(
                 for idx, item in enumerate(plex_items[:items_to_enrich]):
                     if idx % 10 == 0:
                         await job_manager.update_step_status(
-                            job_id, "tmdb", "running",
-                            f"{idx}/{items_to_enrich} enrichis"
+                            job_id, "tmdb", "running", f"{idx}/{items_to_enrich} enrichis"
                         )
                         await job_manager.update_job_progress(
-                            job_id, 30 + (idx / items_to_enrich) * 15,
+                            job_id,
+                            30 + (idx / items_to_enrich) * 15,
                             f"Enrichissement TMDB: {idx}/{items_to_enrich}...",
                         )
 
@@ -411,7 +447,9 @@ async def _run_programming(
                     all_contents.append((content, meta))
 
                 cache_write_detail = f"{len(plex_items)} contenus ajoutés au cache"
-                await job_manager.update_step_status(job_id, "cache_write", "completed", cache_write_detail)
+                await job_manager.update_step_status(
+                    job_id, "cache_write", "completed", cache_write_detail
+                )
             elif plex_items:
                 # No cache mode: add items directly with enriched data
                 for item in plex_items:
@@ -485,7 +523,9 @@ async def _run_programming(
                 start_dt = datetime.now()
                 if request.start_datetime:
                     try:
-                        start_dt = datetime.fromisoformat(request.start_datetime.replace("Z", "+00:00"))
+                        start_dt = datetime.fromisoformat(
+                            request.start_datetime.replace("Z", "+00:00")
+                        )
                     except ValueError:
                         pass
 
@@ -516,8 +556,7 @@ async def _run_programming(
                 phase="generation_started",
             )
             await job_manager.update_step_status(
-                job_id, "generation", "running",
-                f"0/{request.iterations} itérations"
+                job_id, "generation", "running", f"0/{request.iterations} itérations"
             )
 
             # Run generator (sync) - we'll update progress after
@@ -536,7 +575,9 @@ async def _run_programming(
             # Improvement step (if enabled)
             if request.improve_best:
                 await job_manager.update_step_status(job_id, "improve", "running")
-                await job_manager.update_job_progress(job_id, 85, "Amélioration avec meilleurs programmes...")
+                await job_manager.update_job_progress(
+                    job_id, 85, "Amélioration avec meilleurs programmes..."
+                )
 
                 if result.is_improved or (result.is_optimized and result.improved_count > 0):
                     improve_detail = f"{result.improved_count} programmes améliorés • Score: {result.average_score:.1f}"
@@ -548,14 +589,18 @@ async def _run_programming(
             # Optimization step (if enabled)
             if request.replace_forbidden:
                 await job_manager.update_step_status(job_id, "optimize", "running")
-                await job_manager.update_job_progress(job_id, 88, "Remplacement des contenus interdits...")
+                await job_manager.update_job_progress(
+                    job_id, 88, "Remplacement des contenus interdits..."
+                )
 
                 if result.is_optimized:
                     optimize_detail = f"{result.replaced_count} contenus remplacés • Score: {result.average_score:.1f}"
                 else:
                     optimize_detail = "Aucun contenu interdit à remplacer"
 
-                await job_manager.update_step_status(job_id, "optimize", "completed", optimize_detail)
+                await job_manager.update_step_status(
+                    job_id, "optimize", "completed", optimize_detail
+                )
 
             # AI Improvement step (if enabled)
             ai_improved_programs: set[str] = set()  # Track programs actually modified by AI
@@ -581,47 +626,78 @@ async def _run_programming(
                         # Prepare programs data for AI
                         programs_for_ai = []
                         for prog in result.programs:
-                            programs_for_ai.append({
-                                "title": prog.content.get("title", ""),
-                                "type": prog.content.get("type", "movie"),
-                                "duration_min": prog.content.get("duration_ms", 0) / 60000,
-                                "genres": prog.content_meta.get("genres", []) if prog.content_meta else [],
-                                "keywords": prog.content_meta.get("keywords", []) if prog.content_meta else [],
-                                "collections": prog.content_meta.get("collections", []) if prog.content_meta else [],
-                                "studios": prog.content_meta.get("studios", []) if prog.content_meta else [],
-                                "year": prog.content.get("year"),
-                                "content_rating": prog.content_meta.get("content_rating") if prog.content_meta else None,
-                                "tmdb_rating": prog.content_meta.get("tmdb_rating") if prog.content_meta else None,
-                                "block_name": prog.block_name,
-                                "score": prog.score.total_score,
-                                "forbidden_violated": len(prog.score.forbidden_violations) > 0,
-                            })
+                            programs_for_ai.append(
+                                {
+                                    "title": prog.content.get("title", ""),
+                                    "type": prog.content.get("type", "movie"),
+                                    "duration_min": prog.content.get("duration_ms", 0) / 60000,
+                                    "genres": prog.content_meta.get("genres", [])
+                                    if prog.content_meta
+                                    else [],
+                                    "keywords": prog.content_meta.get("keywords", [])
+                                    if prog.content_meta
+                                    else [],
+                                    "collections": prog.content_meta.get("collections", [])
+                                    if prog.content_meta
+                                    else [],
+                                    "studios": prog.content_meta.get("studios", [])
+                                    if prog.content_meta
+                                    else [],
+                                    "year": prog.content.get("year"),
+                                    "content_rating": prog.content_meta.get("content_rating")
+                                    if prog.content_meta
+                                    else None,
+                                    "tmdb_rating": prog.content_meta.get("tmdb_rating")
+                                    if prog.content_meta
+                                    else None,
+                                    "block_name": prog.block_name,
+                                    "score": prog.score.total_score,
+                                    "forbidden_violated": len(prog.score.forbidden_violations) > 0,
+                                }
+                            )
 
                         # Prepare all iterations data with FULL information
                         all_iter_data = []
                         for iter_result in result.all_iterations:
                             iter_programs = []
                             for prog in iter_result.programs:
-                                iter_programs.append({
-                                    "title": prog.content.get("title", ""),
-                                    "type": prog.content.get("type", "movie"),
-                                    "duration_min": prog.content.get("duration_ms", 0) / 60000,
-                                    "genres": prog.content_meta.get("genres", []) if prog.content_meta else [],
-                                    "keywords": prog.content_meta.get("keywords", []) if prog.content_meta else [],
-                                    "collections": prog.content_meta.get("collections", []) if prog.content_meta else [],
-                                    "studios": prog.content_meta.get("studios", []) if prog.content_meta else [],
-                                    "year": prog.content.get("year"),
-                                    "content_rating": prog.content_meta.get("content_rating") if prog.content_meta else None,
-                                    "tmdb_rating": prog.content_meta.get("tmdb_rating") if prog.content_meta else None,
-                                    "score": prog.score.total_score,
-                                    "block_name": prog.block_name,
-                                    "forbidden_violated": len(prog.score.forbidden_violations) > 0,
-                                })
-                            all_iter_data.append({
-                                "iteration": iter_result.iteration,
-                                "average_score": iter_result.average_score,
-                                "programs": iter_programs,
-                            })
+                                iter_programs.append(
+                                    {
+                                        "title": prog.content.get("title", ""),
+                                        "type": prog.content.get("type", "movie"),
+                                        "duration_min": prog.content.get("duration_ms", 0) / 60000,
+                                        "genres": prog.content_meta.get("genres", [])
+                                        if prog.content_meta
+                                        else [],
+                                        "keywords": prog.content_meta.get("keywords", [])
+                                        if prog.content_meta
+                                        else [],
+                                        "collections": prog.content_meta.get("collections", [])
+                                        if prog.content_meta
+                                        else [],
+                                        "studios": prog.content_meta.get("studios", [])
+                                        if prog.content_meta
+                                        else [],
+                                        "year": prog.content.get("year"),
+                                        "content_rating": prog.content_meta.get("content_rating")
+                                        if prog.content_meta
+                                        else None,
+                                        "tmdb_rating": prog.content_meta.get("tmdb_rating")
+                                        if prog.content_meta
+                                        else None,
+                                        "score": prog.score.total_score,
+                                        "block_name": prog.block_name,
+                                        "forbidden_violated": len(prog.score.forbidden_violations)
+                                        > 0,
+                                    }
+                                )
+                            all_iter_data.append(
+                                {
+                                    "iteration": iter_result.iteration,
+                                    "average_score": iter_result.average_score,
+                                    "programs": iter_programs,
+                                }
+                            )
 
                         # Build AI prompt
                         ai_prompt = get_ai_improvement_prompt(
@@ -637,7 +713,9 @@ async def _run_programming(
                         adapter = OllamaAdapter(ollama_config.url)
 
                         try:
-                            await job_manager.update_job_progress(job_id, 92, f"Génération IA avec {model}...")
+                            await job_manager.update_job_progress(
+                                job_id, 92, f"Génération IA avec {model}..."
+                            )
 
                             response = await adapter.generate(
                                 model=model,
@@ -658,13 +736,17 @@ async def _run_programming(
                                     ai_result = json.loads(response)
                                     logger.info("AI response parsed as direct JSON")
                                 except json.JSONDecodeError as e:
-                                    logger.info(f"Direct JSON parse failed: {e}, trying extraction...")
+                                    logger.info(
+                                        f"Direct JSON parse failed: {e}, trying extraction..."
+                                    )
                                     # Try to extract JSON
                                     start = response.find("{")
                                     end = response.rfind("}") + 1
                                     if start != -1 and end > start:
                                         json_str = response[start:end]
-                                        logger.info(f"Extracted JSON from position {start} to {end}")
+                                        logger.info(
+                                            f"Extracted JSON from position {start} to {end}"
+                                        )
                                         try:
                                             ai_result = json.loads(json_str)
                                             logger.info("Extracted JSON parsed successfully")
@@ -678,10 +760,14 @@ async def _run_programming(
 
                                 if ai_result:
                                     logger.info(f"AI result keys: {list(ai_result.keys())}")
-                                    logger.info(f"AI analysis: {ai_result.get('analysis', 'N/A')[:200]}")
-                                    logger.info(f"AI summary: {ai_result.get('summary', 'N/A')[:200]}")
+                                    logger.info(
+                                        f"AI analysis: {ai_result.get('analysis', 'N/A')[:200]}"
+                                    )
+                                    logger.info(
+                                        f"AI summary: {ai_result.get('summary', 'N/A')[:200]}"
+                                    )
                                     if "modifications" in ai_result:
-                                        mods = ai_result.get('modifications', [])
+                                        mods = ai_result.get("modifications", [])
                                         logger.info(f"Found {len(mods)} modifications: {mods}")
                                     else:
                                         logger.warning("AI result has no 'modifications' key")
@@ -703,7 +789,11 @@ async def _run_programming(
                                             if title:
                                                 # Keep the one with highest score
                                                 existing = all_programs_by_title.get(title)
-                                                if not existing or prog.score.total_score > existing.score.total_score:
+                                                if (
+                                                    not existing
+                                                    or prog.score.total_score
+                                                    > existing.score.total_score
+                                                ):
                                                     all_programs_by_title[title] = prog
 
                                     # Build lookup of current programs by title
@@ -714,11 +804,14 @@ async def _run_programming(
 
                                     # Helper to strip year from title (AI sometimes includes year like "Title (2017)")
                                     import re
+
                                     def strip_year_from_title(title: str) -> str:
                                         """Remove trailing year in parentheses from title."""
-                                        return re.sub(r'\s*\(\d{4}\)\s*$', '', title).strip()
+                                        return re.sub(r"\s*\(\d{4}\)\s*$", "", title).strip()
 
-                                    def find_in_dict(title: str, programs_dict: dict) -> tuple[str, Any] | None:
+                                    def find_in_dict(
+                                        title: str, programs_dict: dict
+                                    ) -> tuple[str, Any] | None:
                                         """Find program by exact title or title without year."""
                                         # Try exact match first
                                         if title in programs_dict:
@@ -737,8 +830,12 @@ async def _run_programming(
                                     logger.info(f"Processing {len(modifications)} AI modifications")
                                     current_titles_list = list(current_programs_by_title.keys())
                                     available_titles_list = list(all_programs_by_title.keys())
-                                    logger.info(f"Current program titles ({len(current_titles_list)}): {current_titles_list[:10]}...")
-                                    logger.info(f"Available replacement titles ({len(available_titles_list)}): {available_titles_list}")  # Log ALL available titles
+                                    logger.info(
+                                        f"Current program titles ({len(current_titles_list)}): {current_titles_list[:10]}..."
+                                    )
+                                    logger.info(
+                                        f"Available replacement titles ({len(available_titles_list)}): {available_titles_list}"
+                                    )  # Log ALL available titles
 
                                     # Apply modifications
                                     for mod in modifications:
@@ -749,16 +846,28 @@ async def _run_programming(
 
                                             if original_title and replacement_title:
                                                 # Find original program in current (with fuzzy year matching)
-                                                original_match = find_in_dict(original_title, current_programs_by_title)
+                                                original_match = find_in_dict(
+                                                    original_title, current_programs_by_title
+                                                )
                                                 if original_match:
-                                                    matched_title, (idx, original_prog) = original_match
-                                                    logger.info(f"Matched original '{original_title}' -> '{matched_title}'")
+                                                    matched_title, (idx, original_prog) = (
+                                                        original_match
+                                                    )
+                                                    logger.info(
+                                                        f"Matched original '{original_title}' -> '{matched_title}'"
+                                                    )
 
                                                     # Find replacement in all iterations (with fuzzy year matching)
-                                                    replacement_match = find_in_dict(replacement_title, all_programs_by_title)
+                                                    replacement_match = find_in_dict(
+                                                        replacement_title, all_programs_by_title
+                                                    )
                                                     if replacement_match:
-                                                        matched_replacement, replacement_prog = replacement_match
-                                                        logger.info(f"Matched replacement '{replacement_title}' -> '{matched_replacement}'")
+                                                        matched_replacement, replacement_prog = (
+                                                            replacement_match
+                                                        )
+                                                        logger.info(
+                                                            f"Matched replacement '{replacement_title}' -> '{matched_replacement}'"
+                                                        )
 
                                                         # Create a copy with modified attributes
                                                         new_prog = type(original_prog)(
@@ -776,41 +885,72 @@ async def _run_programming(
 
                                                         # Apply the replacement
                                                         result.programs[idx] = new_prog
-                                                        ai_improved_programs.add(matched_replacement)  # Use actual matched title
+                                                        ai_improved_programs.add(
+                                                            matched_replacement
+                                                        )  # Use actual matched title
                                                         ai_applied_count += 1
-                                                        logger.info(f"AI applied: replaced '{matched_title}' with '{matched_replacement}'")
+                                                        logger.info(
+                                                            f"AI applied: replaced '{matched_title}' with '{matched_replacement}'"
+                                                        )
                                                     else:
-                                                        logger.warning(f"AI replacement not found: '{replacement_title}'")
+                                                        logger.warning(
+                                                            f"AI replacement not found: '{replacement_title}'"
+                                                        )
                                                 else:
-                                                    logger.warning(f"AI original not found: '{original_title}'")
+                                                    logger.warning(
+                                                        f"AI original not found: '{original_title}'"
+                                                    )
 
                                     # Recalculate result scores after modifications
                                     if ai_applied_count > 0:
-                                        result.total_score = sum(p.score.total_score for p in result.programs)
-                                        result.average_score = result.total_score / len(result.programs) if result.programs else 0
+                                        result.total_score = sum(
+                                            p.score.total_score for p in result.programs
+                                        )
+                                        result.average_score = (
+                                            result.total_score / len(result.programs)
+                                            if result.programs
+                                            else 0
+                                        )
                                         # Mark the result as AI improved
                                         result.is_ai_improved = True
 
-                                    ai_improve_detail = f"{ai_applied_count} modifications appliquées par IA"
-                                    await job_manager.update_step_status(job_id, "ai_improve", "completed", ai_improve_detail)
-                                    logger.info(f"AI improvement: {ai_applied_count} programs actually modified")
+                                    ai_improve_detail = (
+                                        f"{ai_applied_count} modifications appliquées par IA"
+                                    )
+                                    await job_manager.update_step_status(
+                                        job_id, "ai_improve", "completed", ai_improve_detail
+                                    )
+                                    logger.info(
+                                        f"AI improvement: {ai_applied_count} programs actually modified"
+                                    )
                                 else:
                                     # Still save AI response for frontend even if no modifications applied
                                     if ai_result:
                                         ai_response_data = ai_result
                                         logger.info("AI result saved but no modifications to apply")
-                                    await job_manager.update_step_status(job_id, "ai_improve", "completed", "Aucune modification suggérée")
+                                    await job_manager.update_step_status(
+                                        job_id,
+                                        "ai_improve",
+                                        "completed",
+                                        "Aucune modification suggérée",
+                                    )
                             else:
                                 logger.warning("AI response was empty")
-                                await job_manager.update_step_status(job_id, "ai_improve", "completed", "Réponse IA vide")
+                                await job_manager.update_step_status(
+                                    job_id, "ai_improve", "completed", "Réponse IA vide"
+                                )
                         finally:
                             await adapter.close()
                     else:
-                        await job_manager.update_step_status(job_id, "ai_improve", "completed", "Ollama non configuré")
+                        await job_manager.update_step_status(
+                            job_id, "ai_improve", "completed", "Ollama non configuré"
+                        )
                 except Exception as e:
                     logger.error(f"AI improvement failed: {e}")
                     logger.error(f"AI improvement traceback: {traceback.format_exc()}")
-                    await job_manager.update_step_status(job_id, "ai_improve", "failed", f"Erreur: {str(e)[:50]}")
+                    await job_manager.update_step_status(
+                        job_id, "ai_improve", "failed", f"Erreur: {str(e)[:50]}"
+                    )
 
             # Post-generation progress
             await job_manager.update_job_progress(
@@ -830,73 +970,94 @@ async def _run_programming(
             await job_manager.update_job_progress(job_id, 95, "Traitement des résultats...")
 
             # Helper to convert programs to API format
-            def convert_programs(progs: list, ai_modified_titles: set[str] | None = None) -> list[dict]:
+            def convert_programs(
+                progs: list, ai_modified_titles: set[str] | None = None
+            ) -> list[dict]:
                 converted = []
                 for prog in progs:
                     title = prog.content.get("title", "")
                     # Check if this program was AI improved (either by replacement_reason or by title in set)
-                    is_ai_improved = (
-                        getattr(prog, "replacement_reason", None) == "ai_improved" or
-                        (ai_modified_titles is not None and title in ai_modified_titles)
+                    is_ai_improved = getattr(prog, "replacement_reason", None) == "ai_improved" or (
+                        ai_modified_titles is not None and title in ai_modified_titles
                     )
-                    converted.append({
-                        "id": str(uuid4()),
-                        "title": title,
-                        "type": prog.content.get("type", "movie"),
-                        "start_time": prog.start_time.isoformat(),
-                        "end_time": prog.end_time.isoformat(),
-                        "duration_min": prog.content.get("duration_ms", 0) / 60000,
-                        "genres": prog.content_meta.get("genres", []) if prog.content_meta else [],
-                        "keywords": prog.content_meta.get("keywords", []) if prog.content_meta else [],
-                        "studios": prog.content_meta.get("studios", []) if prog.content_meta else [],
-                        "collections": prog.content_meta.get("collections", []) if prog.content_meta else [],
-                        "year": prog.content.get("year"),
-                        "tmdb_rating": prog.content_meta.get("tmdb_rating") if prog.content_meta else None,
-                        "content_rating": prog.content_meta.get("content_rating") if prog.content_meta else None,
-                        "plex_key": prog.content.get("plex_key", ""),
-                        "block_name": prog.block_name,
-                        "score": {
-                            "total": prog.score.total_score,
-                            "breakdown": {
-                                name: res.score
-                                for name, res in prog.score.criterion_results.items()
+                    converted.append(
+                        {
+                            "id": str(uuid4()),
+                            "title": title,
+                            "type": prog.content.get("type", "movie"),
+                            "start_time": prog.start_time.isoformat(),
+                            "end_time": prog.end_time.isoformat(),
+                            "duration_min": prog.content.get("duration_ms", 0) / 60000,
+                            "genres": prog.content_meta.get("genres", [])
+                            if prog.content_meta
+                            else [],
+                            "keywords": prog.content_meta.get("keywords", [])
+                            if prog.content_meta
+                            else [],
+                            "studios": prog.content_meta.get("studios", [])
+                            if prog.content_meta
+                            else [],
+                            "collections": prog.content_meta.get("collections", [])
+                            if prog.content_meta
+                            else [],
+                            "year": prog.content.get("year"),
+                            "tmdb_rating": prog.content_meta.get("tmdb_rating")
+                            if prog.content_meta
+                            else None,
+                            "content_rating": prog.content_meta.get("content_rating")
+                            if prog.content_meta
+                            else None,
+                            "plex_key": prog.content.get("plex_key", ""),
+                            "block_name": prog.block_name,
+                            "score": {
+                                "total": prog.score.total_score,
+                                "breakdown": {
+                                    name: res.score
+                                    for name, res in prog.score.criterion_results.items()
+                                },
+                                "criteria": {
+                                    name: {
+                                        "score": res.score,
+                                        "weight": res.weight,
+                                        "weighted_score": res.weighted_score,
+                                        "multiplier": res.multiplier,
+                                        "multiplied_weighted_score": res.multiplied_weighted_score,
+                                        "skipped": res.skipped,
+                                        "details": res.details if res.details else None,
+                                        "rule_violation": {
+                                            "rule_type": res.rule_violation.rule_type,
+                                            "values": res.rule_violation.values,
+                                            "penalty_or_bonus": res.rule_violation.penalty_or_bonus,
+                                        }
+                                        if res.rule_violation
+                                        else None,
+                                    }
+                                    for name, res in prog.score.criterion_results.items()
+                                },
+                                "penalties": [
+                                    p.get("message", "") for p in prog.score.mandatory_penalties
+                                ],
+                                "bonuses": prog.score.bonuses_applied,
+                                "mandatory_met": len(prog.score.mandatory_penalties) == 0,
+                                "forbidden_violated": len(prog.score.forbidden_violations) > 0,
+                                "forbidden_details": prog.score.forbidden_violations,
+                                "mandatory_details": prog.score.mandatory_penalties,
+                                "keyword_multiplier": prog.score.keyword_multiplier,
+                                "keyword_match": prog.score.keyword_match,
+                                "criterion_rule_violations": prog.score.criterion_rule_violations,
                             },
-                            "criteria": {
-                                name: {
-                                    "score": res.score,
-                                    "weight": res.weight,
-                                    "weighted_score": res.weighted_score,
-                                    "multiplier": res.multiplier,
-                                    "multiplied_weighted_score": res.multiplied_weighted_score,
-                                    "skipped": res.skipped,
-                                    "details": res.details if res.details else None,
-                                    "rule_violation": {
-                                        "rule_type": res.rule_violation.rule_type,
-                                        "values": res.rule_violation.values,
-                                        "penalty_or_bonus": res.rule_violation.penalty_or_bonus,
-                                    } if res.rule_violation else None,
-                                }
-                                for name, res in prog.score.criterion_results.items()
-                            },
-                            "penalties": [p.get("message", "") for p in prog.score.mandatory_penalties],
-                            "bonuses": prog.score.bonuses_applied,
-                            "mandatory_met": len(prog.score.mandatory_penalties) == 0,
-                            "forbidden_violated": len(prog.score.forbidden_violations) > 0,
-                            "forbidden_details": prog.score.forbidden_violations,
-                            "mandatory_details": prog.score.mandatory_penalties,
-                            "keyword_multiplier": prog.score.keyword_multiplier,
-                            "keyword_match": prog.score.keyword_match,
-                            "criterion_rule_violations": prog.score.criterion_rule_violations,
-                        },
-                        "is_replacement": getattr(prog, "is_replacement", False),
-                        "replacement_reason": getattr(prog, "replacement_reason", None),
-                        "replaced_title": getattr(prog, "replaced_title", None),
-                        "is_ai_improved": is_ai_improved,
-                    })
+                            "is_replacement": getattr(prog, "is_replacement", False),
+                            "replacement_reason": getattr(prog, "replacement_reason", None),
+                            "replaced_title": getattr(prog, "replaced_title", None),
+                            "is_ai_improved": is_ai_improved,
+                        }
+                    )
                 return converted
 
             # Convert best result to API format (pass AI improved titles for marking)
-            programs = convert_programs(result.programs, ai_improved_programs if ai_improved_programs else None)
+            programs = convert_programs(
+                result.programs, ai_improved_programs if ai_improved_programs else None
+            )
 
             # Calculate total duration
             total_duration = sum(p["duration_min"] for p in programs)
@@ -906,33 +1067,37 @@ async def _run_programming(
 
             # If AI modifications were applied, add an AI-improved iteration at the beginning
             if ai_applied_count > 0:
-                all_iterations_data.append({
-                    "iteration": 0,  # Special iteration number for AI improved
-                    "programs": programs,  # The AI-modified programs
-                    "total_score": result.total_score,
-                    "average_score": result.average_score,
-                    "total_duration_min": total_duration,
-                    "program_count": len(programs),
-                    "is_optimized": False,
-                    "is_improved": False,
-                    "is_ai_improved": True,  # New flag for AI improved iteration
-                })
+                all_iterations_data.append(
+                    {
+                        "iteration": 0,  # Special iteration number for AI improved
+                        "programs": programs,  # The AI-modified programs
+                        "total_score": result.total_score,
+                        "average_score": result.average_score,
+                        "total_duration_min": total_duration,
+                        "program_count": len(programs),
+                        "is_optimized": False,
+                        "is_improved": False,
+                        "is_ai_improved": True,  # New flag for AI improved iteration
+                    }
+                )
 
             for iter_result in result.all_iterations:
                 # Don't pass AI titles to other iterations - they weren't modified
                 iter_programs = convert_programs(iter_result.programs, None)
                 iter_total_duration = sum(p["duration_min"] for p in iter_programs)
-                all_iterations_data.append({
-                    "iteration": iter_result.iteration,
-                    "programs": iter_programs,
-                    "total_score": iter_result.total_score,
-                    "average_score": iter_result.average_score,
-                    "total_duration_min": iter_total_duration,
-                    "program_count": len(iter_programs),
-                    "is_optimized": iter_result.is_optimized,
-                    "is_improved": iter_result.is_improved,
-                    "is_ai_improved": False,
-                })
+                all_iterations_data.append(
+                    {
+                        "iteration": iter_result.iteration,
+                        "programs": iter_programs,
+                        "total_score": iter_result.total_score,
+                        "average_score": iter_result.average_score,
+                        "total_duration_min": iter_total_duration,
+                        "program_count": len(iter_programs),
+                        "is_optimized": iter_result.is_optimized,
+                        "is_improved": iter_result.is_improved,
+                        "is_ai_improved": False,
+                    }
+                )
 
             # Store result
             result_id = str(uuid4())
@@ -981,7 +1146,9 @@ async def _run_programming(
             # Tunarr sync step (if not preview only)
             if not request.preview_only:
                 await job_manager.update_step_status(job_id, "tunarr_sync", "running")
-                await job_manager.update_job_progress(job_id, 97, "Envoi de la programmation vers Tunarr...")
+                await job_manager.update_job_progress(
+                    job_id, 97, "Envoi de la programmation vers Tunarr..."
+                )
 
                 tunarr_service = None
                 try:
@@ -1005,20 +1172,26 @@ async def _run_programming(
                         # Use the first Plex server configured in Tunarr
                         plex_server_name = plex_servers[0].get("name", plex_server_name)
                         plex_server_id = plex_servers[0].get("id", plex_server_id)
-                        logger.info(f"Using Plex server from Tunarr: {plex_server_name} (ID: {plex_server_id})")
+                        logger.info(
+                            f"Using Plex server from Tunarr: {plex_server_name} (ID: {plex_server_id})"
+                        )
 
                     # Convert programs to Tunarr format
                     tunarr_programs = []
                     for prog in result.programs:
-                        tunarr_programs.append({
-                            "plex_key": prog.content.get("plex_key", ""),
-                            "content_plex_key": prog.content.get("plex_key", ""),
-                            "title": prog.content.get("title", ""),
-                            "duration_ms": prog.content.get("duration_ms", 0),
-                            "type": prog.content.get("type", "movie"),
-                            "year": prog.content.get("year"),
-                            "content_rating": prog.content_meta.get("content_rating") if prog.content_meta else None,
-                        })
+                        tunarr_programs.append(
+                            {
+                                "plex_key": prog.content.get("plex_key", ""),
+                                "content_plex_key": prog.content.get("plex_key", ""),
+                                "title": prog.content.get("title", ""),
+                                "duration_ms": prog.content.get("duration_ms", 0),
+                                "type": prog.content.get("type", "movie"),
+                                "year": prog.content.get("year"),
+                                "content_rating": prog.content_meta.get("content_rating")
+                                if prog.content_meta
+                                else None,
+                            }
+                        )
 
                     # Send to Tunarr
                     success = await tunarr_service.update_channel_programming(
@@ -1034,7 +1207,9 @@ async def _run_programming(
                         start_dt = datetime.now()
                         if request.start_datetime:
                             try:
-                                start_dt = datetime.fromisoformat(request.start_datetime.replace("Z", "+00:00"))
+                                start_dt = datetime.fromisoformat(
+                                    request.start_datetime.replace("Z", "+00:00")
+                                )
                             except ValueError:
                                 pass
 
@@ -1056,15 +1231,21 @@ async def _run_programming(
                             logger.warning("Failed to update channel start time")
 
                         sync_detail = f"{len(tunarr_programs)} programmes envoyés"
-                        await job_manager.update_step_status(job_id, "tunarr_sync", "completed", sync_detail)
-                        logger.info(f"Tunarr sync completed: {len(tunarr_programs)} programs sent to channel {request.channel_id}")
+                        await job_manager.update_step_status(
+                            job_id, "tunarr_sync", "completed", sync_detail
+                        )
+                        logger.info(
+                            f"Tunarr sync completed: {len(tunarr_programs)} programs sent to channel {request.channel_id}"
+                        )
                     else:
                         raise ValueError("Échec de l'envoi vers Tunarr")
 
                 except Exception as e:
                     logger.error(f"Tunarr sync failed: {e}")
                     sync_detail = f"Erreur: {str(e)}"
-                    await job_manager.update_step_status(job_id, "tunarr_sync", "failed", sync_detail)
+                    await job_manager.update_step_status(
+                        job_id, "tunarr_sync", "failed", sync_detail
+                    )
                     # Don't fail the whole job, just log the error
                     # The programming was still generated successfully
                 finally:
@@ -1077,7 +1258,9 @@ async def _run_programming(
                 best_score=result.average_score,
             )
 
-            logger.info(f"Programming completed: {len(programs)} programs, avg score {result.average_score:.2f}")
+            logger.info(
+                f"Programming completed: {len(programs)} programs, avg score {result.average_score:.2f}"
+            )
 
     except Exception as e:
         logger.error(f"Programming failed: {e}")
@@ -1085,7 +1268,7 @@ async def _run_programming(
         await job_manager.fail_job(job_id, str(e))
         # Try to mark history entry as failed if it was created
         try:
-            if 'history_entry' in dir() and 'history_service' in dir():
+            if "history_entry" in dir() and "history_service" in dir():
                 await history_service.mark_failed(history_entry.id, str(e))
         except Exception:
             pass  # Best effort
@@ -1126,6 +1309,7 @@ async def generate_programming(
     # Run in a separate thread with its own event loop
     # This is needed because SQLAlchemy async requires proper greenlet context
     import threading
+
     thread = threading.Thread(
         target=_run_programming_in_thread,
         args=(job_id, request),
@@ -1149,10 +1333,7 @@ async def generate_programming_ai(
     """Generate programming using AI to create a profile from a prompt."""
     # TODO: Implement AI profile generation
     # For now, return not implemented
-    raise HTTPException(
-        status_code=501,
-        detail="AI programming generation not yet implemented"
-    )
+    raise HTTPException(status_code=501, detail="AI programming generation not yet implemented")
 
 
 @router.post("/improve")
@@ -1188,29 +1369,8 @@ async def improve_programming_with_ai(
     programs_for_ai = []
     for prog in current_programs:
         score_data = prog.get("score", {})
-        programs_for_ai.append({
-            "title": prog.get("title", ""),
-            "type": prog.get("type", "movie"),
-            "duration_min": prog.get("duration_min", 0),
-            "genres": prog.get("genres", []),
-            "keywords": prog.get("keywords", []),
-            "collections": prog.get("collections", []),
-            "studios": prog.get("studios", []),
-            "year": prog.get("year"),
-            "content_rating": prog.get("content_rating"),
-            "tmdb_rating": prog.get("tmdb_rating"),
-            "block_name": prog.get("block_name", ""),
-            "score": score_data.get("total", 0) if isinstance(score_data, dict) else 0,
-            "forbidden_violated": score_data.get("forbidden_violated", False) if isinstance(score_data, dict) else False,
-        })
-
-    # Format iterations for AI
-    all_iter_data = []
-    for iter_result in all_iterations:
-        iter_programs = []
-        for prog in iter_result.get("programs", []):
-            score_data = prog.get("score", {})
-            iter_programs.append({
+        programs_for_ai.append(
+            {
                 "title": prog.get("title", ""),
                 "type": prog.get("type", "movie"),
                 "duration_min": prog.get("duration_min", 0),
@@ -1221,15 +1381,46 @@ async def improve_programming_with_ai(
                 "year": prog.get("year"),
                 "content_rating": prog.get("content_rating"),
                 "tmdb_rating": prog.get("tmdb_rating"),
-                "score": score_data.get("total", 0) if isinstance(score_data, dict) else 0,
                 "block_name": prog.get("block_name", ""),
-                "forbidden_violated": score_data.get("forbidden_violated", False) if isinstance(score_data, dict) else False,
-            })
-        all_iter_data.append({
-            "iteration": iter_result.get("iteration", 0),
-            "programs": iter_programs,
-            "average_score": iter_result.get("average_score", 0),
-        })
+                "score": score_data.get("total", 0) if isinstance(score_data, dict) else 0,
+                "forbidden_violated": score_data.get("forbidden_violated", False)
+                if isinstance(score_data, dict)
+                else False,
+            }
+        )
+
+    # Format iterations for AI
+    all_iter_data = []
+    for iter_result in all_iterations:
+        iter_programs = []
+        for prog in iter_result.get("programs", []):
+            score_data = prog.get("score", {})
+            iter_programs.append(
+                {
+                    "title": prog.get("title", ""),
+                    "type": prog.get("type", "movie"),
+                    "duration_min": prog.get("duration_min", 0),
+                    "genres": prog.get("genres", []),
+                    "keywords": prog.get("keywords", []),
+                    "collections": prog.get("collections", []),
+                    "studios": prog.get("studios", []),
+                    "year": prog.get("year"),
+                    "content_rating": prog.get("content_rating"),
+                    "tmdb_rating": prog.get("tmdb_rating"),
+                    "score": score_data.get("total", 0) if isinstance(score_data, dict) else 0,
+                    "block_name": prog.get("block_name", ""),
+                    "forbidden_violated": score_data.get("forbidden_violated", False)
+                    if isinstance(score_data, dict)
+                    else False,
+                }
+            )
+        all_iter_data.append(
+            {
+                "iteration": iter_result.get("iteration", 0),
+                "programs": iter_programs,
+                "average_score": iter_result.get("average_score", 0),
+            }
+        )
 
     # Get Ollama configuration
     config_service = ServiceConfigService(session)
@@ -1255,7 +1446,9 @@ async def improve_programming_with_ai(
             all_iterations=all_iter_data,
         )
 
-        logger.info(f"AI improvement prompt length: {len(prompt)} chars, {len(programs_for_ai)} current programs, {len(all_iter_data)} iterations")
+        logger.info(
+            f"AI improvement prompt length: {len(prompt)} chars, {len(programs_for_ai)} current programs, {len(all_iter_data)} iterations"
+        )
 
         logger.info(f"Generating AI improvement suggestions with model '{model}'")
 
@@ -1273,6 +1466,7 @@ async def improve_programming_with_ai(
 
         # Try to parse JSON from response
         import json
+
         try:
             # Try direct parse
             suggestions = json.loads(response)
@@ -1289,14 +1483,14 @@ async def improve_programming_with_ai(
                         "analysis": response,
                         "suggestions": [],
                         "summary": "Unable to parse AI response as JSON",
-                        "raw_response": response
+                        "raw_response": response,
                     }
             else:
                 suggestions = {
                     "analysis": response,
                     "suggestions": [],
                     "summary": "Unable to parse AI response as JSON",
-                    "raw_response": response
+                    "raw_response": response,
                 }
 
         return {
@@ -1325,7 +1519,9 @@ async def apply_ai_modification(
     This finds the program with original_title and replaces it with the program
     that has replacement_title from the available iterations.
     """
-    logger.info(f"[AI Modification] Applying: '{request.original_title}' -> '{request.replacement_title}'")
+    logger.info(
+        f"[AI Modification] Applying: '{request.original_title}' -> '{request.replacement_title}'"
+    )
 
     # Get the result
     result = _results.get(result_id)
@@ -1355,11 +1551,13 @@ async def apply_ai_modification(
 
     if program_idx is None:
         # Log the error with available titles
-        logger.error(f"[AI Modification] Original '{request.original_title}' NOT FOUND in current programs")
+        logger.error(
+            f"[AI Modification] Original '{request.original_title}' NOT FOUND in current programs"
+        )
         logger.error(f"[AI Modification] Available titles: {current_titles}")
         raise HTTPException(
             status_code=404,
-            detail=f"Programme '{request.original_title}' introuvable dans la programmation actuelle. L'IA a peut-être confondu les listes. Programmes disponibles: {', '.join(current_titles[:5])}..."
+            detail=f"Programme '{request.original_title}' introuvable dans la programmation actuelle. L'IA a peut-être confondu les listes. Programmes disponibles: {', '.join(current_titles[:5])}...",
         )
 
     # Find the replacement program from all iterations
@@ -1378,10 +1576,12 @@ async def apply_ai_modification(
     logger.info(f"[AI Modification] Alternative titles available: {len(all_alternative_titles)}")
 
     if not replacement_program:
-        logger.error(f"[AI Modification] Replacement '{request.replacement_title}' NOT FOUND in alternatives")
+        logger.error(
+            f"[AI Modification] Replacement '{request.replacement_title}' NOT FOUND in alternatives"
+        )
         raise HTTPException(
             status_code=404,
-            detail=f"Programme de remplacement '{request.replacement_title}' introuvable dans les alternatives"
+            detail=f"Programme de remplacement '{request.replacement_title}' introuvable dans les alternatives",
         )
 
     # Create the replacement program with original timing but new content
@@ -1427,7 +1627,9 @@ async def apply_ai_modification(
         profile_id=result.get("profile_id"),
     )
 
-    logger.info(f"Applied AI modification: replaced '{request.original_title}' with '{request.replacement_title}'")
+    logger.info(
+        f"Applied AI modification: replaced '{request.original_title}' with '{request.replacement_title}'"
+    )
 
     return {
         "success": True,
@@ -1465,15 +1667,17 @@ async def apply_programming(
         # Convert programs to Tunarr format
         tunarr_programs = []
         for prog in result["programs"]:
-            tunarr_programs.append({
-                "start": prog["start_time"],
-                "duration_ms": int(prog["duration_min"] * 60 * 1000),  # ms
-                "title": prog["title"],
-                "type": prog["type"],
-                "plex_key": prog.get("plex_key"),
-                "year": prog.get("year"),
-                "content_rating": prog.get("content_rating"),
-            })
+            tunarr_programs.append(
+                {
+                    "start": prog["start_time"],
+                    "duration_ms": int(prog["duration_min"] * 60 * 1000),  # ms
+                    "title": prog["title"],
+                    "type": prog["type"],
+                    "plex_key": prog.get("plex_key"),
+                    "year": prog.get("year"),
+                    "content_rating": prog.get("content_rating"),
+                }
+            )
 
         # Update channel in Tunarr
         success = await tunarr.update_channel_programming(
@@ -1488,10 +1692,7 @@ async def apply_programming(
                 "message": f"Applied {len(tunarr_programs)} programs to channel",
             }
         else:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to apply programming to Tunarr"
-            )
+            raise HTTPException(status_code=500, detail="Failed to apply programming to Tunarr")
 
     except Exception as e:
         await tunarr.close()
@@ -1526,10 +1727,7 @@ async def list_jobs() -> list[dict[str, Any]]:
     """List recent programming jobs."""
     job_manager = get_job_manager()
     jobs = await job_manager.get_recent_jobs(limit=20)
-    return [
-        job.to_dict() for job in jobs
-        if job.type == JobType.PROGRAMMING
-    ]
+    return [job.to_dict() for job in jobs if job.type == JobType.PROGRAMMING]
 
 
 @router.get("/jobs/{job_id}")

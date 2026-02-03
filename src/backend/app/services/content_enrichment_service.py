@@ -49,7 +49,9 @@ class ContentEnrichmentService:
         """
         # Check if content exists in cache
         # Use selectinload to eagerly load the meta relationship
-        stmt = select(Content).options(selectinload(Content.meta)).where(Content.plex_key == plex_key)
+        stmt = (
+            select(Content).options(selectinload(Content.meta)).where(Content.plex_key == plex_key)
+        )
         result = await self.session.execute(stmt)
         content = result.scalar_one_or_none()
 
@@ -139,7 +141,11 @@ class ContentEnrichmentService:
             return None
 
         # Get existing content with eager loading of meta
-        stmt = select(Content).options(selectinload(Content.meta)).where(Content.plex_key == content_id)
+        stmt = (
+            select(Content)
+            .options(selectinload(Content.meta))
+            .where(Content.plex_key == content_id)
+        )
         result = await self.session.execute(stmt)
         content = result.scalar_one_or_none()
         if not content:
@@ -151,9 +157,7 @@ class ContentEnrichmentService:
                 return self._meta_to_dict(content.meta)
 
         # Enrich with TMDB
-        tmdb_data = await self.tmdb_service.enrich_content(
-            title, content_type, year
-        )
+        tmdb_data = await self.tmdb_service.enrich_content(title, content_type, year)
 
         if not tmdb_data:
             return None
@@ -198,7 +202,9 @@ class ContentEnrichmentService:
             True if updated successfully, False otherwise
         """
         # Get existing content with eager loading of meta
-        stmt = select(Content).options(selectinload(Content.meta)).where(Content.plex_key == plex_key)
+        stmt = (
+            select(Content).options(selectinload(Content.meta)).where(Content.plex_key == plex_key)
+        )
         result = await self.session.execute(stmt)
         content = result.scalar_one_or_none()
 
@@ -255,35 +261,31 @@ class ContentEnrichmentService:
             if not plex_key:
                 continue
 
-            content_dict, meta_dict = await self.get_or_cache_content(
-                plex_key, item
-            )
+            content_dict, meta_dict = await self.get_or_cache_content(plex_key, item)
             results.append((content_dict, meta_dict))
 
             # Track items that need TMDB enrichment
             if enrich_with_tmdb and self.tmdb_service:
                 # Check if needs enrichment
                 needs_enrich = (
-                    not meta_dict or
-                    not meta_dict.get("tmdb_rating") or
-                    not meta_dict.get("genres")
+                    not meta_dict or not meta_dict.get("tmdb_rating") or not meta_dict.get("genres")
                 )
                 if needs_enrich:
-                    items_to_enrich.append((
-                        len(results) - 1,  # index in results
-                        content_dict.get("id"),
-                        content_dict.get("title"),
-                        content_dict.get("type"),
-                        content_dict.get("year"),
-                    ))
+                    items_to_enrich.append(
+                        (
+                            len(results) - 1,  # index in results
+                            content_dict.get("id"),
+                            content_dict.get("title"),
+                            content_dict.get("type"),
+                            content_dict.get("year"),
+                        )
+                    )
 
         # Batch enrich with TMDB
         if items_to_enrich and self.tmdb_service:
             logger.info(f"Enriching {len(items_to_enrich)} items with TMDB")
             for idx, content_id, title, content_type, year in items_to_enrich:
-                enriched = await self.enrich_with_tmdb(
-                    content_id, title, content_type, year
-                )
+                enriched = await self.enrich_with_tmdb(content_id, title, content_type, year)
                 if enriched:
                     # Update the results
                     content_dict, _ = results[idx]
@@ -336,8 +338,8 @@ class ContentEnrichmentService:
         Returns:
             Tuple of (content, meta) or None if not found
         """
-        stmt = select(Content).options(selectinload(Content.meta)).where(
-            Content.plex_key == plex_key
+        stmt = (
+            select(Content).options(selectinload(Content.meta)).where(Content.plex_key == plex_key)
         )
         result = await self.session.execute(stmt)
         content = result.scalar_one_or_none()
@@ -345,7 +347,7 @@ class ContentEnrichmentService:
         if content:
             return (
                 self._content_to_dict(content),
-                self._meta_to_dict(content.meta) if content.meta else None
+                self._meta_to_dict(content.meta) if content.meta else None,
             )
         return None
 
@@ -373,8 +375,10 @@ class ContentEnrichmentService:
 
         try:
             # Check if content already exists
-            stmt = select(Content).options(selectinload(Content.meta)).where(
-                Content.plex_key == plex_key
+            stmt = (
+                select(Content)
+                .options(selectinload(Content.meta))
+                .where(Content.plex_key == plex_key)
             )
             result = await self.session.execute(stmt)
             content = result.scalar_one_or_none()

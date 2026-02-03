@@ -51,13 +51,15 @@ class PlexAdapter:
         libraries = []
 
         for section in server.library.sections():
-            libraries.append({
-                "id": str(section.key),
-                "title": section.title,
-                "type": section.type,
-                "uuid": section.uuid,
-                "total_items": section.totalSize,
-            })
+            libraries.append(
+                {
+                    "id": str(section.key),
+                    "title": section.title,
+                    "type": section.type,
+                    "uuid": section.uuid,
+                    "total_items": section.totalSize,
+                }
+            )
 
         return libraries
 
@@ -124,7 +126,9 @@ class PlexAdapter:
             base["show_title"] = item.grandparentTitle
             base["season_number"] = item.parentIndex
             base["episode_number"] = item.index
-            base["title"] = f"{item.grandparentTitle} - S{item.parentIndex:02d}E{item.index:02d} - {item.title}"
+            base["title"] = (
+                f"{item.grandparentTitle} - S{item.parentIndex:02d}E{item.index:02d} - {item.title}"
+            )
             # For episodes, genres might be empty - use show genres if available
             if not base["genres"] and hasattr(item, "grandparentRatingKey"):
                 try:
@@ -206,7 +210,4 @@ class PlexAdapter:
         else:
             results = server.search(query, limit=limit)
 
-        return [
-            self._item_to_dict(item, library_id or "0")
-            for item in results
-        ]
+        return [self._item_to_dict(item, library_id or "0") for item in results]

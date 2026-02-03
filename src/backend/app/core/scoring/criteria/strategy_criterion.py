@@ -124,7 +124,9 @@ class StrategyCriterion(BaseCriterion):
                 if content_type:
                     content_characteristics.append(content_type)
 
-                adjustment, rule_violation = self.check_rules(content_characteristics, strategy_rules, mfp_policy)
+                adjustment, rule_violation = self.check_rules(
+                    content_characteristics, strategy_rules, mfp_policy
+                )
                 score += adjustment
 
         score = max(0.0, min(100.0, score))

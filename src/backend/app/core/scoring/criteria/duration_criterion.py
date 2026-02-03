@@ -117,17 +117,23 @@ class DurationCriterion(BaseCriterion):
 
                     # Check forbidden first (highest priority)
                     if duration_category.lower() in forbidden:
-                        penalty = duration_rules.get("forbidden_penalty", mfp_policy.forbidden_detected_penalty)
+                        penalty = duration_rules.get(
+                            "forbidden_penalty", mfp_policy.forbidden_detected_penalty
+                        )
                         rule_violation = RuleViolation("forbidden", [duration_category], penalty)
                         score += penalty
                     # Check mandatory (content category must be IN the mandatory list)
                     elif mandatory and duration_category.lower() not in mandatory:
-                        penalty = duration_rules.get("mandatory_penalty", mfp_policy.mandatory_missed_penalty)
+                        penalty = duration_rules.get(
+                            "mandatory_penalty", mfp_policy.mandatory_missed_penalty
+                        )
                         rule_violation = RuleViolation("mandatory", mandatory, penalty)
                         score += penalty
                     # Check preferred (bonus if in preferred list)
                     elif duration_category.lower() in preferred:
-                        bonus = duration_rules.get("preferred_bonus", mfp_policy.preferred_matched_bonus)
+                        bonus = duration_rules.get(
+                            "preferred_bonus", mfp_policy.preferred_matched_bonus
+                        )
                         rule_violation = RuleViolation("preferred", [duration_category], bonus)
                         score += bonus
                     # If mandatory is defined and category matches, give bonus

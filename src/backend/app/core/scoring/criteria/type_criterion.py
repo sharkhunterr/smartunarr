@@ -98,17 +98,23 @@ class TypeCriterion(BaseCriterion):
 
                     # Check forbidden first (highest priority)
                     if content_type in forbidden:
-                        penalty = type_rules.get("forbidden_penalty", mfp_policy.forbidden_detected_penalty)
+                        penalty = type_rules.get(
+                            "forbidden_penalty", mfp_policy.forbidden_detected_penalty
+                        )
                         rule_violation = RuleViolation("forbidden", [content_type], penalty)
                         score += penalty
                     # Check mandatory (content type must be IN the mandatory list)
                     elif mandatory and content_type not in mandatory:
-                        penalty = type_rules.get("mandatory_penalty", mfp_policy.mandatory_missed_penalty)
+                        penalty = type_rules.get(
+                            "mandatory_penalty", mfp_policy.mandatory_missed_penalty
+                        )
                         rule_violation = RuleViolation("mandatory", mandatory, penalty)
                         score += penalty
                     # Check preferred (bonus if in preferred list)
                     elif content_type in preferred:
-                        bonus = type_rules.get("preferred_bonus", mfp_policy.preferred_matched_bonus)
+                        bonus = type_rules.get(
+                            "preferred_bonus", mfp_policy.preferred_matched_bonus
+                        )
                         rule_violation = RuleViolation("preferred", [content_type], bonus)
                         score += bonus
                     # If mandatory is defined and type matches, give bonus

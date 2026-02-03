@@ -129,7 +129,9 @@ class OllamaAdapter:
                 return None
 
         except httpx.TimeoutException as e:
-            logger.error(f"Ollama timeout after 10 minutes - model '{model}' may be too slow or not responding: {type(e).__name__}")
+            logger.error(
+                f"Ollama timeout after 10 minutes - model '{model}' may be too slow or not responding: {type(e).__name__}"
+            )
             return None
         except Exception as e:
             logger.error(f"Generation error ({type(e).__name__}): {e}")

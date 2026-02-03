@@ -20,6 +20,7 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 
 class AILibraryInfo(BaseModel):
     """Library info for AI context."""
+
     id: str
     name: str
     type: str
@@ -27,16 +28,24 @@ class AILibraryInfo(BaseModel):
 
 class GenerateProfileRequest(BaseModel):
     """Request schema for profile generation."""
-    prompt: str = Field(..., min_length=10, description="Natural language description of desired profile")
+
+    prompt: str = Field(
+        ..., min_length=10, description="Natural language description of desired profile"
+    )
     model: str | None = Field(None, description="Ollama model to use (default: auto)")
     temperature: float = Field(0.3, ge=0.0, le=1.0, description="Generation temperature")
     save_profile: bool = Field(False, description="Save generated profile to database")
-    profile_name: str | None = Field(None, description="Name for saved profile (required if save_profile=True)")
-    libraries: list[AILibraryInfo] | None = Field(None, description="Libraries to use for profile generation")
+    profile_name: str | None = Field(
+        None, description="Name for saved profile (required if save_profile=True)"
+    )
+    libraries: list[AILibraryInfo] | None = Field(
+        None, description="Libraries to use for profile generation"
+    )
 
 
 class ModifyProfileRequest(BaseModel):
     """Request schema for profile modification."""
+
     profile_id: str = Field(..., description="ID of profile to modify")
     modification: str = Field(..., min_length=5, description="What to change")
     model: str | None = Field(None, description="Ollama model to use")
@@ -45,6 +54,7 @@ class ModifyProfileRequest(BaseModel):
 
 class GenerationAttemptResponse(BaseModel):
     """Response schema for a generation attempt."""
+
     attempt_number: int
     success: bool
     validation_errors: list[str]
@@ -53,6 +63,7 @@ class GenerationAttemptResponse(BaseModel):
 
 class GenerateProfileResponse(BaseModel):
     """Response schema for profile generation."""
+
     success: bool
     generation_id: str
     profile: dict[str, Any] | None
@@ -64,6 +75,7 @@ class GenerateProfileResponse(BaseModel):
 
 class AIHistoryEntry(BaseModel):
     """AI generation history entry."""
+
     generation_id: str
     success: bool
     total_attempts: int
@@ -80,7 +92,7 @@ async def get_ai_service(session: AsyncSession = Depends(get_session)) -> AIProf
     if not service or not service.url:
         raise HTTPException(
             status_code=400,
-            detail="Ollama not configured. Please configure Ollama in settings first."
+            detail="Ollama not configured. Please configure Ollama in settings first.",
         )
 
     return AIProfileService(ollama_url=service.url)
@@ -105,8 +117,7 @@ async def generate_profile(
     # Validate save request
     if request.save_profile and not request.profile_name:
         raise HTTPException(
-            status_code=400,
-            detail="profile_name is required when save_profile is True"
+            status_code=400, detail="profile_name is required when save_profile is True"
         )
 
     # Use libraries from request if provided, otherwise fetch from Plex
@@ -114,8 +125,7 @@ async def generate_profile(
     if request.libraries:
         # Convert request libraries to the format expected by AI service
         available_libraries = [
-            {"id": lib.id, "name": lib.name, "type": lib.type}
-            for lib in request.libraries
+            {"id": lib.id, "name": lib.name, "type": lib.type} for lib in request.libraries
         ]
         logger.info(f"Using {len(available_libraries)} libraries from request")
     else:
@@ -125,6 +135,7 @@ async def generate_profile(
             plex_service = await config_service.get_service("plex")
             if plex_service and plex_service.url and plex_service.token:
                 from app.services.plex_service import PlexService
+
                 credentials = config_service.get_decrypted_credentials(plex_service)
                 plex = PlexService(plex_service.url, credentials.get("token"))
                 available_libraries = plex.get_libraries()
@@ -241,6 +252,7 @@ async def modify_profile(
         if result.success and request.save_changes and result.profile:
             try:
                 from app.schemas.profile_schema import ProfileUpdate
+
                 update_data = ProfileUpdate(config=result.profile)
                 await profile_service.update_profile(request.profile_id, update_data)
                 response["saved_profile_id"] = request.profile_id
