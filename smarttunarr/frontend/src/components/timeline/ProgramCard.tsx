@@ -56,7 +56,7 @@ export function ProgramCard({ program, showScore = false, compact = false }: Pro
         {program.is_ai_improved && (
           <span
             className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium flex-shrink-0 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
-            title="Modifié par IA"
+            title={t('common.aiModifiedTooltip')}
           >
             <Sparkles className="w-2.5 h-2.5" />
           </span>
@@ -69,7 +69,7 @@ export function ProgramCard({ program, showScore = false, compact = false }: Pro
                 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                 : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
             )}
-            title={program.replaced_title ? `Remplace: ${program.replaced_title}` : 'Contenu de remplacement'}
+            title={program.replaced_title ? t('common.replaces', { title: program.replaced_title }) : t('common.replacementContent')}
           >
             {program.replacement_reason === 'forbidden' ? (
               <RefreshCw className="w-2.5 h-2.5" />
@@ -134,7 +134,7 @@ export function ProgramCard({ program, showScore = false, compact = false }: Pro
                       ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                       : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
                   )}
-                  title={program.replaced_title ? `Remplace: ${program.replaced_title}` : 'Contenu de remplacement'}
+                  title={program.replaced_title ? t('common.replaces', { title: program.replaced_title }) : t('common.replacementContent')}
                 >
                   {program.replacement_reason === 'forbidden' ? (
                     <RefreshCw className="w-2.5 h-2.5" />
@@ -146,7 +146,7 @@ export function ProgramCard({ program, showScore = false, compact = false }: Pro
               {program.is_ai_improved && (
                 <span
                   className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium flex-shrink-0 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
-                  title="Modifié par IA"
+                  title={t('common.aiModifiedTooltip')}
                 >
                   <Sparkles className="w-2.5 h-2.5" />
                 </span>

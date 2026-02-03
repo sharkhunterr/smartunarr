@@ -3,6 +3,7 @@
  * Provides consistent M/F/P (Mandatory/Forbidden/Preferred) visualization
  */
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import clsx from 'clsx'
 import { Film, Tv, Star, Ban, AlertTriangle, ChevronDown, ChevronUp, RefreshCw, Zap, Sparkles } from 'lucide-react'
 import type {
@@ -126,6 +127,7 @@ interface MFPCellProps {
 }
 
 export function MFPCell({ values, status, type, criterion }: MFPCellProps) {
+  const { t } = useTranslation()
   if (values.length === 0) return <span className="text-gray-300 dark:text-gray-600">—</span>
 
   const colors = {
@@ -146,11 +148,11 @@ export function MFPCell({ values, status, type, criterion }: MFPCellProps) {
     P: status === true ? 'bg-green-100 dark:bg-green-900/30' : ''
   }
 
-  const typeLabels = { M: 'Obligatoire', F: 'Interdit', P: 'Préféré' }
+  const typeLabels = { M: t('scoring.mfp.mandatory'), F: t('scoring.mfp.forbidden'), P: t('scoring.mfp.preferred') }
   const statusLabels = {
-    M: status === true ? '✓ Respecté' : status === false ? '✗ Non respecté' : 'Non vérifié',
-    F: status === true ? '✓ Aucun interdit' : status === false ? '✗ Interdit détecté' : 'Non vérifié',
-    P: status === true ? '★ Match' : 'Pas de match'
+    M: status === true ? t('scoring.mfp.met') : status === false ? t('scoring.mfp.notMet') : t('scoring.mfp.notVerified'),
+    F: status === true ? t('scoring.mfp.noForbidden') : status === false ? t('scoring.mfp.forbiddenFound') : t('scoring.mfp.notVerified'),
+    P: status === true ? t('scoring.mfp.match') : t('scoring.mfp.noMatch')
   }
 
   // Build tooltip content
@@ -183,6 +185,7 @@ interface TimingMFPCellProps {
 }
 
 export function TimingMFPCell({ type, timingDetails }: TimingMFPCellProps) {
+  const { t } = useTranslation()
   const rules = timingDetails?.timing_rules
   if (!rules) return <span className="text-gray-300 dark:text-gray-600">—</span>
 
@@ -236,8 +239,9 @@ export function TimingMFPCell({ type, timingDetails }: TimingMFPCellProps) {
 
   const operator = type === 'F' ? '>' : '≤'
   const label = `${operator}${threshold}min`
-  const typeLabels = { M: 'Obligatoire', F: 'Interdit', P: 'Préféré' }
-  const tooltip = `[Timing] ${typeLabels[type]}: ${label}\nActuel: ${offset.toFixed(0)}min\n${status === true ? '✓ OK' : status === false ? '✗ Dépassé' : 'Non applicable'}`
+  const typeLabels = { M: t('scoring.mfp.mandatory'), F: t('scoring.mfp.forbidden'), P: t('scoring.mfp.preferred') }
+  const statusLabel = status === true ? t('scoring.mfp.met') : status === false ? t('scoring.mfp.exceeded') : t('scoring.mfp.notApplicable')
+  const tooltip = `[Timing] ${typeLabels[type]}: ${label}\n${offset.toFixed(0)}min\n${statusLabel}`
 
   return (
     <div
@@ -282,6 +286,7 @@ interface Violation {
 }
 
 export function ScoringExpandableRow({ prog, score, criteria, profile }: ScoringExpandableRowProps) {
+  const { t } = useTranslation()
   // Get MFP policy (block-level or profile-level)
   const mfpPolicy: MFPPolicy = criteria.mfp_policy ?? profile?.mfp_policy ?? {
     mandatory_matched_bonus: 10,
@@ -453,10 +458,10 @@ export function ScoringExpandableRow({ prog, score, criteria, profile }: Scoring
 
   // Build row data with MFP info
   const criteriaRows: CriteriaRow[] = [
-    { key: 'duration', label: 'Durée', content: prog.duration_min ? `${Math.round(prog.duration_min)}min` : null, contentValues: [] },
-    { key: 'type', label: 'Type', content: prog.type ? (prog.type === 'movie' ? 'Film' : prog.type === 'episode' ? 'Série' : prog.type) : null, contentValues: prog.type ? [prog.type] : [] },
-    { key: 'genre', label: 'Genre', content: prog.genres?.join(', ') || null, contentValues: prog.genres || [] },
-    { key: 'timing', label: 'Timing', content: (() => {
+    { key: 'duration', label: t('scoring.criteriaShort.duration'), content: prog.duration_min ? `${Math.round(prog.duration_min)}min` : null, contentValues: [] },
+    { key: 'type', label: t('scoring.criteriaShort.type'), content: prog.type ? t(`scoring.contentTypes.${prog.type}`) : null, contentValues: prog.type ? [prog.type] : [] },
+    { key: 'genre', label: t('scoring.criteriaShort.genre'), content: prog.genres?.join(', ') || null, contentValues: prog.genres || [] },
+    { key: 'timing', label: t('scoring.criteriaShort.timing'), content: (() => {
       const td = score?.criteria?.timing?.details as TimingDetails | null
       if (!td) return null
       if (td.skipped) return null  // Middle programs
@@ -473,25 +478,25 @@ export function ScoringExpandableRow({ prog, score, criteria, profile }: Scoring
       // First in block: check late start or early start
       if (isFirst) {
         if (lateStart > 2) {
-          parts.push(`Retard +${lateStart.toFixed(0)}min`)
+          parts.push(`+${lateStart.toFixed(0)}min`)
         } else if (early > 2) {
-          parts.push(`Avance -${early.toFixed(0)}min`)
+          parts.push(`-${early.toFixed(0)}min`)
         }
       }
 
       // Last in block: check overflow
       if (isLast && overflow > 2) {
-        parts.push(`Dépassement +${overflow.toFixed(0)}min`)
+        parts.push(t('scoring.mfp.overflow', { minutes: overflow.toFixed(0) }))
       }
 
       if (parts.length > 0) return parts.join(', ')
       return 'OK'
     })(), contentValues: [] },
-    { key: 'strategy', label: 'Strat.', content: null, contentValues: [] },
-    { key: 'age', label: 'Âge', content: prog.content_rating || null, contentValues: prog.content_rating ? [prog.content_rating] : [] },
-    { key: 'rating', label: 'Note', content: prog.tmdb_rating && !isNaN(Number(prog.tmdb_rating)) ? `${Number(prog.tmdb_rating).toFixed(1)}/10` : null, contentValues: [] },
-    { key: 'filter', label: 'Filtre', content: prog.keywords?.slice(0, 3).join(', ') || null, contentValues: prog.keywords || [] },
-    { key: 'bonus', label: 'Bonus', content: score?.bonuses?.slice(0, 2).join(', ') || null, contentValues: score?.bonuses || [] },
+    { key: 'strategy', label: t('scoring.criteriaShort.strategy'), content: null, contentValues: [] },
+    { key: 'age', label: t('scoring.criteriaShort.age'), content: prog.content_rating || null, contentValues: prog.content_rating ? [prog.content_rating] : [] },
+    { key: 'rating', label: t('scoring.criteriaShort.rating'), content: prog.tmdb_rating && !isNaN(Number(prog.tmdb_rating)) ? `${Number(prog.tmdb_rating).toFixed(1)}/10` : null, contentValues: [] },
+    { key: 'filter', label: t('scoring.criteriaShort.filter'), content: prog.keywords?.slice(0, 3).join(', ') || null, contentValues: prog.keywords || [] },
+    { key: 'bonus', label: t('scoring.criteriaShort.bonus'), content: score?.bonuses?.slice(0, 2).join(', ') || null, contentValues: score?.bonuses || [] },
   ]
 
   // Collect violations for summary (after criteriaRows is defined)
@@ -571,10 +576,10 @@ export function ScoringExpandableRow({ prog, score, criteria, profile }: Scoring
             <thead className="bg-gray-100 dark:bg-gray-900/50">
               <tr>
                 <th className="px-1.5 py-1 text-left font-medium text-gray-500 dark:text-gray-400 w-12">Crit.</th>
-                <th className="px-1.5 py-1 text-left font-medium text-gray-500 dark:text-gray-400 w-24">Contenu</th>
-                <th className="px-1.5 py-1 text-left font-medium text-orange-500 w-28">M (Obligatoire)</th>
-                <th className="px-1.5 py-1 text-left font-medium text-red-500 w-28">F (Interdit)</th>
-                <th className="px-1.5 py-1 text-left font-medium text-green-500 w-28">P (Préféré)</th>
+                <th className="px-1.5 py-1 text-left font-medium text-gray-500 dark:text-gray-400 w-24">{t('scoring.mfp.content')}</th>
+                <th className="px-1.5 py-1 text-left font-medium text-orange-500 w-28">{t('scoring.mfp.mShort')}</th>
+                <th className="px-1.5 py-1 text-left font-medium text-red-500 w-28">{t('scoring.mfp.fShort')}</th>
+                <th className="px-1.5 py-1 text-left font-medium text-green-500 w-28">{t('scoring.mfp.pShort')}</th>
                 <th className="px-1.5 py-1 text-center font-medium text-purple-500 w-10">×</th>
                 <th className="px-1.5 py-1 text-center font-medium text-gray-500 dark:text-gray-400 w-10">Score</th>
               </tr>
@@ -641,7 +646,7 @@ export function ScoringExpandableRow({ prog, score, criteria, profile }: Scoring
           <div className="mt-1.5 rounded border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10 p-1.5">
             <div className="flex items-center gap-1 text-[10px] font-semibold text-red-700 dark:text-red-300 mb-1">
               <AlertTriangle className="w-3 h-3" />
-              {violations.length} violation(s) détectée(s)
+              {t('scoring.mfp.violations', { count: violations.length })}
             </div>
             <div className="space-y-0.5">
               {violations.map((v, i) => (
@@ -656,9 +661,9 @@ export function ScoringExpandableRow({ prog, score, criteria, profile }: Scoring
                   <span className="text-gray-700 dark:text-gray-300">
                     <strong>{v.criterion}</strong>:
                     {v.type === 'M' ? (
-                      <> Requis <span className="text-orange-600 dark:text-orange-400">{v.expected.join(', ')}</span> — Contenu: <span className="text-gray-500">{v.content.length > 0 ? v.content.join(', ') : 'aucun'}</span></>
+                      <> {t('scoring.mfp.required')} <span className="text-orange-600 dark:text-orange-400">{v.expected.join(', ')}</span> — {t('scoring.mfp.content')}: <span className="text-gray-500">{v.content.length > 0 ? v.content.join(', ') : t('scoring.mfp.none')}</span></>
                     ) : (
-                      <> Interdit <span className="text-red-600 dark:text-red-400">{v.expected.join(', ')}</span> — Trouvé: <span className="text-red-500">{v.content.filter(c => v.expected.some(e => normalizeAccents(c.toLowerCase()).includes(normalizeAccents(e.toLowerCase())))).join(', ')}</span></>
+                      <> {t('scoring.mfp.forbidden')} <span className="text-red-600 dark:text-red-400">{v.expected.join(', ')}</span> — {t('scoring.mfp.found')}: <span className="text-red-500">{v.content.filter(c => v.expected.some(e => normalizeAccents(c.toLowerCase()).includes(normalizeAccents(e.toLowerCase())))).join(', ')}</span></>
                     )}
                   </span>
                 </div>
@@ -734,6 +739,7 @@ export function ScoresTable({
   calculateOffset,
   maxHeight = '500px'
 }: ScoresTableProps) {
+  const { t } = useTranslation()
   const criteria = Object.keys(CRITERION_LABELS)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
@@ -776,27 +782,27 @@ export function ScoresTable({
           <thead className="bg-gray-50 dark:bg-gray-900/50 sticky top-0 z-10">
             <tr>
               <th className="px-2 py-2 text-left font-medium text-gray-600 dark:text-gray-400 sticky left-0 bg-gray-50 dark:bg-gray-900/50 z-20 min-w-[150px]">
-                Titre
+                {t('scoring.table.title')}
               </th>
               <th className="px-2 py-2 text-center font-medium text-gray-600 dark:text-gray-400 w-16">
-                Bloc
+                {t('scoring.table.block')}
               </th>
               <th className="px-2 py-2 text-center font-medium text-gray-600 dark:text-gray-400 w-14">
-                Début
+                {t('scoring.table.start')}
               </th>
               <th className="px-2 py-2 text-center font-medium text-gray-600 dark:text-gray-400 w-14">
-                Fin
+                {t('scoring.table.end')}
               </th>
               <th className="px-2 py-2 text-center font-medium text-gray-600 dark:text-gray-400 w-12">
-                Durée
+                {t('scoring.table.duration')}
               </th>
               {showOffset && (
-                <th className="px-2 py-2 text-center font-medium text-gray-600 dark:text-gray-400 w-12" title="Décalage par rapport à l'heure prévue du bloc">
-                  Décal.
+                <th className="px-2 py-2 text-center font-medium text-gray-600 dark:text-gray-400 w-12" title={t('scoring.table.offsetTooltip')}>
+                  {t('scoring.table.offset')}
                 </th>
               )}
-              <th className="px-2 py-2 text-center font-medium text-gray-600 dark:text-gray-400 w-10" title="Statut">
-                Statut
+              <th className="px-2 py-2 text-center font-medium text-gray-600 dark:text-gray-400 w-10" title={t('scoring.table.status')}>
+                {t('scoring.table.status')}
               </th>
               {criteria.map(key => (
                 <th key={key} className="px-1.5 py-2 text-center font-medium text-gray-600 dark:text-gray-400 w-12" title={`Score ${CRITERION_LABELS[key]}`}>
@@ -846,7 +852,7 @@ export function ScoresTable({
                                 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                                 : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
                             )}
-                            title={prog.replaced_title ? `Remplace: ${prog.replaced_title}` : 'Contenu de remplacement'}
+                            title={prog.replaced_title ? t('common.replaces', { title: prog.replaced_title }) : t('common.replacementContent')}
                           >
                             {prog.replacement_reason === 'forbidden' ? (
                               <RefreshCw className="w-2.5 h-2.5" />
@@ -858,7 +864,7 @@ export function ScoresTable({
                         {prog.is_ai_improved && (
                           <span
                             className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium flex-shrink-0 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
-                            title="Modifié par IA"
+                            title={t('common.aiModifiedTooltip')}
                           >
                             <Sparkles className="w-2.5 h-2.5" />
                           </span>
@@ -893,10 +899,10 @@ export function ScoresTable({
                             className="font-medium text-red-500"
                             title={
                               offsetResult.type === 'block_start'
-                                ? `⚠️ Début ${offsetResult.offset} min après le début du bloc`
+                                ? t('scoring.offset.lateBlockStart', { offset: offsetResult.offset })
                                 : offsetResult.type === 'block_end'
-                                ? `⚠️ Déborde de ${offsetResult.offset} min après la fin du bloc`
-                                : `${offsetResult.offset} min de trou après le programme précédent`
+                                ? t('scoring.offset.lateBlockEnd', { offset: offsetResult.offset })
+                                : t('scoring.offset.gapAfterProgram', { offset: offsetResult.offset })
                             }
                           >
                             +{offsetResult.offset}
@@ -906,10 +912,10 @@ export function ScoresTable({
                             className={clsx('font-medium', offsetResult.type === 'gap' ? 'text-orange-400' : 'text-blue-500')}
                             title={
                               offsetResult.type === 'block_start'
-                                ? `Début ${Math.abs(offsetResult.offset)} min avant le bloc (OK)`
+                                ? t('scoring.offset.earlyBlockStart', { offset: Math.abs(offsetResult.offset) })
                                 : offsetResult.type === 'block_end'
-                                ? `Fin ${Math.abs(offsetResult.offset)} min avant la fin du bloc (OK)`
-                                : `${Math.abs(offsetResult.offset)} min de chevauchement`
+                                ? t('scoring.offset.earlyBlockEnd', { offset: Math.abs(offsetResult.offset) })
+                                : t('scoring.offset.overlap', { offset: Math.abs(offsetResult.offset) })
                             }
                           >
                             {offsetResult.offset}
@@ -922,11 +928,11 @@ export function ScoresTable({
                     )}
                     <td className="px-2 py-1.5 text-center">
                       {isForbidden ? (
-                        <span title="Contenu interdit"><Ban className="w-3.5 h-3.5 text-red-500 inline" /></span>
+                        <span title={t('common.forbiddenContent')}><Ban className="w-3.5 h-3.5 text-red-500 inline" /></span>
                       ) : isMandatoryMet === false ? (
-                        <span title="Obligatoire non respecté"><AlertTriangle className="w-3.5 h-3.5 text-yellow-500 inline" /></span>
+                        <span title={t('common.mandatoryNotMet')}><AlertTriangle className="w-3.5 h-3.5 text-yellow-500 inline" /></span>
                       ) : isMandatoryMet === true ? (
-                        <span title="Obligatoire respecté"><Star className="w-3.5 h-3.5 text-green-500 inline" /></span>
+                        <span title={t('common.mandatoryMet')}><Star className="w-3.5 h-3.5 text-green-500 inline" /></span>
                       ) : (
                         <span className="text-gray-300">—</span>
                       )}

@@ -28,12 +28,18 @@
     "confirm": "Confirmer",
     "close": "Fermer",
     "auto": "Auto",
+    "aiModifiedTooltip": "Modifié par IA",
+    "replaces": "Remplace : {{title}}",
+    "replacementContent": "Contenu de remplacement",
+    "forbiddenContent": "Contenu interdit",
+    "mandatoryNotMet": "Obligatoire non respecté",
+    "mandatoryMet": "Obligatoire respecté",
     "errors": {
       "generic": "Une erreur est survenue",
-      "loadingData": "Erreur lors du chargement des donnees",
+      "loadingData": "Erreur lors du chargement des données",
       "analysis": "Erreur lors de l'analyse",
       "export": "Erreur lors de l'export",
-      "generation": "Erreur lors de la generation",
+      "generation": "Erreur lors de la génération",
       "apply": "Erreur lors de l'application"
     }
   },
@@ -142,6 +148,44 @@
       "filter": "Filtre",
       "bonus": "Bonus"
     },
+    "criteriaShort": {
+      "type": "Type",
+      "duration": "Durée",
+      "genre": "Genre",
+      "timing": "Timing",
+      "strategy": "Strat.",
+      "age": "Âge",
+      "rating": "Note",
+      "filter": "Filtre",
+      "bonus": "Bonus"
+    },
+    "mfp": {
+      "mandatory": "Obligatoire",
+      "forbidden": "Interdit",
+      "preferred": "Préféré",
+      "met": "✓ Respecté",
+      "notMet": "✗ Non respecté",
+      "notVerified": "Non vérifié",
+      "noForbidden": "✓ Aucun interdit",
+      "forbiddenFound": "✗ Interdit détecté",
+      "match": "★ Match",
+      "noMatch": "Pas de match",
+      "exceeded": "✗ Dépassé",
+      "notApplicable": "Non applicable",
+      "overflow": "Dépassement +{{minutes}}min",
+      "content": "Contenu",
+      "mShort": "M (Obligatoire)",
+      "fShort": "F (Interdit)",
+      "pShort": "P (Préféré)",
+      "violations": "{{count}} violation(s) détectée(s)",
+      "required": "Requis",
+      "found": "Trouvé",
+      "none": "aucun"
+    },
+    "contentTypes": {
+      "movie": "Film",
+      "episode": "Série"
+    },
     "notEvaluated": "Non evalue",
     "expanded": {
       "contentInfo": "Informations du contenu",
@@ -175,7 +219,25 @@
     "mfpDefault": "MFP: defaut",
     "allMultipliers": "x1.0 (tous)",
     "profileDefaults": "Defauts profil:",
-    "default": "(defaut)"
+    "default": "(defaut)",
+    "table": {
+      "title": "Titre",
+      "block": "Bloc",
+      "start": "Début",
+      "end": "Fin",
+      "duration": "Durée",
+      "offset": "Décal.",
+      "offsetTooltip": "Décalage par rapport à l'heure prévue du bloc",
+      "status": "Statut"
+    },
+    "offset": {
+      "lateBlockStart": "⚠️ Début {{offset}} min après le début du bloc",
+      "lateBlockEnd": "⚠️ Déborde de {{offset}} min après la fin du bloc",
+      "gapAfterProgram": "{{offset}} min de trou après le programme précédent",
+      "earlyBlockStart": "Début {{offset}} min avant le bloc (OK)",
+      "earlyBlockEnd": "Fin {{offset}} min avant la fin du bloc (OK)",
+      "overlap": "{{offset}} min de chevauchement"
+    }
   },
   "profiles": {
     "title": "Profils de programmation",

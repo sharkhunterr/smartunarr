@@ -28,6 +28,12 @@
     "confirm": "Confirm",
     "close": "Close",
     "auto": "Auto",
+    "aiModifiedTooltip": "Modified by AI",
+    "replaces": "Replaces: {{title}}",
+    "replacementContent": "Replacement content",
+    "forbiddenContent": "Forbidden content",
+    "mandatoryNotMet": "Mandatory not met",
+    "mandatoryMet": "Mandatory met",
     "errors": {
       "generic": "An error occurred",
       "loadingData": "Error loading data",
@@ -142,6 +148,44 @@
       "filter": "Filter",
       "bonus": "Bonus"
     },
+    "criteriaShort": {
+      "type": "Type",
+      "duration": "Dur.",
+      "genre": "Genre",
+      "timing": "Time",
+      "strategy": "Strat.",
+      "age": "Age",
+      "rating": "Rating",
+      "filter": "Filter",
+      "bonus": "Bonus"
+    },
+    "mfp": {
+      "mandatory": "Mandatory",
+      "forbidden": "Forbidden",
+      "preferred": "Preferred",
+      "met": "✓ Met",
+      "notMet": "✗ Not met",
+      "notVerified": "Not verified",
+      "noForbidden": "✓ No forbidden",
+      "forbiddenFound": "✗ Forbidden detected",
+      "match": "★ Match",
+      "noMatch": "No match",
+      "exceeded": "✗ Exceeded",
+      "notApplicable": "Not applicable",
+      "overflow": "Overflow +{{minutes}}min",
+      "content": "Content",
+      "mShort": "M (Mandatory)",
+      "fShort": "F (Forbidden)",
+      "pShort": "P (Preferred)",
+      "violations": "{{count}} violation(s) detected",
+      "required": "Required",
+      "found": "Found",
+      "none": "none"
+    },
+    "contentTypes": {
+      "movie": "Movie",
+      "episode": "Series"
+    },
     "notEvaluated": "Not evaluated",
     "expanded": {
       "contentInfo": "Content Information",
@@ -175,7 +219,25 @@
     "mfpDefault": "MFP: default",
     "allMultipliers": "x1.0 (all)",
     "profileDefaults": "Profile defaults:",
-    "default": "(default)"
+    "default": "(default)",
+    "table": {
+      "title": "Title",
+      "block": "Block",
+      "start": "Start",
+      "end": "End",
+      "duration": "Duration",
+      "offset": "Offset",
+      "offsetTooltip": "Offset from scheduled block time",
+      "status": "Status"
+    },
+    "offset": {
+      "lateBlockStart": "⚠️ Starts {{offset}} min after block start",
+      "lateBlockEnd": "⚠️ Overflows {{offset}} min after block end",
+      "gapAfterProgram": "{{offset}} min gap after previous program",
+      "earlyBlockStart": "Starts {{offset}} min before block (OK)",
+      "earlyBlockEnd": "Ends {{offset}} min before block end (OK)",
+      "overlap": "{{offset}} min overlap"
+    }
   },
   "profiles": {
     "title": "Programming Profiles",
