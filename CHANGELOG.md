@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.4](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.3...v0.1.4) (2026-02-03)
+
+
+### Bug Fixes
+
+* Use GitLab registry instead of artifact for Docker image ([5210f02](https://github.com/sharkhunterr/smartunarr/-/commit/5210f02d91fc8036644f3dac9b1f1cebf7ac238d))
+
 ### [0.1.3](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.2...v0.1.3) (2026-02-03)
 
 
