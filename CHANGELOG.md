@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.2](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.1...v0.1.2) (2026-02-03)
+
+
+### Bug Fixes
+
+* Fix CI configuration for Poetry and correct script paths ([bd9f78c](https://github.com/sharkhunterr/smartunarr/-/commit/bd9f78ccdf35f7a517a82708a17d5ccc5487abd6))
+
 ### 0.1.1 (2026-02-03)
 
 
