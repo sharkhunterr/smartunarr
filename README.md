@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📺 SmarTunarr
+![SmarTunarr Banner](docs/banner.svg)
 
 **Smart TV Channel Programming for Tunarr**
 
@@ -245,7 +245,7 @@ All translations generated with Claude Code. Want to add a language? See [Develo
 flowchart TB
     subgraph Frontend["🖥️ React Frontend :3000"]
         UI[Web Interface]
-        WS[WebSocket Client]
+        SSE[SSE Client]
     end
 
     subgraph Backend["⚙️ FastAPI Backend :4273"]
@@ -253,7 +253,7 @@ flowchart TB
         SCORE[Scoring Engine]
         PROG[Programming Engine]
         SCHED[Scheduler]
-        WSS[WebSocket Server]
+        SSES[SSE Server]
     end
 
     subgraph Data["💾 Data Layer"]
@@ -268,7 +268,7 @@ flowchart TB
     end
 
     UI -->|HTTP| API
-    UI -->|WebSocket| WSS
+    UI -->|SSE| SSES
 
     API --> SCORE
     API --> PROG
@@ -305,7 +305,7 @@ sequenceDiagram
     Note over API: Score Each Schedule
     Note over API: Keep Best Result
 
-    API-->>UI: Best Schedule (via WebSocket)
+    API-->>UI: Best Schedule (via SSE)
     UI-->>User: Display Results
 
     User->>UI: Apply to Tunarr

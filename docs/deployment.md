@@ -252,12 +252,13 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # WebSocket
-    location /api/v1/ws/ {
+    # SSE (Server-Sent Events)
+    location /api/v1/jobs/stream {
         proxy_pass http://smartunarr_backend;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_cache off;
         proxy_read_timeout 86400s;
     }
 }
@@ -340,7 +341,7 @@ tail -f /app/data/logs/smartunarr.log
 The application exposes basic metrics at `/api/v1/metrics`:
 
 - Request count and latency
-- Active WebSocket connections
+- Active SSE connections
 - Cache hit/miss rates
 - Database query counts
 
@@ -403,17 +404,17 @@ docker stats smartunarr-backend
 CACHE_MAX_SIZE=500
 ```
 
-### WebSocket Issues
+### SSE Issues
 
 **Connection drops:**
 - Check reverse proxy timeouts
-- Verify WebSocket upgrade headers
-- Enable longer ping intervals
+- Ensure proxy buffering is disabled
+- Enable longer read timeouts
 
 ```nginx
-# Nginx WebSocket timeout
+# Nginx SSE timeout
 proxy_read_timeout 86400s;
-proxy_send_timeout 86400s;
+proxy_buffering off;
 ```
 
 ## Security Considerations

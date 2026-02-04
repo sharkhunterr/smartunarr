@@ -919,7 +919,7 @@ async def analyze_scoring(
     return {
         "job_id": job_id,
         "status": "started",
-        "message": "Scoring analysis started. Track progress via WebSocket.",
+        "message": "Scoring analysis started. Track progress via SSE.",
     }
 
 

@@ -4,9 +4,9 @@
 
 ---
 
-# v0.1.10
+# v0.1.11
 
-**Title:** `v0.1.10 - Service Status Banner, UI Improvements & Bug Fixes`
+**Title:** `v0.1.11 - Service Status Banner, UI Improvements & Bug Fixes`
 
 **Release Notes (copier ci-dessous):**
 
@@ -58,13 +58,13 @@ New branding assets added:
 ## 🚀 Upgrade
 
 ```bash
-docker pull sharkhunterr/smartunarr:0.1.10
+docker pull sharkhunterr/smartunarr:0.1.11
 docker compose up -d
 ```
 
 ---
 
-**Full Changelog**: https://github.com/sharkhunterr/smartunarr/compare/v0.1.7...v0.1.10
+**Full Changelog**: https://github.com/sharkhunterr/smartunarr/compare/v0.1.7...v0.1.11
 
 ---
 ---
@@ -87,7 +87,7 @@ Automate your Tunarr channel schedules with intelligent content placement:
 
 - **Multi-iteration Optimization** — Run N iterations and keep the best-scoring schedule
 - **Profile-Based Scheduling** — Define time blocks with specific content criteria
-- **Real-time Progress** — WebSocket-based progress tracking during generation
+- **Real-time Progress** — SSE-based progress tracking during generation
 - **Preview & Apply** — Review generated schedules before pushing to Tunarr
 - **Intelligent Filling** — Automatically fills time blocks respecting all constraints
 
@@ -172,7 +172,7 @@ Beautiful, responsive UI built with React 18:
 - **🌐 5 Languages** — English, Français, Deutsch, Español, Italiano
 - **🌓 Theme Support** — Light, Dark, and Auto themes
 - **📱 Responsive Design** — Works on desktop, tablet, and mobile
-- **⚡ Real-time Updates** — WebSocket-powered progress tracking
+- **⚡ Real-time Updates** — SSE-powered progress tracking
 - **🧭 Intuitive Navigation** — Clean sidebar with quick access
 
 ### 🐳 Docker Deployment

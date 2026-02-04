@@ -1320,7 +1320,7 @@ async def generate_programming(
     return {
         "job_id": job_id,
         "status": "started",
-        "message": "Programming generation started. Track progress via WebSocket.",
+        "message": "Programming generation started. Track progress via SSE.",
     }
 
 

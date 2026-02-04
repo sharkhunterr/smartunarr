@@ -701,17 +701,17 @@ List available Ollama models.
 
 ---
 
-## WebSocket
+## Server-Sent Events (SSE)
 
-### WS /ws/jobs
+### GET /jobs/stream
 
-Real-time job progress updates.
+Real-time job progress updates via SSE.
 
 **Connect:**
 ```javascript
-const ws = new WebSocket('ws://localhost:4273/api/v1/ws/jobs');
+const eventSource = new EventSource('/api/v1/jobs/stream');
 
-ws.onmessage = (event) => {
+eventSource.onmessage = (event) => {
   const data = JSON.parse(event.data);
   console.log(data);
 };
@@ -720,20 +720,24 @@ ws.onmessage = (event) => {
 **Messages:**
 ```json
 {
-  "type": "progress",
-  "job_id": "uuid",
-  "progress": 45,
-  "current_iteration": 45,
-  "best_score": 78.5
+  "type": "job_progress",
+  "job": {
+    "id": "uuid",
+    "progress": 45,
+    "currentIteration": 45,
+    "bestScore": 78.5
+  }
 }
 ```
 
 ```json
 {
-  "type": "completed",
-  "job_id": "uuid",
-  "status": "success",
-  "final_score": 82.3
+  "type": "job_completed",
+  "job": {
+    "id": "uuid",
+    "status": "completed",
+    "bestScore": 82.3
+  }
 }
 ```
 
@@ -828,8 +832,8 @@ job = client.post("/programming/generate", json={
 const profiles = await fetch('http://localhost:4273/api/v1/profiles')
   .then(r => r.json());
 
-// Generate programming with WebSocket progress
-const ws = new WebSocket('ws://localhost:4273/api/v1/ws/jobs');
+// Generate programming with SSE progress
+const eventSource = new EventSource('/api/v1/jobs/stream');
 
 const job = await fetch('http://localhost:4273/api/v1/programming/generate', {
   method: 'POST',
@@ -841,10 +845,10 @@ const job = await fetch('http://localhost:4273/api/v1/programming/generate', {
   })
 }).then(r => r.json());
 
-ws.onmessage = (e) => {
+eventSource.onmessage = (e) => {
   const data = JSON.parse(e.data);
-  if (data.job_id === job.job_id) {
-    console.log(`Progress: ${data.progress}%`);
+  if (data.job?.id === job.job_id) {
+    console.log(`Progress: ${data.job.progress}%`);
   }
 };
 ```
