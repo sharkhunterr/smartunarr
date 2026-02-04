@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import { schedulesApi, tunarrApi, profilesApi, ollamaApi } from '@/services/api'
+import { ServiceStatusBanner } from '@/components/ServiceStatusBanner'
 import type {
   Schedule,
   ScheduleConfig,
@@ -298,23 +299,30 @@ export function SchedulingPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <CalendarClock className="w-8 h-8 text-primary-500" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <CalendarClock className="w-6 h-6 sm:w-8 sm:h-8 text-primary-500" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
             {t('schedules.title')}
           </h1>
         </div>
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base"
         >
-          <Plus className="w-5 h-5" />
-          {t('schedules.create')}
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="hidden sm:inline">{t('schedules.create')}</span>
+          <span className="sm:hidden">{t('common.add')}</span>
         </button>
       </div>
+
+      {/* Service status banner */}
+      <ServiceStatusBanner
+        requiredServices={['tunarr', 'plex']}
+        optionalServices={['tmdb', 'ollama']}
+      />
 
       {/* Error */}
       {error && (

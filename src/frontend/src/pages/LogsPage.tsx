@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Trash2, Download, RefreshCw, AlertCircle, X, Copy, Check, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Trash2, Download, RefreshCw, AlertCircle, X, Copy, Check, Search, ChevronLeft, ChevronRight, ScrollText } from 'lucide-react'
 import clsx from 'clsx'
 import { logsApi, type LogEntry } from '@/services/api'
 
@@ -268,19 +268,22 @@ export function LogsPage() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-          {t('nav.logs')}
-        </h1>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <ScrollText className="w-6 h-6 sm:w-8 sm:h-8 text-primary-500" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+            {t('nav.logs')}
+          </h1>
+        </div>
 
         {/* Controls */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {/* Auto-refresh toggle */}
-          <label className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+          <label className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-gray-600 dark:text-gray-400 px-1.5 sm:px-2 py-1 sm:py-1.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
             <input
               type="checkbox"
               checked={autoRefresh}
               onChange={e => setAutoRefresh(e.target.checked)}
-              className="rounded border-gray-300 dark:border-gray-600 w-4 h-4"
+              className="rounded border-gray-300 dark:border-gray-600 w-3.5 h-3.5 sm:w-4 sm:h-4"
             />
             <span className="hidden sm:inline">{t('logs.autoRefresh')}</span>
             <span className="sm:hidden">Auto</span>
@@ -290,7 +293,7 @@ export function LogsPage() {
           <select
             value={filter}
             onChange={e => setFilter(e.target.value)}
-            className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="px-1.5 sm:px-3 py-1 sm:py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="all">{t('logs.levels.all')}</option>
             <option value="error">{t('logs.levels.error')}</option>
@@ -303,7 +306,7 @@ export function LogsPage() {
           <button
             onClick={handleRefresh}
             disabled={loading}
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+            className="p-1.5 sm:px-2.5 sm:py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 sm:flex sm:items-center sm:gap-1.5"
             title={t('common.refresh')}
           >
             <RefreshCw className={clsx('w-4 h-4', loading && 'animate-spin')} />
@@ -314,7 +317,7 @@ export function LogsPage() {
           <button
             onClick={handleExport}
             disabled={logs.length === 0}
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+            className="p-1.5 sm:px-2.5 sm:py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 sm:flex sm:items-center sm:gap-1.5"
             title={t('common.export')}
           >
             <Download className="w-4 h-4" />
@@ -325,7 +328,7 @@ export function LogsPage() {
           <button
             onClick={handleClear}
             disabled={total === 0}
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
+            className="p-1.5 sm:px-2.5 sm:py-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50 sm:flex sm:items-center sm:gap-1.5"
             title={t('common.delete')}
           >
             <Trash2 className="w-4 h-4" />

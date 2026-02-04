@@ -975,9 +975,12 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-        {t('settings.title')}
-      </h1>
+      <div className="flex items-center gap-2 sm:gap-3">
+        <Settings className="w-6 h-6 sm:w-8 sm:h-8 text-primary-500" />
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+          {t('settings.title')}
+        </h1>
+      </div>
 
       {/* Tabs Navigation */}
       <div className="border-b border-gray-200 dark:border-gray-700">

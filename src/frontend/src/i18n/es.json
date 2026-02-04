@@ -661,6 +661,11 @@
       "lateNight": "Programacion nocturna"
     }
   },
+  "serviceStatus": {
+    "requiredNotConfigured": "Servicios requeridos no configurados",
+    "optionalNotConfigured": "Servicios opcionales no configurados",
+    "goToSettings": "Configurar en Ajustes"
+  },
   "logs": {
     "title": "Registros",
     "date": "Fecha",

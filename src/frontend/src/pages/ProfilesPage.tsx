@@ -14,7 +14,8 @@ import {
   CheckCircle,
   Clock,
   FileJson,
-  Sparkles
+  Sparkles,
+  Users
 } from 'lucide-react'
 import { profilesApi, servicesApi } from '@/services/api'
 import type { Profile, TimeBlock, ScoringWeights } from '@/types'
@@ -470,9 +471,12 @@ export function ProfilesPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-          {t('profiles.title')}
-        </h1>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Users className="w-6 h-6 sm:w-8 sm:h-8 text-primary-500" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+            {t('profiles.title')}
+          </h1>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <input
             ref={fileInputRef}

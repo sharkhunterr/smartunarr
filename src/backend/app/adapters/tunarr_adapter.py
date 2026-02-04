@@ -60,8 +60,16 @@ class TunarrAdapter:
             response = await client.get("/api/version")
             if response.status_code == 200:
                 data = response.json()
-                version = data.get("version", "unknown")
-                return True, f"Connected to Tunarr v{version}"
+                # Tunarr returns {"tunarr": "1.x.x", "ffmpeg": "...", "nodejs": "..."}
+                version = data.get("tunarr") or data.get("version")
+                if version:
+                    return True, f"Connected to Tunarr v{version}"
+                # Fallback: try to get channels to confirm connection works
+                channels_response = await client.get("/api/channels")
+                if channels_response.status_code == 200:
+                    channels = channels_response.json()
+                    return True, f"Connected to Tunarr ({len(channels)} channels)"
+                return True, "Connected to Tunarr"
             return False, f"Unexpected status code: {response.status_code}"
         except httpx.ConnectError:
             return False, "Connection refused - is Tunarr running?"

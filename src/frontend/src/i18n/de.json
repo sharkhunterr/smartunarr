@@ -663,6 +663,11 @@
       "lateNight": "Nachtprogramm"
     }
   },
+  "serviceStatus": {
+    "requiredNotConfigured": "Erforderliche Dienste nicht konfiguriert",
+    "optionalNotConfigured": "Optionale Dienste nicht konfiguriert",
+    "goToSettings": "In Einstellungen konfigurieren"
+  },
   "logs": {
     "title": "Protokolle",
     "date": "Datum",

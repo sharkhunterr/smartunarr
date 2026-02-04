@@ -27,6 +27,7 @@ import {
   BLOCK_COLORS,
   type TimeBlockWithCriteria
 } from '@/components/scoring/ScoringDisplay'
+import { ServiceStatusBanner } from '@/components/ServiceStatusBanner'
 import type { Profile, TunarrChannel, ScoringResult, ScoringCacheMode, MFPPolicy, CriterionMultipliers } from '@/types'
 
 const cacheModeOptions: { value: ScoringCacheMode; labelKey: string; icon: React.ElementType; descKey: string }[] = [
@@ -504,18 +505,27 @@ export function ScoringPage() {
     <div className="space-y-3">
       {/* Header with title and form toggle */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-          {t('scoring.title')}
-        </h1>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-primary-500" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+            {t('scoring.title')}
+          </h1>
+        </div>
         <button
           onClick={() => setFormCollapsed(!formCollapsed)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
         >
           <Settings2 className="w-4 h-4" />
           <span className="hidden sm:inline">{t('programming.configuration')}</span>
           {formCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
         </button>
       </div>
+
+      {/* Service status banner */}
+      <ServiceStatusBanner
+        requiredServices={['tunarr', 'plex']}
+        optionalServices={['tmdb']}
+      />
 
       {/* Error display */}
       {error && (

@@ -710,6 +710,11 @@
     "deselectAll": "Tout deselectionner",
     "noLibrariesSelected": "Aucune bibliotheque selectionnee. L'IA generera un profil generique."
   },
+  "serviceStatus": {
+    "requiredNotConfigured": "Services requis non configurés",
+    "optionalNotConfigured": "Services optionnels non configurés",
+    "goToSettings": "Configurer dans Paramètres"
+  },
   "logs": {
     "title": "Logs",
     "date": "Date",

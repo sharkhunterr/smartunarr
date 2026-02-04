@@ -710,6 +710,11 @@
     "deselectAll": "Deselect all",
     "noLibrariesSelected": "No library selected. The AI will generate a generic profile."
   },
+  "serviceStatus": {
+    "requiredNotConfigured": "Required services not configured",
+    "optionalNotConfigured": "Optional services not configured",
+    "goToSettings": "Configure in Settings"
+  },
   "logs": {
     "title": "Logs",
     "date": "Date",

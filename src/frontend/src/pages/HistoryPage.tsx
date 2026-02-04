@@ -483,9 +483,12 @@ export function HistoryPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-          {t('history.title')}
-        </h1>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <History className="w-6 h-6 sm:w-8 sm:h-8 text-primary-500" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+            {t('history.title')}
+          </h1>
+        </div>
         <div className="flex items-center gap-2">
           {/* Compare mode controls */}
           {compareMode ? (

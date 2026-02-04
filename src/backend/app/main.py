@@ -81,7 +81,7 @@ def create_app() -> FastAPI:
         services,
     )
 
-    app.include_router(health.router, tags=["Health"])
+    app.include_router(health.router, prefix="/api/v1", tags=["Health"])
     app.include_router(programming.router, prefix="/api/v1", tags=["Programming"])
     app.include_router(scoring.router, prefix="/api/v1", tags=["Scoring"])
     app.include_router(schedules.router, prefix="/api/v1", tags=["Schedules"])
