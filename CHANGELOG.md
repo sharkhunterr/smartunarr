@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.10](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.9...v0.1.10) (2026-02-04)
+
+
+### Bug Fixes
+
+* Add /health endpoint for nginx/CI compatibility ([8dda25c](https://github.com/sharkhunterr/smartunarr/-/commit/8dda25ca32fe28f1e1e368b4d878e717d7011c4a))
+
 ### [0.1.9](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.8...v0.1.9) (2026-02-04)
 
 ### [0.1.8](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.7...v0.1.8) (2026-02-04)
