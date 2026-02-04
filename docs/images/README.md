@@ -53,7 +53,9 @@ This folder contains screenshots for the SmarTunarr documentation.
 ### Branding
 | File | Description |
 |------|-------------|
-| `logo.svg` | SmarTunarr logo (64x64) |
+| `logo.png` | SmarTunarr logo (64x64) |
+| `logo_256.png` | SmarTunarr logo high-res (256x256) |
+| `logo.svg` | SmarTunarr logo (vector source) |
 
 ## Image Guidelines
 
