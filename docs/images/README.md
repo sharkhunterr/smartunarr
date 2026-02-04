@@ -2,26 +2,65 @@
 
 This folder contains screenshots for the SmarTunarr documentation.
 
-## Required Images
+## Available Images
 
-The following images are referenced in the documentation:
+### Programming
+| File | Description |
+|------|-------------|
+| `programmation_light.png` | Programming page (light theme) |
+| `programmation_dark.png` | Programming page (dark theme) |
+| `programmation_generation_1.png` | Generation progress step 1 |
+| `programmation_generation_2.png` | Generation progress step 2 |
+| `programmation_table.png` | Table view of generated programming |
+| `programmation_timeline.png` | Timeline view of programming |
 
-| File | Description | Used In |
-|------|-------------|---------|
-| `dashboard_light.png` | Dashboard overview (light theme) | README.md |
-| `programming.png` | Programming page | README.md |
-| `scoring.png` | Scoring analysis page | README.md |
-| `profiles.png` | Profile editor | README.md |
-| `ai_generation.png` | AI profile generation | README.md |
-| `settings.png` | Settings page | README.md |
-| `history.png` | History page | README.md |
+### Scoring
+| File | Description |
+|------|-------------|
+| `notation.png` | Scoring analysis page |
+| `notation_result.png` | Scoring results with details |
+
+### Profiles
+| File | Description |
+|------|-------------|
+| `profil.png` | Profile list |
+| `profil_add.png` | Add new profile |
+| `profil_add_ia.png` | AI-assisted profile generation |
+| `profil_edit.png` | Profile editor |
+| `profil_view.png` | Profile detail view |
+
+### Scheduling
+| File | Description |
+|------|-------------|
+| `planification.png` | Scheduling page |
+| `planification_add.png` | Add new schedule |
+| `planification_liste.png` | Schedule list |
+
+### Settings
+| File | Description |
+|------|-------------|
+| `settings_general.png` | General settings |
+| `settings_services.png` | Services configuration |
+| `settings_cache.png` | Cache settings |
+
+### History & Logs
+| File | Description |
+|------|-------------|
+| `history.png` | History page |
+| `history_compare.png` | Compare two history entries |
+| `logs.png` | Logs page |
+
+### Branding
+| File | Description |
+|------|-------------|
+| `logo.svg` | SmarTunarr logo (64x64) |
 
 ## Image Guidelines
 
-- **Format**: PNG preferred
+- **Format**: PNG preferred for screenshots, SVG for logos
 - **Resolution**: 1920x1080 or similar
-- **Theme**: Capture both light and dark versions if possible
-- **Naming**: Use snake_case (e.g., `dashboard_light.png`)
+- **Theme**: Light theme preferred, dark theme for comparison
+- **Naming**: Use snake_case (e.g., `programmation_light.png`)
 
 ## How to Capture
 

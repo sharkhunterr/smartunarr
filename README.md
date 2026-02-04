@@ -15,7 +15,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178C6?logo=typescript&logoColor=white)](https://typescriptlang.org)
 [![i18n](https://img.shields.io/badge/i18n-5_languages-blueviolet.svg)](#-multi-language-support)
 
-![SmarTunarr Dashboard](docs/images/dashboard_light.png)
+![SmarTunarr Programming](docs/images/programmation_light.png)
 
 **[Quick Start](#-quick-start)** •
 **[Features](#-features)** •
@@ -171,29 +171,59 @@ After first launch:
 ## 📸 Screenshots
 
 <details open>
-<summary><b>📺 Programming & Scoring</b></summary>
+<summary><b>📺 Programming</b></summary>
 
-| Programming | Scoring Analysis |
-|-------------|------------------|
-| ![Programming](docs/images/programming.png) | ![Scoring](docs/images/scoring.png) |
+| Light Theme | Dark Theme |
+|-------------|------------|
+| ![Programming Light](docs/images/programmation_light.png) | ![Programming Dark](docs/images/programmation_dark.png) |
+
+| Generation Progress | Timeline View |
+|---------------------|---------------|
+| ![Generation](docs/images/programmation_generation_2.png) | ![Timeline](docs/images/programmation_timeline.png) |
+
+</details>
+
+<details>
+<summary><b>🎯 Scoring Analysis</b></summary>
+
+| Scoring Page | Results |
+|--------------|---------|
+| ![Scoring](docs/images/notation.png) | ![Results](docs/images/notation_result.png) |
 
 </details>
 
 <details>
 <summary><b>📋 Profiles & AI Generation</b></summary>
 
+| Profile List | Profile View |
+|--------------|--------------|
+| ![Profiles](docs/images/profil.png) | ![View](docs/images/profil_view.png) |
+
 | Profile Editor | AI Generation |
 |----------------|---------------|
-| ![Profiles](docs/images/profiles.png) | ![AI](docs/images/ai_generation.png) |
+| ![Editor](docs/images/profil_edit.png) | ![AI](docs/images/profil_add_ia.png) |
+
+</details>
+
+<details>
+<summary><b>⏰ Scheduling</b></summary>
+
+| Schedule List | Add Schedule |
+|---------------|--------------|
+| ![List](docs/images/planification_liste.png) | ![Add](docs/images/planification_add.png) |
 
 </details>
 
 <details>
 <summary><b>⚙️ Settings & History</b></summary>
 
-| Settings | History |
-|----------|---------|
-| ![Settings](docs/images/settings.png) | ![History](docs/images/history.png) |
+| Services Config | History |
+|-----------------|---------|
+| ![Settings](docs/images/settings_services.png) | ![History](docs/images/history.png) |
+
+| History Compare | Logs |
+|-----------------|------|
+| ![Compare](docs/images/history_compare.png) | ![Logs](docs/images/logs.png) |
 
 </details>
 
