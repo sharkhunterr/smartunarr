@@ -81,6 +81,8 @@ def create_app() -> FastAPI:
         services,
     )
 
+    # Health endpoint at /health (for nginx/CI) and /api/v1/health (for API consistency)
+    app.include_router(health.router, tags=["Health"])
     app.include_router(health.router, prefix="/api/v1", tags=["Health"])
     app.include_router(programming.router, prefix="/api/v1", tags=["Programming"])
     app.include_router(scoring.router, prefix="/api/v1", tags=["Scoring"])

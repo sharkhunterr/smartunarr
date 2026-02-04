@@ -4,9 +4,9 @@
 
 ---
 
-# v0.1.9
+# v0.1.10
 
-**Title:** `v0.1.9 - Service Status Banner, UI Improvements & Bug Fixes`
+**Title:** `v0.1.10 - Service Status Banner, UI Improvements & Bug Fixes`
 
 **Release Notes (copier ci-dessous):**
 
@@ -58,13 +58,13 @@ New branding assets added:
 ## 🚀 Upgrade
 
 ```bash
-docker pull sharkhunterr/smartunarr:0.1.9
+docker pull sharkhunterr/smartunarr:0.1.10
 docker compose up -d
 ```
 
 ---
 
-**Full Changelog**: https://github.com/sharkhunterr/smartunarr/compare/v0.1.7...v0.1.9
+**Full Changelog**: https://github.com/sharkhunterr/smartunarr/compare/v0.1.7...v0.1.10
 
 ---
 ---
