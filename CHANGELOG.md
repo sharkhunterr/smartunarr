@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.8](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.7...v0.1.8) (2026-02-04)
+
+
+### Features
+
+* Add service status banner, improve UI consistency, and fix bugs ([bde4e21](https://github.com/sharkhunterr/smartunarr/-/commit/bde4e219c07cb2c428b9b8c3bfe4d0ab34647304))
+
 ### [0.1.7](https://github.com/sharkhunterr/smartunarr/-/compare/v0.1.6...v0.1.7) (2026-02-03)
 
 
