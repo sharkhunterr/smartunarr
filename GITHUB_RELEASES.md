@@ -4,6 +4,71 @@
 
 ---
 
+# v0.1.9
+
+**Title:** `v0.1.9 - Service Status Banner, UI Improvements & Bug Fixes`
+
+**Release Notes (copier ci-dessous):**
+
+---
+
+## 🎉 What's New in v0.1.9
+
+### 🔔 Service Status Banner
+
+A new informative banner appears on Programming, Scoring, and Scheduling pages when services are not configured:
+
+- **Required Services** — Shows Tunarr and Plex when not configured
+- **Optional Services** — Shows TMDB and Ollama as optional
+- **Quick Link** — Direct link to Settings page for easy configuration
+- **Dismissible** — Close the banner temporarily with the X button
+
+![Service Status Banner](https://raw.githubusercontent.com/sharkhunterr/smartunarr/master/docs/banner.svg)
+
+### 🎨 UI Consistency Improvements
+
+Standardized visual design across all pages:
+
+- **Page Headers** — All pages now have consistent icon + title layout
+- **Responsive Icons** — Icons scale appropriately on mobile (6→8 on desktop)
+- **Uniform Typography** — Title sizes standardized to `text-xl sm:text-2xl`
+
+Pages updated: Programming, Scoring, Profiles, History, Logs, Settings, Scheduling
+
+### 📱 Mobile Improvements
+
+- **Logs Page** — Buttons optimized for mobile with icon-only display on small screens
+- **Responsive Controls** — Better spacing and sizing for touch interfaces
+
+### 🖼️ Branding Assets
+
+New branding assets added:
+
+- **Logo SVG** — 64x64 vector logo at `/public/logo.svg`
+- **Banner SVG** — README banner at `/docs/banner.svg`
+- Same design as favicon (TV with colorful programming blocks)
+
+### 🐛 Bug Fixes
+
+- **Tunarr Connection** — Fixed "Connected to Tunarr vunknown" message by reading correct `tunarr` field from API response
+- **Health Endpoint** — Fixed 404 on `/api/v1/health` by adding proper route prefix
+
+---
+
+## 🚀 Upgrade
+
+```bash
+docker pull sharkhunterr/smartunarr:0.1.9
+docker compose up -d
+```
+
+---
+
+**Full Changelog**: https://github.com/sharkhunterr/smartunarr/compare/v0.1.7...v0.1.9
+
+---
+---
+
 # v0.1.7
 
 **Title:** `v0.1.7 - Initial Release: Smart TV Channel Programming for Tunarr`
